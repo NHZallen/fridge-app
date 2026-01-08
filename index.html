@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>智慧冰箱管理</title>
+    <!-- 修改 1: 標題加入版本號 -->
+    <title>智慧冰箱管理 v1.0.1</title>
+    
     <!-- iOS 專用圖示設定 -->
     <link rel="apple-touch-icon" href="icon.png">
     
     <!-- Android / PWA 專用設定 -->
     <link rel="manifest" href="manifest.json">
     
-    <!-- 設定手機狀態列顏色 (選用，讓質感更好) -->
+    <!-- 設定手機狀態列顏色 -->
     <meta name="theme-color" content="#0d6efd">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <!-- 引入 Bootstrap (美化介面) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -82,7 +85,7 @@
     </div>
 
     <!-- 物品列表區 -->
-    <div class="row g-3 pb-5">
+    <div class="row g-3">
         <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
             <div class="card item-card h-100" :class="getAlertClass(item.expiryDate)">
                 <!-- 圖片區域 -->
@@ -117,6 +120,11 @@
     <div v-if="!isLoading && filteredItems.length === 0" class="text-center text-muted mt-5 pt-5">
         <i class="bi bi-box2 display-1 opacity-25"></i>
         <p class="mt-3">冰箱是空的，或者找不到該物品</p>
+    </div>
+
+    <!-- 修改 2: 底部版本號顯示 (為了避免被懸浮按鈕擋住，加了 margin-bottom) -->
+    <div class="text-center mt-5 mb-5">
+        <small class="text-muted opacity-50">ver 1.0.1</small>
     </div>
 
     <!-- 懸浮按鈕 (開啟 Modal) -->
@@ -184,14 +192,15 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+    // 您的 Firebase 設定
     const firebaseConfig = {
-  apiKey: "AIzaSyDZNAZY29ohkR-qQ9yQdSVjuz-a-BkpVdk",
-  authDomain: "familyfridgeapp.firebaseapp.com",
-  projectId: "familyfridgeapp",
-  storageBucket: "familyfridgeapp.firebasestorage.app",
-  messagingSenderId: "302477078162",
-  appId: "1:302477078162:web:ba378d114f61da1cc8c04b"
-};
+      apiKey: "AIzaSyDZNAZY29ohkR-qQ9yQdSVjuz-a-BkpVdk",
+      authDomain: "familyfridgeapp.firebaseapp.com",
+      projectId: "familyfridgeapp",
+      storageBucket: "familyfridgeapp.firebasestorage.app",
+      messagingSenderId: "302477078162",
+      appId: "1:302477078162:web:ba378d114f61da1cc8c04b"
+    };
 
     // 初始化 App
     const app = initializeApp(firebaseConfig);
