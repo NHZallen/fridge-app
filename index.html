@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智慧冰箱管理</title>
+    <!-- 引入 Bootstrap (美化介面) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <style>
+        /* CSS 樣式設定 */
+        body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; }
+        
+        /* 卡片樣式 */
+        .item-card { 
+            border: none; border-radius: 15px; overflow: hidden; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; 
+        }
+        .item-img-box { 
+            width: 100%; height: 180px; background: #e9ecef; 
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .item-img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 過期警示顏色 */
+        .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
+        .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
+        
+        /* 懸浮新增按鈕 (右下角) */
+        .fab-btn {
+            position: fixed; bottom: 30px; right: 25px;
+            width: 65px; height: 65px; border-radius: 50%;
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white; font-size: 30px; border: none;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        .fab-btn:active { transform: scale(0.95); }
+
+        /* 讀取遮罩 */
+        .loading-mask {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container py-3" v-cloak>
+    
+    <!-- 標題與搜尋 -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold m-0"><i class="bi bi-snow2 text-primary"></i> 冰箱庫存</h4>
+        <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
+    </div>
+
+    <div class="input-group mb-4 shadow-sm">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
+        <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
+    </div>
+
+    <!-- 讀取中畫面 -->
+    <div v-if="isLoading" class="loading-mask">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p class="text-muted fw-bold">正在同步全家人的資料...</p>
+    </div>
+
+    <!-- 物品列表區 -->
+    <div class="row g-3 pb-5">
+        <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
+            <div class="card item-card h-100" :class="getAlertClass(item.expiryDate)">
+                <!-- 圖片區域 -->
+                <div class="item-img-box">
+                    <img v-if="item.image" :src="item.image" class="item-img">
+                    <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
+                </div>
+                
+                <!-- 內容區域 -->
+                <div class="card-body p-2 d-flex flex-column">
+                    <h6 class="card-title fw-bold text-truncate mb-1">{{ item.name }}</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">數量: {{ item.quantity }}</small>
+                    </div>
+
+                    <!-- 狀態 Badge -->
+                    <div v-if="getDays(item.expiryDate) < 0" class="badge bg-dark w-100 mb-2">已過期</div>
+                    <div v-else-if="getDays(item.expiryDate) <= 3" class="badge bg-danger w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天!</div>
+                    <div v-else-if="getDays(item.expiryDate) <= 7" class="badge bg-warning text-dark w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
+                    <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
+
+                    <!-- 刪除按鈕 -->
+                    <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click="deleteItem(item)">
+                        取出 / 吃掉
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 沒有物品時顯示 -->
+    <div v-if="!isLoading && filteredItems.length === 0" class="text-center text-muted mt-5 pt-5">
+        <i class="bi bi-box2 display-1 opacity-25"></i>
+        <p class="mt-3">冰箱是空的，或者找不到該物品</p>
+    </div>
+
+    <!-- 懸浮按鈕 (開啟 Modal) -->
+    <button class="fab-btn" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-camera-fill"></i>
+    </button>
+
+    <!-- 新增物品視窗 (Modal) -->
+    <div class="modal fade" id="addModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">放入新物品</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" ref="closeBtn"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="addItem">
+                        <!-- 1. 拍照 -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">1. 物品照片 (必填)</label>
+                            <input type="file" class="form-control" accept="image/*" capture="environment" @change="processImage" required>
+                            <small class="text-muted" v-if="isCompressing">正在處理圖片...</small>
+                        </div>
+                        
+                        <!-- 2. 資料 -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-8">
+                                <label class="form-label fw-bold">2. 名稱</label>
+                                <input type="text" class="form-control" v-model="newItem.name" placeholder="例如：鮮奶" required>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label fw-bold">3. 數量</label>
+                                <input type="text" class="form-control" v-model="newItem.quantity" placeholder="1瓶" required>
+                            </div>
+                        </div>
+
+                        <!-- 3. 日期 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">4. 到期日</label>
+                            <input type="date" class="form-control" v-model="newItem.expiryDate" required>
+                            <div class="mt-2 d-flex gap-2 overflow-auto no-scrollbar">
+                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(3)">+3天</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(7)">+1週</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(14)">+2週</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(30)">+1月</button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold" :disabled="isUploading || isCompressing">
+                            {{ (isUploading || isCompressing) ? '處理中...' : '確認放入冰箱' }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 程式核心引入 -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyDZNAZY29ohkR-qQ9yQdSVjuz-a-BkpVdk",
+  authDomain: "familyfridgeapp.firebaseapp.com",
+  projectId: "familyfridgeapp",
+  storageBucket: "familyfridgeapp.firebasestorage.app",
+  messagingSenderId: "302477078162",
+  appId: "1:302477078162:web:ba378d114f61da1cc8c04b"
+};
+
+    // 初始化 App
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const items = ref([]);
+            const searchText = ref("");
+            const isUploading = ref(false);
+            const isCompressing = ref(false);
+            const isLoading = ref(true);
+            const closeBtn = ref(null);
+            
+            // 預設日期為今天
+            const getTodayStr = () => new Date().toISOString().split('T')[0];
+
+            const newItem = ref({
+                name: "",
+                quantity: "1",
+                expiryDate: getTodayStr(),
+                image: null
+            });
+
+            // 即時同步資料庫
+            onMounted(() => {
+                const q = query(collection(db, "fridge_items"), orderBy("expiryDate"));
+                onSnapshot(q, (snapshot) => {
+                    items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    isLoading.value = false;
+                });
+            });
+
+            // 圖片壓縮邏輯 (轉成 Base64 字串，不存檔案)
+            const processImage = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                isCompressing.value = true;
+                try {
+                    const compressed = await compressFile(file);
+                    newItem.value.image = compressed;
+                } catch (e) {
+                    alert("圖片處理失敗");
+                } finally {
+                    isCompressing.value = false;
+                }
+            };
+
+            const compressFile = (file) => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const MAX_WIDTH = 800; // 限制寬度減少體積
+                            const scale = MAX_WIDTH / img.width;
+                            const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                            const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
+                            
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            
+                            // 輸出 JPEG 品質 0.6
+                            resolve(canvas.toDataURL('image/jpeg', 0.6));
+                        }
+                    }
+                });
+            };
+
+            // 新增物品
+            const addItem = async () => {
+                if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
+                
+                isUploading.value = true;
+                try {
+                    await addDoc(collection(db, "fridge_items"), {
+                        ...newItem.value,
+                        createdAt: new Date()
+                    });
+                    
+                    // 重置表單
+                    newItem.value = { name: "", quantity: "1", expiryDate: getTodayStr(), image: null };
+                    document.querySelector('input[type="file"]').value = "";
+                    closeBtn.value.click(); // 關閉視窗
+                } catch (e) {
+                    console.error(e);
+                    alert("上傳失敗，可能是照片太大了");
+                } finally {
+                    isUploading.value = false;
+                }
+            };
+
+            // 刪除物品
+            const deleteItem = async (item) => {
+                if(confirm(`確定要把 ${item.name} 移出冰箱嗎？`)) {
+                    await deleteDoc(doc(db, "fridge_items", item.id));
+                }
+            };
+
+            // 計算天數
+            const getDays = (dateStr) => {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const target = new Date(dateStr);
+                return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+            };
+
+            const addDays = (days) => {
+                const d = new Date();
+                d.setDate(d.getDate() + days);
+                newItem.value.expiryDate = d.toISOString().split('T')[0];
+            };
+
+            // 警示顏色
+            const getAlertClass = (dateStr) => {
+                const d = getDays(dateStr);
+                if (d <= 3) return "alert-red";
+                if (d <= 7) return "alert-yellow";
+                return "";
+            };
+
+            // 搜尋過濾
+            const filteredItems = computed(() => {
+                if(!searchText.value) return items.value;
+                return items.value.filter(i => i.name.includes(searchText.value));
+            });
+
+            return {
+                items, searchText, newItem, isLoading, isUploading, isCompressing, closeBtn,
+                processImage, addItem, deleteItem, getDays, addDays, getAlertClass, filteredItems
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
