@@ -57,7 +57,7 @@
 
         [v-cloak] { display: none; }
 
-        .settings-page {
+        .settings-page, .add-page {
             min-height: 100vh;
         }
 
@@ -72,6 +72,31 @@
             border-bottom: 1px solid #eee;
         }
         .member-row:last-child { border-bottom: none; }
+
+        /* 圖片預覽區塊 */
+        .preview-box {
+            width: 100%;
+            height: 250px;
+            background-color: #e9ecef;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 15px;
+            position: relative;
+            border: 2px dashed #cbd5e1;
+        }
+        .preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .camera-icon-overlay {
+            font-size: 3rem;
+            color: #adb5bd;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -113,7 +138,8 @@
 
     <!-- 主應用程式 (已設定 Config 才顯示) -->
     <template v-else>
-        <!-- 頂部列 -->
+        
+        <!-- HEADER: 僅在 Home 顯示 -->
         <div class="d-flex justify-content-between align-items-center mb-3" v-if="currentPage==='home'">
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
@@ -127,7 +153,7 @@
             <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
         </div>
 
-        <!-- 搜尋 -->
+        <!-- 搜尋: 僅在 Home 顯示 -->
         <div v-if="currentPage==='home'" class="input-group mb-4 shadow-sm">
             <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
             <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
@@ -140,7 +166,7 @@
             <p class="text-muted fw-bold">正在同步 {{ familySettings.familyName || '家庭' }} 資料...</p>
         </div>
 
-        <!-- HOME：物品列表 -->
+        <!-- 頁面：HOME (物品列表) -->
         <div v-if="!isLoading && currentPage==='home'">
             <div class="row g-3 pb-5">
                 <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
@@ -171,7 +197,6 @@
                                 <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
                             </template>
 
-                            <!-- 使用 .stop 阻止冒泡，並開啟 Modal 避免手機版 confirm 失效 -->
                             <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click.stop="openDeleteModal(item)">
                                 取出 / 吃掉
                             </button>
@@ -185,13 +210,88 @@
                 <p class="mt-3">冰箱是空的，或者找不到該物品</p>
             </div>
 
-            <!-- 懸浮新增按鈕 -->
-            <button class="fab-btn" data-bs-toggle="modal" data-bs-target="#addModal">
-                <i class="bi bi-camera-fill"></i>
+            <!-- 懸浮新增按鈕 (改為跳轉到 Add Page) -->
+            <button class="fab-btn" @click="goToAddPage">
+                <i class="bi bi-plus-lg"></i>
             </button>
         </div>
 
-        <!-- SETTINGS：全螢幕設定頁 -->
+        <!-- 頁面：ADD ITEM (全螢幕新增) -->
+        <div v-if="!isLoading && currentPage==='add'" class="add-page">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light border rounded-pill" @click="goHome">
+                    <i class="bi bi-arrow-left"></i> 取消
+                </button>
+                <h5 class="fw-bold m-0">放入新物品</h5>
+                <div style="width: 74px;"></div>
+            </div>
+
+            <div class="card section-card">
+                <div class="card-body">
+                    <form @submit.prevent="addItem">
+                        <!-- 圖片選取區域 -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">1. 物品照片（必填）</label>
+                            
+                            <!-- 預覽框，點擊觸發 input -->
+                            <div class="preview-box" @click="triggerFileInput">
+                                <img v-if="newItem.image" :src="newItem.image" class="preview-img">
+                                <i v-else class="bi bi-camera-fill camera-icon-overlay"></i>
+                                <div v-if="isCompressing" class="position-absolute bg-white bg-opacity-75 w-100 h-100 d-flex justify-content-center align-items-center">
+                                    <span class="spinner-border text-primary"></span>
+                                </div>
+                            </div>
+                            
+                            <!-- 隱藏的 input，移除 capture 屬性以允許選擇相簿 -->
+                            <input ref="fileInput" type="file" class="d-none" accept="image/*" @change="processImage" required>
+                            
+                            <button type="button" class="btn btn-outline-primary w-100 rounded-pill" @click="triggerFileInput">
+                                <i class="bi bi-image me-1"></i> 拍照或從相簿選取
+                            </button>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-7">
+                                <label class="form-label fw-bold">2. 名稱</label>
+                                <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label fw-bold">3. 數量</label>
+                                <input type="text" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">4. 存入日期</label>
+                            <input type="date" class="form-control form-control-lg" v-model="newItem.storedDate" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">5. 到期日（可不填）</label>
+                            <input type="date" class="form-control form-control-lg" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
+
+                            <div class="form-check form-switch mt-3">
+                                <input class="form-check-input" type="checkbox" id="noExpirySwitch" v-model="newItem.noExpiry">
+                                <label class="form-check-label fw-bold" for="noExpirySwitch">此物品無期限</label>
+                            </div>
+
+                            <div class="mt-3 d-flex gap-2 overflow-auto" v-if="!newItem.noExpiry">
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" @click="addDays(3)">+3天</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" @click="addDays(7)">+1週</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" @click="addDays(14)">+2週</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" @click="addDays(30)">+1月</button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm" :disabled="isUploading || isCompressing">
+                            {{ (isUploading || isCompressing) ? '處理中...' : '確認放入冰箱' }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 頁面：SETTINGS -->
         <div v-if="!isLoading && currentPage==='settings'" class="settings-page">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -250,12 +350,12 @@
                 </div>
             </div>
 
+            <!-- 版本與通知 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <div class="fw-bold"><i class="bi bi-bell text-primary me-1"></i> 版本更新通知</div>
-                            <div class="text-muted small">開啟後，若偵測到新版本，進入 App 會彈出更新資訊</div>
                         </div>
                         <div class="form-check form-switch m-0">
                             <input class="form-check-input" type="checkbox" id="updateNotifySwitch" v-model="settings.updateNotifyEnabled" @change="saveSettings">
@@ -340,68 +440,7 @@
             </div>
         </div>
 
-        <!-- 新增物品視窗 -->
-        <div class="modal fade" id="addModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title fw-bold">放入新物品</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" ref="closeBtn"></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <form @submit.prevent="addItem">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">1. 物品照片（必填）</label>
-                                <input ref="fileInput" type="file" class="form-control" accept="image/*" capture="environment" @change="processImage" required>
-                                <small class="text-muted" v-if="isCompressing">正在處理圖片...</small>
-                            </div>
-
-                            <div class="row g-2 mb-3">
-                                <div class="col-8">
-                                    <label class="form-label fw-bold">2. 名稱</label>
-                                    <input type="text" class="form-control" v-model="newItem.name" placeholder="例如：鮮奶" required>
-                                </div>
-                                <div class="col-4">
-                                    <label class="form-label fw-bold">3. 數量</label>
-                                    <input type="text" class="form-control" v-model="newItem.quantity" placeholder="1瓶" required>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">4. 存入日期</label>
-                                <input type="date" class="form-control" v-model="newItem.storedDate" required>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="form-label fw-bold">5. 到期日（可不填）</label>
-                                <input type="date" class="form-control" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
-
-                                <div class="form-check form-switch mt-2">
-                                    <input class="form-check-input" type="checkbox" id="noExpirySwitch" v-model="newItem.noExpiry">
-                                    <label class="form-check-label fw-bold" for="noExpirySwitch">此物品無期限</label>
-                                </div>
-
-                                <div class="mt-2 d-flex gap-2 overflow-auto" v-if="!newItem.noExpiry">
-                                    <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(3)">+3天</button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(7)">+1週</button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(14)">+2週</button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(30)">+1月</button>
-                                </div>
-
-                                <div class="text-muted small mt-2" v-if="newItem.noExpiry">已設定為無期限，到期日會忽略</div>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold" :disabled="isUploading || isCompressing">
-                                {{ (isUploading || isCompressing) ? '處理中...' : '確認放入冰箱' }}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 刪除確認視窗 (解決手機版 confirm 失效問題) -->
+        <!-- 刪除/取出 確認視窗 -->
         <div class="modal fade" id="deleteModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow">
@@ -410,11 +449,33 @@
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="fs-5">確定要把 <span class="fw-bold text-danger">{{ itemToDelete?.name }}</span> 移出冰箱嗎？</p>
+                        <p class="fs-5 mb-3">物品：<span class="fw-bold">{{ itemToDelete?.name }}</span></p>
+
+                        <!-- 如果數量大於 1，顯示數量選擇 -->
+                        <div v-if="showPartialInput" class="mb-3 p-3 bg-light rounded">
+                            <label class="form-label fw-bold">目前庫存 {{ maxRemoveAmount }}，要取出幾個？</label>
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary" type="button" @click="removeAmount = Math.max(1, removeAmount - 1)">-</button>
+                                <input type="number" class="form-control text-center fw-bold" v-model.number="removeAmount" min="1" :max="maxRemoveAmount">
+                                <button class="btn btn-outline-secondary" type="button" @click="removeAmount = Math.min(maxRemoveAmount, removeAmount + 1)">+</button>
+                            </div>
+                            <div class="text-muted small mt-2">若取出數量等於庫存，物品將會被刪除。</div>
+                        </div>
+
+                        <p v-else>確定要直接移出冰箱嗎？</p>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-danger rounded-pill fw-bold" @click="confirmDelete">確定吃掉 / 取出</button>
+                    <div class="modal-footer flex-column">
+                        <button v-if="showPartialInput" type="button" class="btn btn-danger w-100 rounded-pill fw-bold mb-2" @click="confirmRemove">
+                            確認取出 {{ removeAmount }} 個
+                        </button>
+                        
+                        <button v-if="showPartialInput" type="button" class="btn btn-outline-danger w-100 rounded-pill fw-bold" @click="confirmRemoveAll">
+                            全部吃掉 (刪除物品)
+                        </button>
+
+                        <button v-else type="button" class="btn btn-danger w-100 rounded-pill fw-bold" @click="confirmRemoveAll">
+                            確認取出 / 吃掉
+                        </button>
                     </div>
                 </div>
             </div>
@@ -491,7 +552,6 @@
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
 
-    // 全域變數，待初始化後賦值
     let appFirebase;
     let db;
 
@@ -516,8 +576,11 @@
             const isCompressing = ref(false);
             const isLoading = ref(false);
 
-            // 刪除相關
+            // 刪除/取出相關
             const itemToDelete = ref(null);
+            const showPartialInput = ref(false);
+            const removeAmount = ref(1);
+            const maxRemoveAmount = ref(1);
             let deleteModalInstance = null;
 
             // 家庭資料
@@ -531,9 +594,8 @@
             const nameEditError = ref("");
 
             // UI 參考
-            const closeBtn = ref(null);
             const fileInput = ref(null);
-            const currentPage = ref("home");
+            const currentPage = ref("home"); // home, settings, add
 
             // 設定
             const settings = ref({ updateNotifyEnabled: true });
@@ -567,7 +629,6 @@
                         await initFirebase(configObj, storedUser);
                     } catch (e) {
                         console.error("Config load error", e);
-                        // Config 壞了，重設
                         localStorage.removeItem("fridge_firebase_config");
                         isConfigured.value = false;
                     }
@@ -576,33 +637,28 @@
                 }
             };
 
-            // 2. 初始化 Firebase 並啟動監聽
+            // 2. 初始化 Firebase
             const initFirebase = async (config, userName) => {
                 try {
-                    // 防止重複初始化
                     if (!appFirebase) {
                         appFirebase = initializeApp(config);
                         db = getFirestore(appFirebase);
                     }
                     
-                    // 設定當前使用者
                     currentUserName.value = userName;
-                    localStorage.setItem("fridge_user_name", userName); // 確保更新
+                    localStorage.setItem("fridge_user_name", userName);
                     
                     isConfigured.value = true;
                     isLoading.value = true;
 
-                    // 檢查並加入家庭 (若第一次登入該家庭)
                     await checkAndJoinFamily(userName);
-
-                    // 啟動資料監聽
                     startListeners();
                 } catch (e) {
                     throw e;
                 }
             };
 
-            // 3. 處理使用者輸入的 Config 並儲存
+            // 3. 處理 Config
             const saveInitialConfig = async () => {
                 setupError.value = "";
                 if (!inputConfigStr.value.includes("firebaseConfig") && !inputConfigStr.value.includes("{")) {
@@ -618,7 +674,6 @@
                 isSettingUp.value = true;
                 
                 try {
-                    // 嘗試解析使用者貼上的字串
                     let cleanStr = inputConfigStr.value.trim();
                     cleanStr = cleanStr.replace(/const\s+firebaseConfig\s*=\s*/, '');
                     cleanStr = cleanStr.replace(/;$/, '');
@@ -627,10 +682,8 @@
 
                     if (!configObj.projectId) throw new Error("無效的設定內容");
 
-                    // 嘗試連線
                     await initFirebase(configObj, inputUserName.value.trim());
 
-                    // 成功後儲存到 LocalStorage
                     localStorage.setItem("fridge_firebase_config", JSON.stringify(configObj));
                     
                 } catch (e) {
@@ -642,31 +695,24 @@
                 }
             };
 
-            // 4. 檢查並加入家庭
+            // 4. 家庭邏輯
             const checkAndJoinFamily = async (userName) => {
                 const settingsRef = doc(db, "family_metadata", "general");
-                
                 try {
                     const docSnap = await getDoc(settingsRef);
-                    
                     if (!docSnap.exists()) {
-                        // 第一次建立
                         await setDoc(settingsRef, {
                             familyName: "我的家庭",
                             members: [userName]
                         });
                         familySettings.value = { familyName: "我的家庭", members: [userName] };
                     } else {
-                        // 家庭已存在
                         const data = docSnap.data();
                         let members = data.members || [];
-                        
-                        // 若不在名單內則加入 (這解決了「相同名稱登入則視為同一個人」的基本需求，因為如果名稱一樣，就不會重複 push)
                         if (!members.includes(userName)) {
                             members.push(userName);
                             await updateDoc(settingsRef, { members: members });
                         }
-                        
                         familySettings.value = {
                             familyName: data.familyName || "我的家庭",
                             members: members
@@ -677,33 +723,25 @@
                 }
             };
 
-            // 5. 啟動 Firestore 監聽
             const startListeners = () => {
-                // 監聽物品
                 onSnapshot(collection(db, "fridge_items"), (snapshot) => {
                     items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     isLoading.value = false;
                     showUpdateModal(false);
                 });
 
-                // 監聽家庭設定 (同步名稱、成員與廣播)
                 onSnapshot(doc(db, "family_metadata", "general"), (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         familySettings.value.familyName = data.familyName;
                         familySettings.value.members = data.members || [];
 
-                        // 核心邏輯：檢查是否有「更名廣播」
                         if (data.latest_rename) {
                             const { from, to, at } = data.latest_rename;
-                            // 檢查是否是我現在用的名字被改了 (且時間在 1 分鐘內，避免讀到太舊的歷史)
                             const now = Date.now();
                             if (from === currentUserName.value && (now - at < 60000)) {
-                                // 發現我的名字在別台裝置被改了 -> 同步更新
-                                console.log(`Detected remote rename: ${from} -> ${to}`);
                                 currentUserName.value = to;
                                 localStorage.setItem("fridge_user_name", to);
-                                // 可以選擇跳個 Toast 通知，這裡先不打擾使用者，直接變更
                             }
                         }
                     }
@@ -753,8 +791,6 @@
                 }
 
                 try {
-                    // 原子更新：移除舊名，加入新名，並寫入廣播事件
-                    // 這樣做可以確保「不會直接另外建立人物」，而是「更名」
                     const updatedMembers = familySettings.value.members.filter(m => m !== oldName);
                     updatedMembers.push(newName);
 
@@ -767,7 +803,6 @@
                         }
                     });
 
-                    // 更新本地狀態
                     currentUserName.value = newName;
                     localStorage.setItem("fridge_user_name", newName);
 
@@ -786,8 +821,7 @@
                 }
             };
 
-            // --- 原有冰箱功能 ---
-            
+            // --- 一般功能 ---
             const loadSettings = () => {
                 const saved = localStorage.getItem("fridge_settings_v1");
                 if (saved) {
@@ -841,12 +875,34 @@
 
             onMounted(() => {
                 loadSettings();
-                checkConfig(); // 啟動檢查
+                checkConfig();
             });
 
             watch(() => settings.value.updateNotifyEnabled, () => {
                 saveSettings();
             });
+
+            // --- 新增物品邏輯 ---
+            
+            const goAddPage = () => {
+                // 重置表單
+                newItem.value = {
+                    name: "",
+                    quantity: "1",
+                    storedDate: getTodayStr(),
+                    expiryDate: "",
+                    noExpiry: false,
+                    image: null
+                };
+                // 清空 input 避免重複選取同一檔案無反應
+                if (fileInput.value) fileInput.value.value = "";
+                
+                currentPage.value = 'add';
+            };
+
+            const triggerFileInput = () => {
+                if(fileInput.value) fileInput.value.click();
+            };
 
             const processImage = async (event) => {
                 const file = event.target.files[0];
@@ -907,18 +963,8 @@
                         image: newItem.value.image,
                         createdAt: new Date()
                     });
-
-                    newItem.value = {
-                        name: "",
-                        quantity: "1",
-                        storedDate: getTodayStr(),
-                        expiryDate: "",
-                        noExpiry: false,
-                        image: null
-                    };
-
-                    if (fileInput.value) fileInput.value.value = "";
-                    if (closeBtn.value) closeBtn.value.click();
+                    
+                    goHome();
                 } catch (e) {
                     console.error(e);
                     alert("上傳失敗，可能是照片太大了");
@@ -927,9 +973,23 @@
                 }
             };
 
-            // 修改：使用 Modal 來確認刪除，解決手機版 confirm 相容性問題
+            // --- 刪除與部分取出邏輯 ---
+
             const openDeleteModal = (item) => {
                 itemToDelete.value = item;
+                
+                // 檢查數量是否為數字且大於 1
+                const qty = parseInt(item.quantity);
+                if (!isNaN(qty) && qty > 1) {
+                    showPartialInput.value = true;
+                    maxRemoveAmount.value = qty;
+                    removeAmount.value = 1; // 預設取出 1
+                } else {
+                    showPartialInput.value = false;
+                    maxRemoveAmount.value = 1;
+                    removeAmount.value = 1;
+                }
+
                 const el = document.getElementById('deleteModal');
                 if (el) {
                     deleteModalInstance = new bootstrap.Modal(el);
@@ -937,9 +997,36 @@
                 }
             };
 
-            const confirmDelete = async () => {
+            // 確認取出指定數量
+            const confirmRemove = async () => {
                 if (!db || !itemToDelete.value) return;
-                
+
+                const amountToRemove = parseInt(removeAmount.value);
+                const currentQty = parseInt(itemToDelete.value.quantity);
+
+                if (isNaN(amountToRemove) || amountToRemove <= 0) return;
+
+                try {
+                    // 如果取出數量 >= 庫存，視為全部刪除
+                    if (amountToRemove >= currentQty) {
+                        await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
+                    } else {
+                        // 更新剩餘數量
+                        const newQty = currentQty - amountToRemove;
+                        await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), {
+                            quantity: newQty.toString() // 轉回字串存儲
+                        });
+                    }
+                    if (deleteModalInstance) deleteModalInstance.hide();
+                } catch (e) {
+                    alert("操作失敗");
+                    console.error(e);
+                }
+            };
+
+            // 確認全部刪除
+            const confirmRemoveAll = async () => {
+                if (!db || !itemToDelete.value) return;
                 try {
                     await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
                     if (deleteModalInstance) deleteModalInstance.hide();
@@ -1015,35 +1102,29 @@
             });
 
             return {
-                // 狀態
                 items, searchText, isUploading, isCompressing, isLoading,
-                closeBtn, fileInput,
-                currentPage,
-                
-                // Config & User 狀態
+                fileInput, currentPage,
                 isConfigured, isSettingUp, inputConfigStr, inputUserName, setupError,
                 currentUserName, saveInitialConfig, resetApp,
                 
-                // 家庭設定
                 familySettings, isEditingFamilyName, editFamilyNameTemp,
                 startEditFamilyName, saveFamilyName,
                 editUserNameTemp, nameEditError, startEditUserName, confirmEditUserName,
 
-                // 刪除確認
-                itemToDelete, openDeleteModal, confirmDelete,
+                // 刪除 / 部分取出
+                itemToDelete, openDeleteModal, confirmRemove, confirmRemoveAll,
+                showPartialInput, removeAmount, maxRemoveAmount,
 
-                // 新增
-                newItem, processImage, addItem, 
+                // 新增頁面
+                newItem, processImage, addItem, goAddPage, triggerFileInput,
+                
                 getDays, addDays, getAlertClass, filteredItems,
                 isNoExpiry,
-
-                // 設定與版本
                 settings, saveSettings,
                 appVersion: APP_VERSION,
                 latestVersion, updateLogs, latestLog,
                 showUpdateModal, markUpdateSeen,
 
-                // 導航
                 goHome, goSettings, goSettingsFromSidebar
             };
         }
