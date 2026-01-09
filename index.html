@@ -8,101 +8,42 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    
-    <!-- Bootstrap & Icons -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     
     <style>
-        /* --- 基礎變數 --- */
-        :root {
-            --bg-color: #f0f2f5;
-            --text-color: #212529;
-            --card-bg: #ffffff;
-            --input-bg: #ffffff;
-            --border-color: #ced4da;
-        }
-
-        /* --- 深色模式核心樣式 --- */
-        body.dark-mode {
-            --bg-color: #121212;
-            --text-color: #e0e0e0;
-            --card-bg: #1e1e1e;
-            --input-bg: #2d2d2d;
-            --border-color: #444;
-            color: var(--text-color) !important;
-        }
-
-        /* 強制覆蓋 Bootstrap 元件在深色模式下的樣式 */
-        body.dark-mode .bg-white, 
-        body.dark-mode .bg-light,
-        body.dark-mode .card,
-        body.dark-mode .modal-content,
-        body.dark-mode .offcanvas {
-            background-color: var(--card-bg) !important;
-            color: var(--text-color) !important;
-        }
-
-        body.dark-mode .form-control,
-        body.dark-mode .input-group-text {
-            background-color: var(--input-bg);
-            border-color: var(--border-color);
-            color: var(--text-color);
-        }
+        body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
         
-        body.dark-mode .form-control::placeholder { color: #888; }
-        
-        body.dark-mode .list-group-item {
-            background-color: var(--card-bg);
-            color: var(--text-color);
-            border-color: var(--border-color);
-        }
-        
-        body.dark-mode .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-        body.dark-mode hr { border-color: #666; }
+        /* 避免 iOS Safari 底部被遮擋 */
+        .main-container { padding-bottom: 100px; min-height: 100vh; }
 
-        /* --- 版面樣式 --- */
-        body { background-color: var(--bg-color); font-family: system-ui, -apple-system, sans-serif; transition: background-color 0.3s; }
-        
-        /* 卡片 */
+        /* 卡片樣式 */
         .item-card { 
             border: none; border-radius: 15px; overflow: hidden; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; 
-            background-color: var(--card-bg);
         }
         .item-img-box { 
             width: 100%; height: 180px; background: #e9ecef; 
             display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        /* 深色模式下圖片框變暗一點 */
-        body.dark-mode .item-img-box { background: #2d2d2d; }
         .item-img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 懸浮按鈕 */
+        /* 警示顏色 */
+        .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
+        .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
+        
+        /* 懸浮新增按鈕 */
         .fab-btn {
             position: fixed; bottom: 30px; right: 25px;
             width: 65px; height: 65px; border-radius: 50%;
-            background: linear-gradient(45deg, #0d6efd, #0a58ca);
+            background: linear-gradient(45deg, #007bff, #0056b3);
             color: white; font-size: 30px; border: none;
-            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
-            display: flex; align-items: center; justify-content: center; z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 900;
         }
-
-        /* 設定頁面 (全螢幕) */
-        .settings-page {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--bg-color);
-            z-index: 2000;
-            overflow-y: auto;
-            transform: translateX(100%);
-            transition: transform 0.3s ease-in-out;
-            padding-bottom: 50px;
-        }
-        .settings-page.show { transform: translateX(0); }
-
-        /* 側邊欄底部 */
-        .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid #dee2e6; }
-        body.dark-mode .sidebar-footer { border-color: var(--border-color); }
+        .fab-btn:active { transform: scale(0.95); }
 
         /* 讀取遮罩 */
         .loading-mask {
@@ -110,173 +51,202 @@
             background: rgba(255,255,255,0.95); z-index: 9999;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
-        body.dark-mode .loading-mask { background: rgba(0,0,0,0.95); }
-        
+
+        /* 設定頁面 (全螢幕覆蓋) */
+        .settings-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #f8f9fa; z-index: 2000;
+            overflow-y: auto; padding-bottom: 50px;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        /* 側邊欄底部按鈕區 */
+        .offcanvas-footer {
+            padding: 1rem; border-top: 1px solid #dee2e6;
+        }
+
         [v-cloak] { display: none; }
     </style>
 </head>
 <body>
 
-<div id="app" class="container py-3" v-cloak>
+<div id="app" v-cloak>
     
-    <!-- 頂部導航列 -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-link text-decoration-none p-0 text-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
-                <i class="bi bi-list fs-1"></i>
-            </button>
-            <h4 class="fw-bold m-0"><i class="bi bi-snow2 text-primary"></i> 冰箱庫存</h4>
-        </div>
-        <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項</span>
-    </div>
-
-    <!-- 搜尋框 -->
-    <div class="input-group mb-4 shadow-sm">
-        <span class="input-group-text border-end-0"><i class="bi bi-search text-muted"></i></span>
-        <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
-        <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
-    </div>
-
     <!-- 讀取中畫面 -->
     <div v-if="isLoading" class="loading-mask">
         <div class="spinner-border text-primary mb-3" role="status"></div>
         <p class="text-muted fw-bold">正在同步全家人的資料...</p>
     </div>
 
-    <!-- 物品列表 -->
-    <div class="row g-3 pb-5">
-        <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
-            <div class="card item-card h-100">
-                <div class="item-img-box">
-                    <img v-if="item.image" :src="item.image" class="item-img">
-                    <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
+    <!-- ===== 主頁面區域 ===== -->
+    <div v-if="!showSettingsPage" class="container py-3 main-container">
+        <!-- 頂部導航列 -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button class="btn btn-light rounded-circle shadow-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <h4 class="fw-bold m-0"><i class="bi bi-snow2 text-primary"></i> 冰箱庫存</h4>
+            <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項</span>
+        </div>
+
+        <!-- 搜尋 -->
+        <div class="input-group mb-4 shadow-sm">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
+            <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
+        </div>
+
+        <!-- 物品列表 -->
+        <div class="row g-3">
+            <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
+                <div class="card item-card h-100" :class="getAlertClass(item.expiryDate)">
+                    <div class="item-img-box">
+                        <img v-if="item.image" :src="item.image" class="item-img">
+                        <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
+                    </div>
+                    <div class="card-body p-2 d-flex flex-column">
+                        <h6 class="card-title fw-bold text-truncate mb-1">{{ item.name }}</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="text-muted">數量: {{ item.quantity }}</small>
+                        </div>
+                        
+                        <!-- 顯示狀態 -->
+                        <div v-if="getDays(item.expiryDate) < 0" class="badge bg-dark w-100 mb-2">已過期</div>
+                        <div v-else-if="getDays(item.expiryDate) <= 3" class="badge bg-danger w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天!</div>
+                        <div v-else-if="getDays(item.expiryDate) <= 7" class="badge bg-warning text-dark w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
+                        <div v-else class="badge bg-light text-secondary border w-100 mb-2">到期：{{ item.expiryDate }}</div>
+                        
+                        <!-- 如果有存入日期，可以顯示 (選用) -->
+                        <small v-if="item.storageDate" class="text-muted mb-2" style="font-size: 0.75rem;">
+                            存入：{{ item.storageDate }}
+                        </small>
+
+                        <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click="deleteItem(item)">
+                            取出 / 吃掉
+                        </button>
+                    </div>
                 </div>
-                <div class="card-body p-2 d-flex flex-column">
-                    <h6 class="card-title fw-bold text-truncate mb-1">{{ item.name }}</h6>
-                    <small class="text-muted mb-2">數量: {{ item.quantity }}</small>
-                    
-                    <!-- 到期日顯示 -->
-                    <div v-if="getDays(item.expiryDate) < 0" class="badge bg-dark w-100 mb-2">已過期</div>
-                    <div v-else-if="getDays(item.expiryDate) <= 3" class="badge bg-danger w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天!</div>
-                    <div v-else-if="getDays(item.expiryDate) <= 7" class="badge bg-warning text-dark w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
-                    <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
-                    
-                    <!-- 存入日期 -->
-                    <small class="text-muted mb-2" style="font-size: 0.75rem;">存入: {{ item.depositDate || '未知' }}</small>
-
-                    <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click="deleteItem(item)">
-                        取出 / 吃掉
-                    </button>
-                </div>
             </div>
         </div>
-    </div>
 
-    <!-- 空狀態 -->
-    <div v-if="!isLoading && filteredItems.length === 0" class="text-center text-muted mt-5 pt-5">
-        <i class="bi bi-box2 display-1 opacity-25"></i>
-        <p class="mt-3">冰箱是空的</p>
-    </div>
-
-    <!-- 懸浮新增按鈕 -->
-    <button class="fab-btn" data-bs-toggle="modal" data-bs-target="#addModal">
-        <i class="bi bi-camera-fill"></i>
-    </button>
-
-    <!-- 左側邊欄 (Offcanvas) -->
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" style="width: 280px;">
-        <div class="offcanvas-header bg-primary text-white">
-            <h5 class="offcanvas-title fw-bold"><i class="bi bi-house-door-fill"></i> 選單</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        <!-- 空狀態 -->
+        <div v-if="!isLoading && filteredItems.length === 0" class="text-center text-muted mt-5 pt-5">
+            <i class="bi bi-box2 display-1 opacity-25"></i>
+            <p class="mt-3">冰箱是空的，或者找不到該物品</p>
         </div>
-        <div class="offcanvas-body d-flex flex-column">
-            <!-- 這裡清空了原本的清單，目前留白或可顯示歡迎訊息 -->
-            <div class="text-muted text-center mt-5">
-                <i class="bi bi-emoji-smile fs-1"></i>
-                <p class="mt-2">美好的一天，<br>從整理冰箱開始！</p>
-            </div>
-            
-            <!-- 底部設定按鈕 -->
-            <div class="sidebar-footer">
-                <button class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center" 
-                        @click="openSettings">
-                    <i class="bi bi-gear-fill me-2"></i> 設定
-                </button>
-            </div>
-        </div>
+
+        <!-- 懸浮按鈕 (開啟 Modal) -->
+        <button class="fab-btn" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-camera-fill"></i>
+        </button>
     </div>
 
-    <!-- 設定頁面 (全螢幕覆蓋) -->
-    <div class="settings-page" :class="{ 'show': isSettingsOpen }">
-        <div class="container py-3">
-            <div class="d-flex align-items-center mb-4">
-                <button class="btn btn-link text-decoration-none text-body p-0 me-3" @click="isSettingsOpen = false">
-                    <i class="bi bi-arrow-left fs-1"></i>
-                </button>
-                <h2 class="fw-bold m-0">設定</h2>
-            </div>
+    <!-- ===== 設定頁面 (全螢幕) ===== -->
+    <div v-if="showSettingsPage" class="settings-page">
+        <!-- 設定頁 Header -->
+        <div class="sticky-top bg-white shadow-sm px-3 py-3 d-flex align-items-center mb-3">
+            <button class="btn btn-link text-dark text-decoration-none p-0 me-3" @click="closeSettings">
+                <i class="bi bi-arrow-left fs-3"></i>
+            </button>
+            <h4 class="fw-bold m-0">設定</h4>
+        </div>
 
-            <!-- 外觀設定 -->
-            <div class="card mb-3 shadow-sm">
+        <div class="container">
+            <!-- 家庭成員區塊 -->
+            <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold mb-3">外觀</h5>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="fs-5"><i class="bi bi-moon-stars me-2"></i>深色模式</span>
-                        </div>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" v-model="isDarkMode" @change="toggleDarkMode">
-                        </div>
+                    <h6 class="fw-bold mb-3"><i class="bi bi-people-fill text-primary me-2"></i>家庭成員</h6>
+                    <div class="d-flex align-items-center justify-content-between p-2 bg-light rounded">
+                        <span class="text-muted">成員管理功能</span>
+                        <span class="badge bg-secondary">開發中</span>
                     </div>
                 </div>
             </div>
 
-            <!-- 家庭成員 (開發中) -->
-            <div class="card mb-3 shadow-sm">
+            <!-- 系統設定區塊 -->
+            <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
-                    <h5 class="card-title fw-bold mb-3">家庭成員</h5>
-                    <div class="text-center py-4 bg-light rounded border border-dashed">
-                        <i class="bi bi-people-fill fs-1 text-muted opacity-50"></i>
-                        <p class="text-muted mt-2 mb-0 fw-bold">功能開發中</p>
-                        <small class="text-muted">之後您將可以邀請家人一起管理冰箱！</small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 關於 -->
-            <div class="card mb-3 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title fw-bold mb-3">關於應用程式</h5>
+                    <h6 class="fw-bold mb-3"><i class="bi bi-gear-fill text-primary me-2"></i>系統設定</h6>
                     
+                    <!-- 更新通知開關 -->
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <div class="fs-5">版本更新通知</div>
-                            <small class="text-muted">有新功能時自動提醒</small>
+                            <div class="fw-bold">版本更新通知</div>
+                            <small class="text-muted">有新版本時自動提醒</small>
                         </div>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" v-model="notifyUpdate" @change="saveSettings">
+                        <div class="form-check form-switch fs-4">
+                            <input class="form-check-input" type="checkbox" role="switch" v-model="settings.notifyUpdate" @change="saveSettings">
                         </div>
                     </div>
 
                     <hr>
-                    
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">目前版本</span>
-                        <span class="badge bg-secondary">{{ currentAppVersion }}</span>
-                    </div>
 
-                    <div class="mt-3 bg-light p-3 rounded" v-if="latestLog">
-                        <h6 class="fw-bold">最新更新內容 ({{ latestLog.version }})</h6>
-                        <ul class="mb-0 ps-3 small text-muted">
-                            <li v-for="(line, idx) in latestLog.content" :key="idx">{{ line }}</li>
-                        </ul>
+                    <!-- 版本資訊 -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-bold">目前版本</span>
+                            <span class="badge bg-primary">v{{ appVersion }}</span>
+                        </div>
+                        
+                        <h6 class="fw-bold mt-4 mb-2 text-muted small">更新日誌</h6>
+                        <div class="accordion" id="accordionUpdates">
+                            <div class="accordion-item" v-for="(log, index) in updateLogs" :key="index">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" :data-bs-target="'#log'+index">
+                                        <span class="me-2 fw-bold">v{{ log.version }}</span>
+                                        <small class="text-muted">{{ log.date }}</small>
+                                    </button>
+                                </h2>
+                                <div :id="'#log'+index" class="accordion-collapse collapse" data-bs-parent="#accordionUpdates">
+                                    <div class="accordion-body bg-light">
+                                        <ul class="mb-0 ps-3 small">
+                                            <li v-for="content in log.content">{{ content }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 新增物品視窗 -->
+    <!-- ===== 左側邊欄 (Sidebar) ===== -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu" ref="sidebarRef">
+        <div class="offcanvas-header bg-primary text-white">
+            <h5 class="offcanvas-title fw-bold"><i class="bi bi-snow2 me-2"></i>智慧冰箱</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column p-0">
+            <!-- 選單項目 -->
+            <div class="list-group list-group-flush mt-2">
+                <button class="list-group-item list-group-item-action py-3 border-0 active" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-house-door me-3 fs-5"></i> 首頁
+                </button>
+                <!-- 未來可擴充其他功能 -->
+                <button class="list-group-item list-group-item-action py-3 border-0 text-muted" disabled>
+                    <i class="bi bi-graph-up me-3 fs-5"></i> 統計報表 (即將推出)
+                </button>
+                <button class="list-group-item list-group-item-action py-3 border-0 text-muted" disabled>
+                    <i class="bi bi-cart me-3 fs-5"></i> 採購清單 (即將推出)
+                </button>
+            </div>
+
+            <!-- 底部設定按鈕 -->
+            <div class="mt-auto offcanvas-footer bg-light">
+                <button class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center py-2" @click="openSettings">
+                    <i class="bi bi-gear-fill me-2"></i> 開啟設定
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 新增物品視窗 (Modal) ===== -->
     <div class="modal fade" id="addModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -305,20 +275,24 @@
                             </div>
                         </div>
 
-                        <!-- 3. 日期設定 -->
-                        <div class="row g-2 mb-4">
-                            <div class="col-6">
-                                <label class="form-label fw-bold small">存入日期</label>
-                                <input type="date" class="form-control" v-model="newItem.depositDate" required>
+                        <!-- 3. 日期設定 (分頁籤概念) -->
+                        <div class="mb-4 bg-light p-3 rounded">
+                            <div class="row g-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold small">存入日期 (選填)</label>
+                                    <input type="date" class="form-control form-control-sm" v-model="newItem.storageDate">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-bold small">到期日 (必填)</label>
+                                    <input type="date" class="form-control form-control-sm" v-model="newItem.expiryDate" required>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label fw-bold small">有效期限</label>
-                                <input type="date" class="form-control" v-model="newItem.expiryDate" required>
-                            </div>
-                            <div class="col-12 mt-2 d-flex gap-2 overflow-auto no-scrollbar">
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(3)">+3天</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(7)">+1週</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(30)">+1月</button>
+                            <!-- 快速加日期按鈕 -->
+                            <div class="mt-3 d-flex gap-2 overflow-auto no-scrollbar pb-1">
+                                <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" @click="addDays(3)">+3天</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" @click="addDays(7)">+1週</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" @click="addDays(14)">+2週</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" @click="addDays(30)">+1月</button>
                             </div>
                         </div>
 
@@ -331,21 +305,22 @@
         </div>
     </div>
 
-    <!-- 版本更新通知彈窗 -->
+    <!-- ===== 版本更新通知彈窗 ===== -->
     <div class="modal fade" id="updateModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-gift-fill"></i> 發現新版本！</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-stars me-2"></i>發現新版本 v{{ appVersion }}</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <h5 class="fw-bold mb-3">{{ latestLog?.title }} (v{{ latestLog?.version }})</h5>
-                    <ul class="mb-4">
-                        <li v-for="(line, idx) in latestLog?.content" :key="idx" class="mb-2">{{ line }}</li>
+                    <p class="fw-bold">更新內容：</p>
+                    <ul class="mb-0">
+                        <li v-for="txt in latestLogContent">{{ txt }}</li>
                     </ul>
-                    <p class="text-muted small text-end">更新日期：{{ latestLog?.date }}</p>
-                    <button class="btn btn-success w-100 rounded-pill" data-bs-dismiss="modal" @click="confirmUpdateSeen">我知道了，開始使用！</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success w-100 rounded-pill" data-bs-dismiss="modal" @click="markVersionAsRead">太棒了！</button>
                 </div>
             </div>
         </div>
@@ -353,16 +328,15 @@
 
 </div>
 
-<!-- 程式核心 -->
+<!-- 程式核心引入 -->
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    
-    // 匯入版本控制
-    import { currentVersion, updateLogs } from './update-logs.js';
+    // 引入版本資訊
+    import { updateInfo } from "./update-logs.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDZNAZY29ohkR-qQ9yQdSVjuz-a-BkpVdk",
@@ -376,93 +350,94 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const { createApp, ref, computed, onMounted } = Vue;
+    const { createApp, ref, computed, onMounted, reactive } = Vue;
 
     createApp({
         setup() {
-            // --- 狀態變數 ---
             const items = ref([]);
             const searchText = ref("");
             const isUploading = ref(false);
             const isCompressing = ref(false);
             const isLoading = ref(true);
             const closeBtn = ref(null);
+            const showSettingsPage = ref(false);
             
-            // 設定相關
-            const isSettingsOpen = ref(false);
-            const isDarkMode = ref(localStorage.getItem('darkMode') === 'true');
-            const notifyUpdate = ref(localStorage.getItem('notifyUpdate') !== 'false');
-            const currentAppVersion = currentVersion;
-            const latestLog = updateLogs[0];
+            // 側邊欄實例
+            let sidebarInstance = null;
+
+            // 設定與版本
+            const appVersion = updateInfo.currentVersion;
+            const updateLogs = updateInfo.logs;
+            const settings = reactive({
+                notifyUpdate: true
+            });
 
             const getTodayStr = () => new Date().toISOString().split('T')[0];
 
             const newItem = ref({
                 name: "",
                 quantity: "1",
-                depositDate: getTodayStr(),
                 expiryDate: getTodayStr(),
+                storageDate: getTodayStr(), // 新增：存入日期
                 image: null
             });
 
-            // 應用深色模式到 Body (因為 body 在 Vue app 範圍外)
-            const applyTheme = () => {
-                if(isDarkMode.value) {
-                    document.body.classList.add('dark-mode');
-                } else {
-                    document.body.classList.remove('dark-mode');
-                }
-            };
-
-            // --- 生命週期 ---
             onMounted(() => {
-                // 初始化主題
-                applyTheme();
-
-                // 1. 同步資料庫
+                // 1. 載入 Firebase 資料
                 const q = query(collection(db, "fridge_items"), orderBy("expiryDate"));
                 onSnapshot(q, (snapshot) => {
                     items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     isLoading.value = false;
                 });
 
-                // 2. 檢查版本更新
+                // 2. 讀取 LocalStorage 設定
+                const savedNotify = localStorage.getItem('notifyUpdate');
+                if (savedNotify !== null) {
+                    settings.notifyUpdate = JSON.parse(savedNotify);
+                }
+
+                // 3. 檢查版本更新
                 checkVersionUpdate();
             });
 
-            // --- 功能函式 ---
-
+            // 檢查是否需要跳出更新通知
             const checkVersionUpdate = () => {
-                const lastSeenVersion = localStorage.getItem('lastSeenVersion');
-                if (notifyUpdate.value && lastSeenVersion !== currentVersion) {
-                    const updateModal = new bootstrap.Modal(document.getElementById('updateModal'));
-                    updateModal.show();
+                const lastReadVersion = localStorage.getItem('lastReadVersion');
+                
+                // 條件：設定為開啟通知 && (沒有讀過版本 OR 版本號不同)
+                if (settings.notifyUpdate && lastReadVersion !== appVersion) {
+                    const modalEl = document.getElementById('updateModal');
+                    if(modalEl) {
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    }
                 }
             };
 
-            const confirmUpdateSeen = () => {
-                localStorage.setItem('lastSeenVersion', currentVersion);
+            // 標記版本已讀
+            const markVersionAsRead = () => {
+                localStorage.setItem('lastReadVersion', appVersion);
             };
 
-            const openSettings = () => {
-                const sidebarEl = document.getElementById('sidebar');
-                const sidebar = bootstrap.Offcanvas.getInstance(sidebarEl);
-                if(sidebar) sidebar.hide();
-                isSettingsOpen.value = true;
-            };
-
-            // 切換深色模式
-            const toggleDarkMode = () => {
-                // 儲存設定
-                localStorage.setItem('darkMode', isDarkMode.value);
-                // 立即應用樣式到 body
-                applyTheme();
-            };
-
+            // 儲存設定
             const saveSettings = () => {
-                localStorage.setItem('notifyUpdate', notifyUpdate.value);
+                localStorage.setItem('notifyUpdate', JSON.stringify(settings.notifyUpdate));
             };
 
+            // 開啟設定頁 (需先關閉側邊欄)
+            const openSettings = () => {
+                const sidebarEl = document.getElementById('sidebarMenu');
+                sidebarInstance = bootstrap.Offcanvas.getInstance(sidebarEl);
+                if(sidebarInstance) sidebarInstance.hide();
+                showSettingsPage.value = true;
+            };
+
+            // 關閉設定頁
+            const closeSettings = () => {
+                showSettingsPage.value = false;
+            };
+
+            // 圖片壓縮邏輯
             const processImage = async (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -470,8 +445,11 @@
                 try {
                     const compressed = await compressFile(file);
                     newItem.value.image = compressed;
-                } catch (e) { alert("圖片處理失敗"); } 
-                finally { isCompressing.value = false; }
+                } catch (e) {
+                    alert("圖片處理失敗");
+                } finally {
+                    isCompressing.value = false;
+                }
             };
 
             const compressFile = (file) => {
@@ -487,7 +465,8 @@
                             const scale = MAX_WIDTH / img.width;
                             const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
                             const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
-                            canvas.width = w; canvas.height = h;
+                            canvas.width = w;
+                            canvas.height = h;
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, w, h);
                             resolve(canvas.toDataURL('image/jpeg', 0.6));
@@ -496,6 +475,7 @@
                 });
             };
 
+            // 新增物品
             const addItem = async () => {
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
                 isUploading.value = true;
@@ -504,16 +484,22 @@
                         ...newItem.value,
                         createdAt: new Date()
                     });
+                    
                     newItem.value = { 
-                        name: "", quantity: "1", 
-                        depositDate: getTodayStr(), 
+                        name: "", 
+                        quantity: "1", 
                         expiryDate: getTodayStr(), 
+                        storageDate: getTodayStr(),
                         image: null 
                     };
                     document.querySelector('input[type="file"]').value = "";
                     closeBtn.value.click();
-                } catch (e) { console.error(e); alert("上傳失敗"); } 
-                finally { isUploading.value = false; }
+                } catch (e) {
+                    console.error(e);
+                    alert("上傳失敗");
+                } finally {
+                    isUploading.value = false;
+                }
             };
 
             const deleteItem = async (item) => {
@@ -535,16 +521,29 @@
                 newItem.value.expiryDate = d.toISOString().split('T')[0];
             };
 
+            const getAlertClass = (dateStr) => {
+                const d = getDays(dateStr);
+                if (d <= 3) return "alert-red";
+                if (d <= 7) return "alert-yellow";
+                return "";
+            };
+
             const filteredItems = computed(() => {
                 if(!searchText.value) return items.value;
                 return items.value.filter(i => i.name.includes(searchText.value));
             });
 
+            // 取得最新版本的 Log 內容 (用於彈窗顯示)
+            const latestLogContent = computed(() => {
+                const log = updateLogs.find(l => l.version === appVersion);
+                return log ? log.content : [];
+            });
+
             return {
                 items, searchText, newItem, isLoading, isUploading, isCompressing, closeBtn,
-                isSettingsOpen, isDarkMode, notifyUpdate, currentAppVersion, latestLog,
-                processImage, addItem, deleteItem, getDays, addDays, filteredItems,
-                openSettings, toggleDarkMode, saveSettings, confirmUpdateSeen
+                showSettingsPage, settings, appVersion, updateLogs, latestLogContent,
+                openSettings, closeSettings, saveSettings, markVersionAsRead,
+                processImage, addItem, deleteItem, getDays, addDays, getAlertClass, filteredItems
             };
         }
     }).mount('#app');
