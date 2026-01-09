@@ -21,12 +21,19 @@
         .item-card {
             border: none; border-radius: 15px; overflow: hidden;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
+            /* 禁止長按時的系統預設選單，改用自定義邏輯 */
+            user-select: none; -webkit-user-select: none;
+            cursor: pointer;
         }
+        .item-card:active { transform: scale(0.98); }
+
         .item-img-box {
             width: 100%; height: 180px; background: #e9ecef;
             display: flex; align-items: center; justify-content: center; overflow: hidden;
+            position: relative;
         }
-        .item-img { width: 100%; height: 100%; object-fit: cover; }
+        .item-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
+        .item-img-box:active .item-img { opacity: 0.8; }
 
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
         .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
@@ -74,17 +81,38 @@
         }
         .member-row:last-child { border-bottom: none; }
         
-        /* 數量選擇器的樣式 */
-        .qty-btn {
-            width: 40px; height: 40px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; font-weight: bold;
+        /* 圖片預覽層 */
+        .image-preview-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .preview-img {
+            max-width: 100%; max-height: 80vh; object-fit: contain;
+        }
+        .preview-close {
+            position: absolute; top: 20px; right: 20px;
+            color: white; font-size: 2rem; background: none; border: none;
+        }
+
+        /* 側邊欄調整 */
+        .sidebar-user-block {
+            margin-bottom: 5px; /* 縮小與分隔線的距離 */
+        }
+        .sidebar-divider {
+            margin-top: 5px; margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
 
 <div id="app" class="container py-3" v-cloak>
+
+    <!-- 圖片預覽層 -->
+    <div v-if="previewImageUrl" class="image-preview-overlay" @click="closePreview">
+        <button class="preview-close"><i class="bi bi-x-circle"></i></button>
+        <img :src="previewImageUrl" class="preview-img" @click.stop>
+    </div>
 
     <!-- 初始設定畫面 (若未設定 Config 則顯示) -->
     <div v-if="!isConfigured" class="setup-screen">
@@ -144,11 +172,22 @@
                 <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
             </div>
 
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <small class="text-muted"><i class="bi bi-info-circle me-1"></i>長按物品可編輯</small>
+            </div>
+
             <!-- 物品列表 -->
             <div class="row g-3 pb-5">
                 <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
-                    <div class="card item-card h-100" :class="getAlertClass(item)">
-                        <div class="item-img-box">
+                    <!-- 加入長按事件監聽 -->
+                    <div class="card item-card h-100" 
+                         :class="getAlertClass(item)"
+                         @touchstart="handleTouchStart(item)"
+                         @touchend="handleTouchEnd"
+                         @touchmove="handleTouchMove"
+                         @contextmenu.prevent="goToEditPage(item)">
+                        
+                        <div class="item-img-box" @click.stop="openPreview(item.image)">
                             <img v-if="item.image" :src="item.image" class="item-img">
                             <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
                         </div>
@@ -165,17 +204,16 @@
                                 <small class="text-muted" v-else>存入: 未填</small>
                             </div>
 
-                            <!-- 到期狀態 -->
+                            <!-- 到期狀態 (修正：補上過期日期) -->
                             <div v-if="isNoExpiry(item)" class="badge bg-light text-secondary border w-100 mb-2">無期限</div>
                             <template v-else>
-                                <div v-if="getDays(item.expiryDate) < 0" class="badge bg-dark w-100 mb-2">已過期</div>
+                                <div v-if="getDays(item.expiryDate) < 0" class="badge bg-dark w-100 mb-2">已過期 ({{ item.expiryDate }})</div>
                                 <div v-else-if="getDays(item.expiryDate) <= 3" class="badge bg-danger w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天!</div>
                                 <div v-else-if="getDays(item.expiryDate) <= 7" class="badge bg-warning text-dark w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
                                 <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
                             </template>
 
-                            <!-- 按下取出按鈕：觸發 checkAction -->
-                            <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click.stop="checkQuantityAndAction(item)">
+                            <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click.stop="goToTakeOutPage(item)">
                                 取出 / 吃掉
                             </button>
                         </div>
@@ -188,25 +226,25 @@
                 <p class="mt-3">冰箱是空的，或者找不到該物品</p>
             </div>
 
-            <!-- 懸浮新增按鈕：點擊切換頁面 -->
+            <!-- 懸浮新增按鈕 -->
             <button class="fab-btn" @click="goToAddPage">
                 <i class="bi bi-plus-lg"></i>
             </button>
         </div>
 
-        <!-- ADD PAGE：全螢幕新增物品頁 -->
-        <div v-if="!isLoading && currentPage==='add'" class="page-container">
+        <!-- ADD / EDIT PAGE：全螢幕新增或編輯頁 -->
+        <div v-if="!isLoading && (currentPage==='add' || currentPage==='edit')" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 取消
                 </button>
-                <h5 class="fw-bold m-0">放入新物品</h5>
-                <div style="width: 74px;"></div> <!-- 佔位符保持標題置中 -->
+                <h5 class="fw-bold m-0">{{ currentPage==='edit' ? '編輯物品' : '放入新物品' }}</h5>
+                <div style="width: 74px;"></div>
             </div>
 
             <div class="card section-card">
                 <div class="card-body">
-                    <form @submit.prevent="addItem">
+                    <form @submit.prevent="submitItem">
                         <div class="mb-4">
                             <label class="form-label fw-bold fs-5">1. 物品照片</label>
                             <div class="d-flex flex-column align-items-center justify-content-center border rounded bg-light p-3" style="min-height: 200px;" @click="$refs.fileInput.click()">
@@ -216,7 +254,6 @@
                                     <div class="mt-2">點擊選擇相機或相簿</div>
                                 </div>
                             </div>
-                            <!-- 移除 capture 屬性，讓手機自動跳出 相機/檔案 選擇選單 -->
                             <input ref="fileInput" type="file" class="d-none" accept="image/*" @change="processImage">
                             <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
@@ -255,9 +292,51 @@
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm" :disabled="isUploading || isCompressing">
-                            {{ (isUploading || isCompressing) ? '處理中...' : '確認放入冰箱' }}
+                            {{ (isUploading || isCompressing) ? '處理中...' : (currentPage==='edit' ? '儲存變更' : '確認放入冰箱') }}
                         </button>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAKE OUT PAGE：全螢幕取出頁面 -->
+        <div v-if="!isLoading && currentPage==='takeout'" class="page-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light border rounded-pill" @click="goHome">
+                    <i class="bi bi-arrow-left"></i> 取消
+                </button>
+                <h5 class="fw-bold m-0">取出物品</h5>
+                <div style="width: 74px;"></div>
+            </div>
+
+            <div class="card section-card">
+                <div class="card-body text-center">
+                    <div class="mb-4 d-flex justify-content-center">
+                        <div class="rounded overflow-hidden shadow-sm" style="width: 150px; height: 150px;">
+                            <img v-if="itemToDelete?.image" :src="itemToDelete.image" style="width: 100%; height: 100%; object-fit: cover;">
+                            <div v-else class="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image fs-1 text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="fw-bold mb-2">{{ itemToDelete?.name }}</h3>
+                    <p class="text-muted mb-4">目前庫存：{{ maxTakeOut }}</p>
+
+                    <div class="text-start mb-3">
+                        <label class="form-label fw-bold">請選擇要取出的數量</label>
+                        <select class="form-select form-select-lg" v-model="takeOutAmount">
+                            <option v-for="n in maxTakeOut" :key="n" :value="n">{{ n }} {{ n === maxTakeOut ? '(全部取出)' : '' }}</option>
+                        </select>
+                    </div>
+
+                    <div v-if="takeOutAmount === maxTakeOut" class="alert alert-warning small py-2 mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> 此操作將會把物品從冰箱清單中完全移除。
+                    </div>
+
+                    <button class="btn btn-danger w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm" @click="confirmTakeOutAction">
+                        {{ takeOutAmount === maxTakeOut ? '確認吃掉 / 刪除' : '確認取出' }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -400,68 +479,18 @@
             </div>
 
             <div class="offcanvas-body d-flex flex-column">
-                <div class="mb-3">
+                <!-- 修正：分隔線位置與間距 -->
+                <div class="sidebar-user-block">
                     <div class="text-muted small">目前使用者</div>
                     <div class="fw-bold fs-5">{{ currentUserName }}</div>
                 </div>
-                <hr>
+                <hr class="sidebar-divider">
 
                 <div class="mt-auto">
                     <button class="btn btn-primary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
                         <i class="bi bi-gear me-1"></i> 設定
                     </button>
                     <div class="text-center text-muted small mt-3">v{{ appVersion }}</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 刪除/全部取出 確認視窗 -->
-        <div class="modal fade" id="deleteModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title fw-bold">取出物品確認</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="fs-5">確定要把 <span class="fw-bold text-danger">{{ itemToDelete?.name }}</span> 移出冰箱嗎？</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-danger rounded-pill fw-bold" @click="confirmDelete">確定吃掉 / 取出</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 部分取出/數量選擇視窗 -->
-        <div class="modal fade" id="takeOutModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title fw-bold">選擇取出數量</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body text-center">
-                        <h5 class="fw-bold mb-3">{{ itemToDelete?.name }}</h5>
-                        <div class="text-muted mb-4">目前庫存：{{ itemToDelete?.quantity }}</div>
-
-                        <div class="d-flex justify-content-center align-items-center gap-3 mb-4">
-                            <button class="btn btn-outline-secondary qty-btn" @click="takeOutAmount > 1 ? takeOutAmount-- : null"><i class="bi bi-dash"></i></button>
-                            <div class="fs-1 fw-bold" style="width: 60px;">{{ takeOutAmount }}</div>
-                            <button class="btn btn-outline-secondary qty-btn" @click="takeOutAmount < maxTakeOut ? takeOutAmount++ : null"><i class="bi bi-plus"></i></button>
-                        </div>
-
-                        <div v-if="takeOutAmount === maxTakeOut" class="alert alert-warning small py-2">
-                            將會取出全部，該物品會從清單中移除。
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-primary rounded-pill fw-bold w-50" @click="confirmPartialTakeOut">
-                            確認取出
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -562,12 +591,13 @@
             const isCompressing = ref(false);
             const isLoading = ref(false);
 
+            // 預覽圖片
+            const previewImageUrl = ref(null);
+
             // 刪除 & 取出邏輯相關
             const itemToDelete = ref(null);
             const takeOutAmount = ref(1);
             const maxTakeOut = ref(1);
-            let deleteModalInstance = null;
-            let takeOutModalInstance = null;
 
             // 家庭資料
             const familySettings = ref({
@@ -580,9 +610,12 @@
             const nameEditError = ref("");
 
             // UI 參考
-            const closeBtn = ref(null);
             const fileInput = ref(null);
             const currentPage = ref("home");
+
+            // 長按計時器
+            let longPressTimer = null;
+            const LONG_PRESS_DURATION = 600; // ms
 
             // 設定
             const settings = ref({ updateNotifyEnabled: true });
@@ -592,9 +625,10 @@
             const latestVersion = ref(LATEST_VERSION);
             const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
             
-            // 新增物品表單
+            // 新增/編輯物品表單
             const getTodayStr = () => new Date().toISOString().split("T")[0];
             const newItem = ref({
+                id: null, // 用於判斷編輯模式
                 name: "",
                 quantity: "1",
                 storedDate: getTodayStr(),
@@ -903,102 +937,105 @@
                 });
             };
 
-            const addItem = async () => {
+            const submitItem = async () => {
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
                 if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
                 if (!db) return;
 
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
+                const itemData = {
+                    name: newItem.value.name,
+                    quantity: newItem.value.quantity,
+                    storedDate: newItem.value.storedDate,
+                    expiryDate: expiryDateClean,
+                    noExpiry: noExpiryFinal,
+                    image: newItem.value.image,
+                };
 
                 isUploading.value = true;
                 try {
-                    await addDoc(collection(db, "fridge_items"), {
-                        name: newItem.value.name,
-                        quantity: newItem.value.quantity,
-                        storedDate: newItem.value.storedDate,
-                        expiryDate: expiryDateClean,
-                        noExpiry: noExpiryFinal,
-                        image: newItem.value.image,
-                        createdAt: new Date()
-                    });
-
-                    // 成功後重置並返回首頁
-                    newItem.value = {
-                        name: "",
-                        quantity: "1",
-                        storedDate: getTodayStr(),
-                        expiryDate: "",
-                        noExpiry: false,
-                        image: null
-                    };
-                    currentPage.value = "home";
+                    if (newItem.value.id) {
+                        // 編輯模式
+                        await updateDoc(doc(db, "fridge_items", newItem.value.id), {
+                            ...itemData,
+                            updatedAt: new Date()
+                        });
+                    } else {
+                        // 新增模式
+                        await addDoc(collection(db, "fridge_items"), {
+                            ...itemData,
+                            createdAt: new Date()
+                        });
+                    }
+                    goHome();
                 } catch (e) {
                     console.error(e);
-                    alert("上傳失敗，可能是照片太大了");
+                    alert("上傳/更新失敗，請檢查網路");
                 } finally {
                     isUploading.value = false;
                 }
             };
 
-            // ---- 取出邏輯 ----
+            // ---- 圖片預覽邏輯 ----
+            const openPreview = (url) => {
+                previewImageUrl.value = url;
+            };
+            const closePreview = () => {
+                previewImageUrl.value = null;
+            };
 
-            // 1. 判斷點擊取出時的動作
-            const checkQuantityAndAction = (item) => {
+            // ---- 長按編輯邏輯 ----
+            const handleTouchStart = (item) => {
+                longPressTimer = setTimeout(() => {
+                    goToEditPage(item);
+                }, LONG_PRESS_DURATION);
+            };
+
+            const handleTouchEnd = () => {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+            };
+            const handleTouchMove = () => {
+                // 如果手指移動了，取消長按
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+            };
+
+            // ---- 取出邏輯 (改為全螢幕) ----
+
+            const goToTakeOutPage = (item) => {
                 itemToDelete.value = item;
-                
-                // 嘗試將數量轉為數字
-                // parseInt("3") -> 3, parseInt("3瓶") -> 3, parseInt("一些") -> NaN
                 const qty = parseInt(item.quantity);
-
-                if (!isNaN(qty) && qty > 1) {
-                    // 數量大於1，開啟「數量選擇視窗」
-                    takeOutAmount.value = 1;
-                    maxTakeOut.value = qty;
-                    
-                    const el = document.getElementById('takeOutModal');
-                    if (el) {
-                        takeOutModalInstance = new bootstrap.Modal(el);
-                        takeOutModalInstance.show();
-                    }
-                } else {
-                    // 數量為1，或非數字，直接開啟「刪除確認視窗」
-                    const el = document.getElementById('deleteModal');
-                    if (el) {
-                        deleteModalInstance = new bootstrap.Modal(el);
-                        deleteModalInstance.show();
-                    }
-                }
+                maxTakeOut.value = (!isNaN(qty) && qty > 0) ? qty : 1;
+                takeOutAmount.value = 1; // 預設 1
+                currentPage.value = "takeout";
             };
 
-            // 2. 確認完全刪除 (當數量1或全部取出時)
-            const confirmDelete = async () => {
-                if (!db || !itemToDelete.value) return;
-                try {
-                    await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
-                    if (deleteModalInstance) deleteModalInstance.hide();
-                } catch(e) {
-                    alert("刪除失敗");
-                }
-            };
-
-            // 3. 確認部分取出
-            const confirmPartialTakeOut = async () => {
+            const confirmTakeOutAction = async () => {
                 if (!db || !itemToDelete.value) return;
 
                 if (takeOutAmount.value >= maxTakeOut.value) {
-                    // 如果選的數量等於最大庫存，視為刪除
-                    if (takeOutModalInstance) takeOutModalInstance.hide();
-                    await confirmDelete();
+                    // 全部取出 -> 刪除
+                    try {
+                        await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
+                        goHome();
+                    } catch(e) {
+                        alert("刪除失敗");
+                    }
                 } else {
-                    // 部分取出，更新文件
+                    // 部分取出 -> 更新
                     try {
                         const newQty = maxTakeOut.value - takeOutAmount.value;
                         const itemRef = doc(db, "fridge_items", itemToDelete.value.id);
                         await updateDoc(itemRef, {
-                            quantity: newQty // 這裡存入數字或字串視乎原本設計，這裡存成數字
+                            quantity: newQty
                         });
-                        if (takeOutModalInstance) takeOutModalInstance.hide();
+                        goHome();
                     } catch(e) {
                         console.error(e);
                         alert("更新失敗");
@@ -1033,7 +1070,33 @@
 
             // 導航邏輯
             const goToAddPage = () => {
+                newItem.value = {
+                    id: null,
+                    name: "",
+                    quantity: "1",
+                    storedDate: getTodayStr(),
+                    expiryDate: "",
+                    noExpiry: false,
+                    image: null
+                };
                 currentPage.value = "add";
+            };
+
+            const goToEditPage = (item) => {
+                // 進入編輯模式，帶入資料
+                // 停止長按計時器 (如果有的話)
+                if(longPressTimer) clearTimeout(longPressTimer);
+
+                newItem.value = {
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    storedDate: item.storedDate,
+                    expiryDate: item.expiryDate,
+                    noExpiry: item.noExpiry,
+                    image: item.image
+                };
+                currentPage.value = "edit";
             };
 
             const goSettingsFromSidebar = () => {
@@ -1045,6 +1108,7 @@
 
             const goHome = () => {
                 currentPage.value = "home";
+                previewImageUrl.value = null; // 確保預覽關閉
             };
 
             const filteredItems = computed(() => {
@@ -1076,8 +1140,7 @@
             return {
                 // 狀態
                 items, searchText, isUploading, isCompressing, isLoading,
-                closeBtn, fileInput,
-                currentPage,
+                fileInput, currentPage, previewImageUrl,
                 
                 // Config & User 狀態
                 isConfigured, isSettingUp, inputConfigStr, inputUserName, setupError,
@@ -1090,10 +1153,13 @@
 
                 // 刪除 & 取出邏輯
                 itemToDelete, takeOutAmount, maxTakeOut,
-                checkQuantityAndAction, confirmDelete, confirmPartialTakeOut,
+                goToTakeOutPage, confirmTakeOutAction,
 
-                // 新增
-                newItem, processImage, addItem, 
+                // 圖片預覽 & 長按
+                openPreview, closePreview, handleTouchStart, handleTouchEnd, handleTouchMove, goToEditPage,
+
+                // 新增 & 編輯
+                newItem, processImage, submitItem, 
                 getDays, addDays, getAlertClass, filteredItems,
                 isNoExpiry,
 
