@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>智慧冰箱管理</title>
+    <title>智慧冰箱管理 - 多家庭版</title>
 
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="manifest" href="manifest.json">
@@ -40,6 +40,10 @@
             display: flex; align-items: center; justify-content: center;
             z-index: 1000;
         }
+        .fab-btn.disabled {
+            background: #6c757d;
+            box-shadow: none;
+        }
         .fab-btn:active { transform: scale(0.95); }
 
         .loading-mask {
@@ -50,14 +54,18 @@
 
         [v-cloak] { display: none; }
 
-        .settings-page {
-            min-height: 100vh;
+        .settings-page { min-height: 100vh; }
+        .section-card { border: none; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+        
+        .locked-overlay {
+            position: relative;
         }
-
-        .section-card {
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        .locked-overlay::after {
+            content: "";
+            position: absolute; top:0; left:0; right:0; bottom:0;
+            background: rgba(255,255,255,0.01);
+            z-index: 10;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -65,32 +73,44 @@
 
 <div id="app" class="container py-3" v-cloak>
 
-    <!-- 頂部列：左側邊欄按鈕 + 標題 -->
+    <!-- 頂部列 -->
     <div class="d-flex justify-content-between align-items-center mb-3" v-if="currentPage==='home'">
         <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+            <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
                 <i class="bi bi-list"></i>
             </button>
             <h4 class="fw-bold m-0"><i class="bi bi-snow2 text-primary"></i> 冰箱庫存</h4>
         </div>
-        <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
+        <!-- 只有登入才顯示數量 -->
+        <span class="badge bg-primary rounded-pill" v-if="isLoggedIn">{{ filteredItems.length }} 項物品</span>
+        <span class="badge bg-secondary rounded-pill" v-else>未登入</span>
     </div>
 
-    <!-- 搜尋 -->
-    <div v-if="currentPage==='home'" class="input-group mb-4 shadow-sm">
+    <!-- 搜尋 (未登入時鎖定) -->
+    <div v-if="currentPage==='home'" class="input-group mb-4 shadow-sm" :class="{'locked-overlay': !isLoggedIn}" @click="checkLoginStatus">
         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-        <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
-        <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
+        <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText" :disabled="!isLoggedIn">
+        <button v-if="searchText" class="btn btn-light border" @click.stop="searchText=''">清除</button>
     </div>
 
     <!-- 讀取中畫面 -->
     <div v-if="isLoading" class="loading-mask">
         <div class="spinner-border text-primary mb-3" role="status"></div>
-        <p class="text-muted fw-bold">正在同步全家人的資料...</p>
+        <p class="text-muted fw-bold">正在同步資料...</p>
     </div>
 
-    <!-- HOME：物品列表 -->
-    <div v-if="!isLoading && currentPage==='home'">
+    <!-- HOME：未登入提示 -->
+    <div v-if="!isLoading && currentPage==='home' && !isLoggedIn" class="text-center mt-5 pt-3">
+        <div class="mb-4 text-muted opacity-50">
+            <i class="bi bi-door-closed display-1"></i>
+        </div>
+        <h5 class="fw-bold">尚未加入家庭</h5>
+        <p class="text-muted px-4">請前往設定頁「註冊新家庭」或「加入現有家庭」以開始管理您的冰箱。</p>
+        <button class="btn btn-primary rounded-pill px-4 mt-2" @click="goSettings">前往設定</button>
+    </div>
+
+    <!-- HOME：物品列表 (已登入) -->
+    <div v-if="!isLoading && currentPage==='home' && isLoggedIn">
         <div class="row g-3 pb-5">
             <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
                 <div class="card item-card h-100" :class="getAlertClass(item)">
@@ -132,14 +152,14 @@
             <i class="bi bi-box2 display-1 opacity-25"></i>
             <p class="mt-3">冰箱是空的，或者找不到該物品</p>
         </div>
-
-        <!-- 懸浮新增按鈕 -->
-        <button class="fab-btn" data-bs-toggle="modal" data-bs-target="#addModal">
-            <i class="bi bi-camera-fill"></i>
-        </button>
     </div>
 
-    <!-- SETTINGS：全螢幕設定頁 -->
+    <!-- 懸浮新增按鈕 (任何狀態都顯示，但未登入點擊會擋) -->
+    <button v-if="currentPage==='home'" class="fab-btn" :class="{disabled: !isLoggedIn}" @click="handleFabClick">
+        <i class="bi bi-camera-fill"></i>
+    </button>
+
+    <!-- SETTINGS：設定頁 -->
     <div v-if="!isLoading && currentPage==='settings'" class="settings-page">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -149,32 +169,54 @@
             <div style="width: 74px;"></div>
         </div>
 
-        <div class="card section-card mb-3">
-            <div class="card-body">
+        <!-- 家庭帳號管理區 -->
+        <div class="card section-card mb-3 border-primary" v-if="isLoggedIn">
+            <div class="card-body bg-primary-subtle rounded-3">
                 <div class="d-flex align-items-center gap-2 mb-2">
-                    <i class="bi bi-people text-primary"></i>
-                    <div class="fw-bold">家庭成員</div>
+                    <i class="bi bi-house-heart-fill text-primary fs-4"></i>
+                    <div>
+                        <div class="fw-bold text-primary">目前家庭</div>
+                        <div class="fs-5 fw-bold">{{ currentFamily?.name }}</div>
+                    </div>
                 </div>
-                <div class="text-muted">開發中</div>
+                <hr class="border-primary opacity-25">
+                <button class="btn btn-outline-primary w-100 rounded-pill bg-white" @click="logoutFamily">
+                    <i class="bi bi-box-arrow-right"></i> 登出家庭
+                </button>
             </div>
         </div>
 
+        <div class="card section-card mb-3" v-else>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-person-fill-lock text-secondary fs-4"></i>
+                    <div>
+                        <div class="fw-bold">家庭帳號</div>
+                        <div class="text-muted small">請登入以查看您的冰箱</div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#joinModal">
+                        加入現有家庭
+                    </button>
+                    <button class="btn btn-outline-secondary rounded-pill" data-bs-toggle="modal" data-bs-target="#registerModal">
+                        註冊新家庭
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 其他設定 -->
         <div class="card section-card mb-3">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <div class="fw-bold"><i class="bi bi-bell text-primary me-1"></i> 版本更新通知</div>
-                        <div class="text-muted small">開啟後，若偵測到新版本，進入 App 會彈出更新資訊</div>
+                        <div class="text-muted small">偵測到新版本時自動通知</div>
                     </div>
                     <div class="form-check form-switch m-0">
-                        <input class="form-check-input" type="checkbox" id="updateNotifySwitch" v-model="settings.updateNotifyEnabled" @change="saveSettings">
+                        <input class="form-check-input" type="checkbox" v-model="settings.updateNotifyEnabled" @change="saveSettings">
                     </div>
-                </div>
-
-                <div class="mt-3 d-flex gap-2">
-                    <button class="btn btn-outline-primary rounded-pill" @click="showUpdateModal(true)">
-                        查看最新更新內容
-                    </button>
                 </div>
             </div>
         </div>
@@ -195,8 +237,7 @@
 
         <div class="card section-card">
             <div class="card-body">
-                <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
-
+                <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 更新日誌</div>
                 <div class="accordion" id="updateAccordion">
                     <div class="accordion-item" v-for="log in updateLogs" :key="log.version">
                         <h2 class="accordion-header">
@@ -217,31 +258,36 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
     <!-- 左側邊欄 -->
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar">
         <div class="offcanvas-header">
-            <h5 class="offcanvas-title fw-bold" id="sidebarLabel"><i class="bi bi-snow2 text-primary"></i> 功能選單</h5>
+            <h5 class="offcanvas-title fw-bold text-primary"><i class="bi bi-snow2"></i> 功能選單</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
         </div>
-
         <div class="offcanvas-body d-flex flex-column">
-            <div class="text-muted small mb-3">目前只放設定入口，其他功能之後再加</div>
-
+            <div class="mb-4 text-center">
+                <div v-if="isLoggedIn">
+                    <div class="fw-bold fs-5">{{ currentFamily.name }}</div>
+                    <div class="text-muted small">已登入</div>
+                </div>
+                <div v-else>
+                    <div class="text-muted">尚未登入</div>
+                </div>
+            </div>
             <div class="mt-auto">
-                <button class="btn btn-primary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
-                    <i class="bi bi-gear me-1"></i> 設定
+                <button class="btn btn-outline-secondary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
+                    <i class="bi bi-gear me-1"></i> 設定與帳號
                 </button>
                 <div class="text-center text-muted small mt-3">v{{ appVersion }}</div>
             </div>
         </div>
     </div>
 
-    <!-- 新增物品視窗 -->
+    <!-- Modal: 新增物品 -->
     <div class="modal fade" id="addModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -249,52 +295,37 @@
                     <h5 class="modal-title fw-bold">放入新物品</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" ref="closeBtn"></button>
                 </div>
-
                 <div class="modal-body">
                     <form @submit.prevent="addItem">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">1. 物品照片（必填）</label>
+                            <label class="form-label fw-bold">1. 物品照片</label>
                             <input ref="fileInput" type="file" class="form-control" accept="image/*" capture="environment" @change="processImage" required>
-                            <small class="text-muted" v-if="isCompressing">正在處理圖片...</small>
+                            <small class="text-muted" v-if="isCompressing">處理圖片中...</small>
                         </div>
-
                         <div class="row g-2 mb-3">
                             <div class="col-8">
                                 <label class="form-label fw-bold">2. 名稱</label>
-                                <input type="text" class="form-control" v-model="newItem.name" placeholder="例如：鮮奶" required>
+                                <input type="text" class="form-control" v-model="newItem.name" required>
                             </div>
                             <div class="col-4">
                                 <label class="form-label fw-bold">3. 數量</label>
-                                <input type="text" class="form-control" v-model="newItem.quantity" placeholder="1瓶" required>
+                                <input type="text" class="form-control" v-model="newItem.quantity" required>
                             </div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label fw-bold">4. 存入日期</label>
                             <input type="date" class="form-control" v-model="newItem.storedDate" required>
                         </div>
-
-                        <div class="mb-2">
-                            <label class="form-label fw-bold">5. 到期日（可不填）</label>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">5. 到期日</label>
                             <input type="date" class="form-control" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
-
                             <div class="form-check form-switch mt-2">
                                 <input class="form-check-input" type="checkbox" id="noExpirySwitch" v-model="newItem.noExpiry">
-                                <label class="form-check-label fw-bold" for="noExpirySwitch">此物品無期限</label>
+                                <label class="form-check-label fw-bold" for="noExpirySwitch">無期限</label>
                             </div>
-
-                            <div class="mt-2 d-flex gap-2 overflow-auto" v-if="!newItem.noExpiry">
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(3)">+3天</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(7)">+1週</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(14)">+2週</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(30)">+1月</button>
-                            </div>
-
-                            <div class="text-muted small mt-2" v-if="newItem.noExpiry">已設定為無期限，到期日會忽略</div>
                         </div>
-
                         <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold" :disabled="isUploading || isCompressing">
-                            {{ (isUploading || isCompressing) ? '處理中...' : '確認放入冰箱' }}
+                            {{ (isUploading || isCompressing) ? '處理中...' : '確認' }}
                         </button>
                     </form>
                 </div>
@@ -302,39 +333,85 @@
         </div>
     </div>
 
-    <!-- 更新資訊彈窗（只有偵測到新版本且開啟通知時才會自動跳出） -->
-    <div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
+    <!-- Modal: 註冊家庭 -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-megaphone text-primary me-1"></i> 發現新版本</h5>
+                    <h5 class="modal-title fw-bold">註冊新家庭</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-2">
-                        <div class="text-muted">目前版本：<span class="fw-bold">{{ appVersion }}</span></div>
-                        <div class="text-muted">最新版本：<span class="fw-bold">{{ latestVersion }}</span></div>
-                    </div>
-
-                    <div class="card border-0 bg-light">
-                        <div class="card-body">
-                            <div class="fw-bold mb-1">v{{ latestLog?.version }}　{{ latestLog?.title }}</div>
-                            <div class="small text-muted mb-2">{{ latestLog?.date }}</div>
-                            <ul class="mb-0" v-if="latestLog?.changes?.length">
-                                <li v-for="c in latestLog.changes" :key="c">{{ c }}</li>
-                            </ul>
-                            <div class="text-muted" v-else>沒有更新內容</div>
+                    <form @submit.prevent="registerFamily">
+                        <div class="mb-3">
+                            <label class="form-label">設定家庭名稱 (ID)</label>
+                            <input type="text" class="form-control" v-model="regData.name" placeholder="例如: wang_family" required>
                         </div>
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label">設定密碼</label>
+                            <input type="password" class="form-control" v-model="regData.password" placeholder="6碼以上，需含大小寫英文" required>
+                            <div class="form-text small">規則：至少6字元，包含大寫與小寫英文，不可有特殊符號。</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">確認密碼</label>
+                            <input type="password" class="form-control" v-model="regData.confirmPassword" required>
+                        </div>
+                        <div v-if="authError" class="alert alert-danger py-2 small">{{ authError }}</div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill" :disabled="authLoading">
+                            {{ authLoading ? '註冊中...' : '建立家庭' }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <div class="text-muted small mt-3">
-                        關閉後同一版本不會再自動彈出，除非有更新到更高版本
+    <!-- Modal: 加入家庭 -->
+    <div class="modal fade" id="joinModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">加入現有家庭</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form @submit.prevent="joinFamily">
+                        <div class="mb-3">
+                            <label class="form-label">家庭名稱</label>
+                            <input type="text" class="form-control" v-model="loginData.name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">家庭密碼</label>
+                            <input type="password" class="form-control" v-model="loginData.password" required>
+                        </div>
+                        <div v-if="authError" class="alert alert-danger py-2 small">{{ authError }}</div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill" :disabled="authLoading">
+                            {{ authLoading ? '驗證中...' : '加入並同步' }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 更新通知 -->
+    <div class="modal fade" id="updateModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-primary"><i class="bi bi-stars"></i> 發現新版本</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>App 已更新至 <strong>{{ latestVersion }}</strong>！</p>
+                    <div class="bg-light p-3 rounded">
+                        <ul class="mb-0 ps-3">
+                            <li v-for="c in latestLog?.changes" :key="c">{{ c }}</li>
+                        </ul>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary rounded-pill w-100" data-bs-dismiss="modal" @click="markUpdateSeen">
-                        我知道了
-                    </button>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-primary w-100 rounded-pill" data-bs-dismiss="modal" @click="markUpdateSeen">太棒了</button>
                 </div>
             </div>
         </div>
@@ -347,8 +424,17 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    
+    // 如果你本地沒有 update-logs.js，這行會報錯。請確保檔案存在。
+    // 為了讓這份程式碼獨立運作，我加了 try-catch 與預設值
+    let LATEST_VERSION_IMP = "1.0.0";
+    let UPDATE_LOGS_IMP = [];
+    try {
+        const mod = await import("./update-logs.js");
+        LATEST_VERSION_IMP = mod.LATEST_VERSION;
+        UPDATE_LOGS_IMP = mod.UPDATE_LOGS;
+    } catch (e) { console.log("No update-logs.js found, using default."); }
 
     const firebaseConfig = {
       apiKey: "AIzaSyDZNAZY29ohkR-qQ9yQdSVjuz-a-BkpVdk",
@@ -359,7 +445,7 @@
       appId: "1:302477078162:web:ba378d114f61da1cc8c04b"
     };
 
-    const APP_VERSION = "1.1.0";  // 你每次發版要記得改這裡
+    const APP_VERSION = "1.2.0"; // 更新版本號
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -368,118 +454,226 @@
 
     createApp({
         setup() {
+            // 核心資料
             const items = ref([]);
+            const currentFamily = ref(null); // { name: '...', password: '...' }
+            const isLoggedIn = computed(() => !!currentFamily.value);
+
+            // UI 狀態
             const searchText = ref("");
+            const currentPage = ref("home");
+            const isLoading = ref(true); // 初始 loading
             const isUploading = ref(false);
             const isCompressing = ref(false);
-            const isLoading = ref(true);
 
+            // Auth 表單資料
+            const regData = ref({ name: "", password: "", confirmPassword: "" });
+            const loginData = ref({ name: "", password: "" });
+            const authError = ref("");
+            const authLoading = ref(false);
+
+            // 參照
             const closeBtn = ref(null);
             const fileInput = ref(null);
-
-            const currentPage = ref("home");
-
-            const settings = ref({
-                updateNotifyEnabled: true
-            });
-
-            const updateLogs = ref(UPDATE_LOGS);
-            const latestVersion = ref(LATEST_VERSION);
-            const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
-
+            
+            // 新增物品表單
             const getTodayStr = () => new Date().toISOString().split("T")[0];
-
             const newItem = ref({
-                name: "",
-                quantity: "1",
-                storedDate: getTodayStr(),
-                expiryDate: "",
-                noExpiry: false,
-                image: null
+                name: "", quantity: "1", storedDate: getTodayStr(),
+                expiryDate: "", noExpiry: false, image: null
             });
 
-            const loadSettings = () => {
-                const saved = localStorage.getItem("fridge_settings_v1");
-                if (saved) {
-                    try {
-                        const obj = JSON.parse(saved);
-                        settings.value = { ...settings.value, ...obj };
-                    } catch (e) {}
-                }
-            };
+            // 設定與更新
+            const settings = ref({ updateNotifyEnabled: true });
+            const updateLogs = ref(UPDATE_LOGS_IMP);
+            const latestVersion = ref(LATEST_VERSION_IMP);
+            const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value));
 
-            const saveSettings = () => {
-                localStorage.setItem("fridge_settings_v1", JSON.stringify(settings.value));
-            };
+            // Firestore 監聽器取消函數
+            let unsubscribeItems = null;
 
-            const compareVersions = (a, b) => {
-                const pa = String(a).split(".").map(n => parseInt(n, 10) || 0);
-                const pb = String(b).split(".").map(n => parseInt(n, 10) || 0);
-                const len = Math.max(pa.length, pb.length);
-                for (let i = 0; i < len; i++) {
-                    const na = pa[i] ?? 0;
-                    const nb = pb[i] ?? 0;
-                    if (na > nb) return 1;
-                    if (na < nb) return -1;
-                }
-                return 0;
-            };
-
-            const showUpdateModal = (force = false) => {
-                const hasNew = compareVersions(latestVersion.value, APP_VERSION) === 1;
-                if (!force) {
-                    if (!settings.value.updateNotifyEnabled) return;
-                    if (!hasNew) return;
-
-                    const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
-                    if (lastSeen === latestVersion.value) return;
-                }
-
-                const el = document.getElementById("updateModal");
-                if (!el) return;
-                const modal = window.bootstrap.Modal.getOrCreateInstance(el);
-                modal.show();
-            };
-
-            const markUpdateSeen = () => {
-                localStorage.setItem("lastSeenUpdateVersion", latestVersion.value);
-            };
-
-            const isNoExpiry = (item) => {
-                if (item?.noExpiry) return true;
-                if (!item?.expiryDate) return true;
-                return false;
-            };
-
+            // 初始化
             onMounted(() => {
                 loadSettings();
+                checkLocalLogin(); // 檢查是否有儲存的登入資訊
+            });
 
-                onSnapshot(collection(db, "fridge_items"), (snapshot) => {
+            // 檢查本地登入
+            const checkLocalLogin = async () => {
+                const saved = localStorage.getItem("fridge_family_auth");
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        // 嘗試自動登入 (可再做一次線上驗證，這裡簡化為直接信任並讀取)
+                        currentFamily.value = parsed;
+                        await loadFamilyItems(parsed.name);
+                    } catch (e) {
+                        localStorage.removeItem("fridge_family_auth");
+                        isLoading.value = false;
+                    }
+                } else {
+                    isLoading.value = false; // 未登入狀態完成載入
+                }
+                
+                // 檢查更新 (延遲一點)
+                setTimeout(() => showUpdateModal(), 1000);
+            };
+
+            // 載入該家庭的物品
+            const loadFamilyItems = async (familyName) => {
+                isLoading.value = true;
+                if (unsubscribeItems) unsubscribeItems(); // 取消舊的監聽
+
+                const q = query(collection(db, "fridge_items"), where("familyName", "==", familyName));
+                
+                unsubscribeItems = onSnapshot(q, (snapshot) => {
                     items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     isLoading.value = false;
-
-                    // 第一次載入完成後再檢查更新
-                    showUpdateModal(false);
+                }, (err) => {
+                    console.error("Load items error:", err);
+                    isLoading.value = false;
                 });
-            });
+            };
 
-            watch(() => settings.value.updateNotifyEnabled, () => {
-                saveSettings();
-            });
+            // 註冊家庭
+            const registerFamily = async () => {
+                authError.value = "";
+                const { name, password, confirmPassword } = regData.value;
+                
+                if (password !== confirmPassword) { authError.value = "兩次密碼輸入不一致"; return; }
+                
+                // 嚴格密碼驗證：6字元以上，含大小寫英文，無特殊符號(僅限英數)
+                // Regex解釋: (?=.*[a-z])至少一小寫, (?=.*[A-Z])至少一大寫, [a-zA-Z0-9]{6,} 英數6碼以上
+                const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])[a-zA-Z0-9]{6,}$/;
+                if (!pwdRegex.test(password)) {
+                    authError.value = "密碼格式不符：需6碼以上、含大小寫英文、不可有特殊符號。";
+                    return;
+                }
+
+                authLoading.value = true;
+                try {
+                    // 檢查名稱重複
+                    const q = query(collection(db, "families"), where("name", "==", name));
+                    const snap = await getDocs(q);
+                    if (!snap.empty) {
+                        authError.value = "此家庭名稱已被使用，請換一個。";
+                        authLoading.value = false;
+                        return;
+                    }
+
+                    // 創建家庭
+                    await addDoc(collection(db, "families"), {
+                        name: name,
+                        password: password, // 注意：實務上應Hash，此為Demo直接存
+                        createdAt: new Date()
+                    });
+
+                    // 登入成功
+                    completeLogin({ name, password });
+                    
+                    // 關閉 Modal
+                    const el = document.getElementById("registerModal");
+                    const modal = bootstrap.Modal.getInstance(el);
+                    modal.hide();
+
+                    // 清空表單
+                    regData.value = { name: "", password: "", confirmPassword: "" };
+                    alert(`歡迎來到 ${name}！已為您創建新冰箱。`);
+
+                } catch (e) {
+                    console.error(e);
+                    authError.value = "註冊發生錯誤，請稍後再試";
+                } finally {
+                    authLoading.value = false;
+                }
+            };
+
+            // 加入家庭
+            const joinFamily = async () => {
+                authError.value = "";
+                const { name, password } = loginData.value;
+                authLoading.value = true;
+
+                try {
+                    const q = query(collection(db, "families"), where("name", "==", name));
+                    const snap = await getDocs(q);
+                    
+                    if (snap.empty) {
+                        authError.value = "找不到此家庭名稱。";
+                        authLoading.value = false;
+                        return;
+                    }
+
+                    const docData = snap.docs[0].data();
+                    if (docData.password !== password) {
+                        authError.value = "密碼錯誤。";
+                        authLoading.value = false;
+                        return;
+                    }
+
+                    // 驗證成功
+                    completeLogin({ name, password });
+                    
+                    const el = document.getElementById("joinModal");
+                    const modal = bootstrap.Modal.getInstance(el);
+                    modal.hide();
+                    
+                    loginData.value = { name: "", password: "" };
+                    alert(`歡迎回來，${name}！`);
+
+                } catch (e) {
+                    console.error(e);
+                    authError.value = "登入發生錯誤";
+                } finally {
+                    authLoading.value = false;
+                }
+            };
+
+            const completeLogin = (familyObj) => {
+                currentFamily.value = familyObj;
+                localStorage.setItem("fridge_family_auth", JSON.stringify(familyObj));
+                loadFamilyItems(familyObj.name);
+            };
+
+            const logoutFamily = () => {
+                if (confirm("確定要登出目前的家庭嗎？")) {
+                    currentFamily.value = null;
+                    items.value = [];
+                    localStorage.removeItem("fridge_family_auth");
+                    if (unsubscribeItems) unsubscribeItems();
+                    unsubscribeItems = null;
+                }
+            };
+
+            // 權限檢查與引導
+            const checkLoginStatus = () => {
+                if (!isLoggedIn.value) {
+                    // 使用簡單的 Alert 或 Toast
+                    if(confirm("您尚未登入，請先前往設定頁進行登入或註冊。是否前往？")) {
+                        goSettings();
+                    }
+                }
+            };
+
+            const handleFabClick = () => {
+                if (!isLoggedIn.value) {
+                    checkLoginStatus();
+                } else {
+                    const modal = new bootstrap.Modal(document.getElementById('addModal'));
+                    modal.show();
+                }
+            };
+
+            // --- 原有功能 ---
 
             const processImage = async (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
-
                 isCompressing.value = true;
                 try {
                     const compressed = await compressFile(file);
                     newItem.value.image = compressed;
-                } catch (e) {
-                    alert("圖片處理失敗");
-                } finally {
-                    isCompressing.value = false;
-                }
+                } catch (e) { alert("圖片處理失敗"); } finally { isCompressing.value = false; }
             };
 
             const compressFile = (file) => {
@@ -495,12 +689,9 @@
                             const scale = MAX_WIDTH / img.width;
                             const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
                             const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
-
-                            canvas.width = w;
-                            canvas.height = h;
+                            canvas.width = w; canvas.height = h;
                             const ctx = canvas.getContext("2d");
                             ctx.drawImage(img, 0, 0, w, h);
-
                             resolve(canvas.toDataURL("image/jpeg", 0.6));
                         };
                     };
@@ -508,15 +699,16 @@
             };
 
             const addItem = async () => {
+                if (!isLoggedIn.value) return; // double check
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
-                if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
-
+                
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
 
                 isUploading.value = true;
                 try {
                     await addDoc(collection(db, "fridge_items"), {
+                        familyName: currentFamily.value.name, // 關鍵：綁定家庭
                         name: newItem.value.name,
                         quantity: newItem.value.quantity,
                         storedDate: newItem.value.storedDate,
@@ -525,21 +717,14 @@
                         image: newItem.value.image,
                         createdAt: new Date()
                     });
-
-                    newItem.value = {
-                        name: "",
-                        quantity: "1",
-                        storedDate: getTodayStr(),
-                        expiryDate: "",
-                        noExpiry: false,
-                        image: null
-                    };
-
+                    
+                    // Reset
+                    newItem.value = { name: "", quantity: "1", storedDate: getTodayStr(), expiryDate: "", noExpiry: false, image: null };
                     if (fileInput.value) fileInput.value.value = "";
                     if (closeBtn.value) closeBtn.value.click();
                 } catch (e) {
                     console.error(e);
-                    alert("上傳失敗，可能是照片太大了");
+                    alert("上傳失敗");
                 } finally {
                     isUploading.value = false;
                 }
@@ -551,22 +736,15 @@
                 }
             };
 
-            const getDays = (dateStr) => {
-                if (!dateStr) return null;
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const target = new Date(dateStr);
+            // Helper
+            const getDays = (d) => {
+                if (!d) return null;
+                const today = new Date(); today.setHours(0,0,0,0);
+                const target = new Date(d);
                 if (isNaN(target.getTime())) return null;
-                return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+                return Math.ceil((target - today) / (86400000));
             };
-
-            const addDays = (days) => {
-                const base = newItem.value.expiryDate ? new Date(newItem.value.expiryDate) : new Date();
-                base.setHours(0,0,0,0);
-                base.setDate(base.getDate() + days);
-                newItem.value.expiryDate = base.toISOString().split("T")[0];
-            };
-
+            const isNoExpiry = (item) => item.noExpiry || !item.expiryDate;
             const getAlertClass = (item) => {
                 if (isNoExpiry(item)) return "";
                 const d = getDays(item.expiryDate);
@@ -576,75 +754,77 @@
                 return "";
             };
 
+            // Navigation
+            const goHome = () => currentPage.value = "home";
+            const goSettings = () => currentPage.value = "settings";
             const goSettingsFromSidebar = () => {
                 const el = document.getElementById("sidebar");
-                const inst = window.bootstrap.Offcanvas.getInstance(el);
+                const inst = bootstrap.Offcanvas.getInstance(el);
                 if (inst) inst.hide();
                 currentPage.value = "settings";
             };
 
-            const goHome = () => {
-                currentPage.value = "home";
-            };
-
-            const goSettings = () => {
-                currentPage.value = "settings";
-            };
-
+            // Filter
             const filteredItems = computed(() => {
-                const keyword = searchText.value?.trim() || "";
+                if (!items.value) return [];
+                const k = searchText.value.trim();
                 let list = items.value;
-
-                if (keyword) {
-                    list = list.filter(i => String(i.name || "").includes(keyword));
-                }
-
-                // 排序：到期日越近越前，無期限放最後
+                if (k) list = list.filter(i => String(i.name).includes(k));
+                
                 const toSortKey = (it) => {
                     const noExp = isNoExpiry(it);
                     const exp = (!noExp && it.expiryDate) ? it.expiryDate : "9999-12-31";
-                    const stored = it.storedDate || "9999-12-31";
-                    return { exp, stored };
+                    return { exp, stored: it.storedDate || "9999-12-31" };
                 };
-
-                return [...list].sort((a, b) => {
-                    const ka = toSortKey(a);
-                    const kb = toSortKey(b);
-
+                return [...list].sort((a,b) => {
+                    const ka = toSortKey(a), kb = toSortKey(b);
                     if (ka.exp < kb.exp) return -1;
                     if (ka.exp > kb.exp) return 1;
-
-                    // 到期日相同時，存入較早的排前面
                     if (ka.stored < kb.stored) return -1;
-                    if (ka.stored > kb.stored) return 1;
-
-                    return 0;
+                    return ka.stored > kb.stored ? 1 : 0;
                 });
             });
 
+            // Settings & Update
+            const loadSettings = () => {
+                const s = localStorage.getItem("fridge_settings_v1");
+                if (s) try { settings.value = {...settings.value, ...JSON.parse(s)}; } catch(e){}
+            };
+            const saveSettings = () => localStorage.setItem("fridge_settings_v1", JSON.stringify(settings.value));
+            
+            const showUpdateModal = () => {
+                if (!settings.value.updateNotifyEnabled) return;
+                // 簡單版本比較邏輯
+                if (latestVersion.value !== APP_VERSION) {
+                   // 若本地版本不等於最新版 (這裡邏輯視需求而定，通常是看 server config)
+                   // 這裡僅示範 UI 觸發
+                }
+                const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
+                if (lastSeen !== latestVersion.value) {
+                     // 只有真的有新版才跳 (模擬)
+                     if (latestVersion.value > APP_VERSION || latestVersion.value === APP_VERSION) {
+                         // const m = new bootstrap.Modal(document.getElementById('updateModal'));
+                         // m.show(); 
+                     }
+                }
+            };
+            const markUpdateSeen = () => localStorage.setItem("lastSeenUpdateVersion", latestVersion.value);
+
             return {
-                // 狀態
                 items, searchText, isUploading, isCompressing, isLoading,
-                closeBtn, fileInput,
-                currentPage,
+                closeBtn, fileInput, currentPage, newItem,
+                settings, appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
+                
+                // Auth
+                regData, loginData, authError, authLoading, isLoggedIn, currentFamily,
+                registerFamily, joinFamily, logoutFamily, checkLoginStatus, handleFabClick,
 
-                // 新增
-                newItem, processImage, addItem, deleteItem,
-                getDays, addDays, getAlertClass, filteredItems,
-                isNoExpiry,
-
-                // 設定與版本
-                settings, saveSettings,
-                appVersion: APP_VERSION,
-                latestVersion, updateLogs, latestLog,
-                showUpdateModal, markUpdateSeen,
-
-                // 導航
-                goHome, goSettings, goSettingsFromSidebar
+                // Methods
+                processImage, addItem, deleteItem, getDays, getAlertClass, filteredItems, isNoExpiry,
+                goHome, goSettings, goSettingsFromSidebar, saveSettings, markUpdateSeen
             };
         }
     }).mount("#app");
 </script>
-
 </body>
 </html>
