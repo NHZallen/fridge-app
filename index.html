@@ -59,56 +59,81 @@
             border-radius: 16px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
         }
-
-        /* Login Screen Styles */
-        .login-screen {
+        
+        /* Setup Page Styles */
+        .setup-container {
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             justify-content: center;
             padding: 20px;
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        }
+        .setup-card {
             background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .member-badge {
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .member-badge.is-me {
+            background: #e7f1ff;
+            border: 1px solid #cff4fc;
+            color: #052c65;
         }
     </style>
 </head>
 <body>
 
-<div id="app" class="container py-3" v-cloak>
+<div id="app" v-cloak>
 
-    <!-- 登入/設定畫面 (尚未設定 Config 或 尚未輸入名稱時顯示) -->
-    <div v-if="!isConfigReady" class="login-screen">
-        <div class="text-center mb-4">
-            <i class="bi bi-snow2 text-primary display-1"></i>
-            <h3 class="fw-bold mt-3">歡迎使用智慧冰箱</h3>
-            <p class="text-muted">請輸入家庭設定與您的名稱以開始同步</p>
+    <!-- 狀態 1: 尚未設定 Firebase (初始化畫面) -->
+    <div v-if="appState === 'setup'" class="setup-container">
+        <div class="setup-card">
+            <h3 class="fw-bold text-primary mb-3 text-center"><i class="bi bi-snow2"></i> 歡迎使用冰箱管理</h3>
+            <p class="text-muted small mb-4">請輸入 Firebase 設定與您的名稱以加入家庭。</p>
+            
+            <form @submit.prevent="saveSetup">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Firebase 設定碼</label>
+                    <textarea class="form-control code-font" v-model="setupForm.configCode" rows="5" placeholder='請貼上包含 const firebaseConfig = { ... } 的完整程式碼' required style="font-family: monospace; font-size: 0.85rem;"></textarea>
+                    <div class="form-text">請直接貼上 Firebase Console 提供的完整 Config 程式碼。</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">您的名稱</label>
+                    <input type="text" class="form-control" v-model="setupForm.userName" placeholder="例如：爸爸、小美" required>
+                    <div class="form-text">這將顯示在家庭成員列表中。</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold">
+                    開始使用
+                </button>
+            </form>
         </div>
-
-        <div class="card border-0 shadow-sm bg-light mb-4">
-            <div class="card-body">
-                <label class="form-label fw-bold">1. Firebase 設定 (JSON)</label>
-                <textarea class="form-control mb-3 font-monospace small" rows="5" v-model="inputConfigJson" placeholder='請貼上包含 { "apiKey": ... } 的設定內容'></textarea>
-                
-                <label class="form-label fw-bold">2. 您的名稱 (暱稱)</label>
-                <input type="text" class="form-control" v-model="inputUserName" placeholder="例如：爸爸、媽媽、小明" @keyup.enter="saveConfigAndLogin">
-                <div class="form-text">同一家庭內若輸入相同名稱，將視為同一位成員。</div>
-            </div>
-        </div>
-
-        <button class="btn btn-primary w-100 py-3 rounded-pill fw-bold" @click="saveConfigAndLogin" :disabled="!inputConfigJson || !inputUserName">
-            開始使用
-        </button>
-        <p class="text-center text-danger mt-3 small" v-if="loginError">{{ loginError }}</p>
     </div>
 
-    <!-- 主程式區域 -->
-    <template v-else>
+    <!-- 狀態 2: 已設定，正常使用 APP -->
+    <div v-else class="container py-3">
+
         <!-- 頂部列：左側邊欄按鈕 + 標題 -->
         <div class="d-flex justify-content-between align-items-center mb-3" v-if="currentPage==='home'">
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
                     <i class="bi bi-list"></i>
                 </button>
-                <div class="d-flex flex-column">
+                <div>
                     <h4 class="fw-bold m-0"><i class="bi bi-snow2 text-primary"></i> {{ familyName || '冰箱庫存' }}</h4>
                 </div>
             </div>
@@ -188,52 +213,37 @@
                 <div style="width: 74px;"></div>
             </div>
 
+            <!-- 家庭設定 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <i class="bi bi-house-door text-primary"></i>
-                        <div class="fw-bold">家庭設定</div>
-                    </div>
+                    <div class="fw-bold mb-3"><i class="bi bi-house-door text-primary me-1"></i> 家庭設定</div>
                     
                     <div class="mb-3">
-                        <label class="form-label small text-muted">家庭名稱</label>
+                        <label class="form-label text-muted small">家庭名稱 (全家同步)</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" v-model="editingFamilyName">
-                            <button class="btn btn-outline-primary" @click="updateFamilyName" :disabled="editingFamilyName === familyName">
-                                修改
+                            <input type="text" class="form-control" v-model="tempFamilyName" placeholder="例如：快樂一家人">
+                            <button class="btn btn-outline-primary" @click="updateFamilyName" :disabled="tempFamilyName === familyName">
+                                儲存
                             </button>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small text-muted">我的暱稱 (本機)</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" v-model="editingUserName">
-                            <button class="btn btn-outline-primary" @click="updateUserName" :disabled="editingUserName === currentUserName">
-                                修改
-                            </button>
+                    <div class="mb-2">
+                        <label class="form-label text-muted small">家庭成員</label>
+                        <div v-for="member in memberList" :key="member.id" class="member-badge" :class="{'is-me': member.id === currentUserName}">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-circle me-2 fs-5"></i>
+                                <span v-if="member.id !== currentUserName">{{ member.name }}</span>
+                                <input v-else type="text" class="form-control form-control-sm border-0 bg-transparent p-0 fw-bold" 
+                                       style="width: auto; max-width: 150px; color: inherit;"
+                                       v-model="editUserName" @blur="updateUserName" @keyup.enter="$event.target.blur()">
+                            </div>
+                            <span v-if="member.id === currentUserName" class="badge bg-primary rounded-pill">我</span>
                         </div>
                     </div>
-
-                    <hr>
-
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        <i class="bi bi-people text-primary"></i>
-                        <div class="fw-bold">家庭成員</div>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <span v-for="user in familyMembers" :key="user.id" 
-                              class="badge rounded-pill px-3 py-2"
-                              :class="user.id === currentUserName ? 'bg-primary' : 'bg-secondary'">
-                            {{ user.id }} <span v-if="user.id === currentUserName">(我)</span>
-                        </span>
-                    </div>
-                    
-                    <div class="mt-4 pt-2 border-top">
-                         <button class="btn btn-sm btn-outline-danger w-100" @click="logout">
-                            登出此裝置 (清除設定)
-                         </button>
-                    </div>
+                    <small class="text-muted d-block mt-2" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle"></i> 點擊您的名稱可進行修改。
+                    </small>
                 </div>
             </div>
 
@@ -259,7 +269,7 @@
 
             <div class="card section-card mb-3">
                 <div class="card-body">
-                    <div class="fw-bold mb-2"><i class="bi bi-info-circle text-primary me-1"></i> 版本資訊</div>
+                    <div class="fw-bold mb-2"><i class="bi bi-info-circle text-primary me-1"></i> 帳號與版本</div>
                     <div class="d-flex justify-content-between">
                         <div class="text-muted">目前版本</div>
                         <div class="fw-bold">{{ appVersion }}</div>
@@ -268,6 +278,13 @@
                         <div class="text-muted">最新版本</div>
                         <div class="fw-bold">{{ latestVersion }}</div>
                     </div>
+                    
+                    <hr>
+                    
+                    <button class="btn btn-outline-danger w-100 rounded-pill" @click="logout">
+                        <i class="bi bi-box-arrow-right"></i> 登出 / 切換家庭
+                    </button>
+                    <div class="text-center text-muted small mt-2">這將會清除此裝置的設定紀錄</div>
                 </div>
             </div>
 
@@ -308,11 +325,12 @@
             </div>
 
             <div class="offcanvas-body d-flex flex-column">
-                <div class="px-3 py-2 bg-light rounded mb-3">
-                     <small class="text-muted d-block">目前使用者</small>
-                     <div class="fw-bold text-primary">{{ currentUserName }}</div>
+                <div class="mb-3">
+                    <div class="text-muted small">目前家庭</div>
+                    <div class="fw-bold fs-5">{{ familyName || '未命名家庭' }}</div>
+                    <div class="text-muted small mt-1">使用者: {{ currentUserName }}</div>
                 </div>
-
+                
                 <div class="mt-auto">
                     <button class="btn btn-primary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
                         <i class="bi bi-gear me-1"></i> 設定
@@ -383,7 +401,7 @@
             </div>
         </div>
 
-        <!-- 更新資訊彈窗（只有偵測到新版本且開啟通知時才會自動跳出） -->
+        <!-- 更新資訊彈窗 -->
         <div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow">
@@ -420,7 +438,7 @@
                 </div>
             </div>
         </div>
-    </template>
+    </div>
 
 </div>
 
@@ -429,43 +447,46 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, deleteDoc, setDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
 
-    // 不再直接寫死 Config，改為動態變數
+    // 常數定義
+    const APP_VERSION = "1.1.0";
+    const LS_KEY_SETTINGS = "fridge_settings_v1";
+    const LS_KEY_FIREBASE_CONFIG = "fridge_firebase_config_v1";
+    const LS_KEY_USER_NAME = "fridge_user_name_v1";
+    
+    // 全域變數 (在 setup 完成後初始化)
     let app = null;
     let db = null;
-
-    const APP_VERSION = "1.1.0";
 
     const { createApp, ref, computed, onMounted, watch } = Vue;
 
     createApp({
         setup() {
-            // 系統與登入狀態
-            const isConfigReady = ref(false);
-            const inputConfigJson = ref("");
-            const inputUserName = ref("");
-            const loginError = ref("");
-            const currentUserName = ref(""); // 目前登入的使用者名稱
-            const currentConfig = ref(null);
-
-            // 資料
+            // 狀態變數
+            const appState = ref('loading'); // loading, setup, app
             const items = ref([]);
             const searchText = ref("");
             const isUploading = ref(false);
             const isCompressing = ref(false);
             const isLoading = ref(true);
 
-            // 家庭資料
+            // Setup Form
+            const setupForm = ref({
+                configCode: "",
+                userName: ""
+            });
+
+            // Family & User Data
             const familyName = ref("");
-            const editingFamilyName = ref("");
-            const editingUserName = ref("");
-            const familyMembers = ref([]);
+            const tempFamilyName = ref("");
+            const currentUserName = ref("");
+            const editUserName = ref("");
+            const memberList = ref([]);
 
             const closeBtn = ref(null);
             const fileInput = ref(null);
-
             const currentPage = ref("home");
 
             const settings = ref({
@@ -476,6 +497,175 @@
             const latestVersion = ref(LATEST_VERSION);
             const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
 
+            // Check configuration on boot
+            const checkConfig = async () => {
+                const savedConfig = localStorage.getItem(LS_KEY_FIREBASE_CONFIG);
+                const savedUser = localStorage.getItem(LS_KEY_USER_NAME);
+
+                if (savedConfig && savedUser) {
+                    try {
+                        const configObj = JSON.parse(savedConfig);
+                        app = initializeApp(configObj);
+                        db = getFirestore(app);
+                        currentUserName.value = savedUser;
+                        editUserName.value = savedUser;
+                        appState.value = 'app';
+                        initRealtimeListeners();
+                    } catch (e) {
+                        console.error("Config init error", e);
+                        // Config 壞了，重設
+                        localStorage.removeItem(LS_KEY_FIREBASE_CONFIG);
+                        appState.value = 'setup';
+                    }
+                } else {
+                    appState.value = 'setup';
+                }
+            };
+
+            // Setup Logic
+            const saveSetup = () => {
+                try {
+                    // 嘗試從貼上的字串中提取物件
+                    // 1. 尋找 const firebaseConfig = { ... }
+                    // 2. 或者直接是 { ... }
+                    let code = setupForm.value.configCode.trim();
+                    let jsonString = "";
+                    
+                    if (code.includes("firebaseConfig")) {
+                        const start = code.indexOf("{");
+                        const end = code.lastIndexOf("}");
+                        if (start !== -1 && end !== -1) {
+                            jsonString = code.substring(start, end + 1);
+                        }
+                    } else if (code.startsWith("{") && code.endsWith("}")) {
+                        jsonString = code;
+                    }
+
+                    if (!jsonString) {
+                        alert("無法辨識設定碼，請確認複製完整內容。");
+                        return;
+                    }
+
+                    // 使用 Function 建構式來解析 JS 物件字串 (比 JSON.parse 寬容，可接受 key 沒有引號)
+                    // 安全性注意: 這是使用者自己貼的 code，風險由使用者承擔，且此為純前端
+                    const configObj = new Function("return " + jsonString)();
+
+                    if (!configObj.projectId) {
+                        alert("設定碼似乎不正確 (缺少 projectId)");
+                        return;
+                    }
+
+                    const uName = setupForm.value.userName.trim();
+                    if (!uName) {
+                        alert("請輸入您的名稱");
+                        return;
+                    }
+
+                    // 儲存並重整
+                    localStorage.setItem(LS_KEY_FIREBASE_CONFIG, JSON.stringify(configObj));
+                    localStorage.setItem(LS_KEY_USER_NAME, uName);
+                    
+                    alert("設定完成！即將進入家庭。");
+                    window.location.reload();
+
+                } catch (e) {
+                    console.error(e);
+                    alert("解析失敗，請確認貼上的是正確的 Firebase Config 程式碼。");
+                }
+            };
+
+            const initRealtimeListeners = () => {
+                if (!db) return;
+
+                // 1. 註冊/更新當前使用者 (用名稱當 ID，確保同一家庭不重複/同步)
+                const userRef = doc(db, "fridge_users", currentUserName.value);
+                setDoc(userRef, {
+                    name: currentUserName.value,
+                    lastLogin: new Date()
+                }, { merge: true });
+
+                // 2. 監聽物品
+                onSnapshot(collection(db, "fridge_items"), (snapshot) => {
+                    items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    isLoading.value = false;
+                    showUpdateModal(false);
+                });
+
+                // 3. 監聽家庭設定 (名稱)
+                onSnapshot(doc(db, "fridge_settings", "family"), (docSnap) => {
+                    if (docSnap.exists()) {
+                        familyName.value = docSnap.data().name || "";
+                        tempFamilyName.value = familyName.value;
+                    }
+                });
+
+                // 4. 監聽成員列表
+                onSnapshot(collection(db, "fridge_users"), (snapshot) => {
+                    memberList.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                });
+            };
+
+            const logout = () => {
+                if(confirm("確定要登出嗎？這將清除此裝置的連結設定。")) {
+                    localStorage.removeItem(LS_KEY_FIREBASE_CONFIG);
+                    localStorage.removeItem(LS_KEY_USER_NAME);
+                    window.location.reload();
+                }
+            };
+
+            // Family & User Updates
+            const updateFamilyName = async () => {
+                if (!tempFamilyName.value.trim()) return;
+                try {
+                    await setDoc(doc(db, "fridge_settings", "family"), {
+                        name: tempFamilyName.value.trim()
+                    }, { merge: true });
+                    alert("家庭名稱已更新");
+                } catch (e) {
+                    alert("更新失敗");
+                }
+            };
+
+            const updateUserName = async () => {
+                const newName = editUserName.value.trim();
+                if (!newName || newName === currentUserName.value) {
+                    editUserName.value = currentUserName.value; // 還原
+                    return;
+                }
+
+                // 檢查名稱是否被佔用
+                const exists = memberList.value.find(m => m.id === newName);
+                if (exists) {
+                    alert("此名稱已存在，請使用其他名稱。");
+                    editUserName.value = currentUserName.value;
+                    return;
+                }
+
+                if (confirm(`確定將名稱修改為「${newName}」嗎？\n資料庫會同步更新。`)) {
+                    try {
+                        // 1. 建立新使用者文件
+                        await setDoc(doc(db, "fridge_users", newName), {
+                            name: newName,
+                            lastLogin: new Date()
+                        });
+                        // 2. 刪除舊使用者文件 (選擇性，或者保留當歷史紀錄，這裡選擇刪除以保持乾淨)
+                        await deleteDoc(doc(db, "fridge_users", currentUserName.value));
+                        
+                        // 3. 更新本地儲存
+                        currentUserName.value = newName;
+                        localStorage.setItem(LS_KEY_USER_NAME, newName);
+                        alert("名稱修改成功！");
+                    } catch (e) {
+                        console.error(e);
+                        alert("修改失敗");
+                        editUserName.value = currentUserName.value;
+                    }
+                } else {
+                    editUserName.value = currentUserName.value;
+                }
+            };
+
+            // Standard Logic (Same as before)
             const getTodayStr = () => new Date().toISOString().split("T")[0];
 
             const newItem = ref({
@@ -487,193 +677,8 @@
                 image: null
             });
 
-            // 初始化邏輯
-            onMounted(() => {
-                loadSettings();
-                checkLoginStatus();
-            });
-
-            const checkLoginStatus = () => {
-                const storedConfig = localStorage.getItem("fridge_firebase_config");
-                const storedUser = localStorage.getItem("fridge_user_name");
-
-                if (storedConfig && storedUser) {
-                    try {
-                        const configObj = JSON.parse(storedConfig);
-                        inputConfigJson.value = storedConfig;
-                        inputUserName.value = storedUser;
-                        currentUserName.value = storedUser;
-                        editingUserName.value = storedUser;
-                        initializeFirebase(configObj);
-                    } catch (e) {
-                        console.error("Config parse error", e);
-                        isConfigReady.value = false;
-                    }
-                } else {
-                    isConfigReady.value = false;
-                    isLoading.value = false; // 停止loading以便顯示登入畫面
-                }
-            };
-
-            const saveConfigAndLogin = () => {
-                loginError.value = "";
-                if (!inputConfigJson.value || !inputUserName.value) return;
-
-                try {
-                    // 嘗試解析 JSON，如果是直接貼上 JS 物件字串 (const x = {...}) 需簡單處理
-                    let cleanJson = inputConfigJson.value.trim();
-                    // 如果使用者貼上了 const firebaseConfig = { ... }，嘗試擷取 {} 內的內容
-                    if (cleanJson.indexOf("=") > -1) {
-                         const start = cleanJson.indexOf("{");
-                         const end = cleanJson.lastIndexOf("}");
-                         if (start > -1 && end > start) {
-                             cleanJson = cleanJson.substring(start, end + 1);
-                         }
-                    }
-
-                    // 嘗試修正一些常見的 JSON 格式錯誤 (例如 key 沒有雙引號)，這裡只能做簡單處理
-                    // 為了安全起見，建議使用者直接貼上標準 JSON。
-                    // 若失敗則提示錯誤。
-                    const configObj = JSON.parse(cleanJson);
-
-                    // 檢查必要欄位
-                    if (!configObj.projectId) throw new Error("缺少 projectId");
-
-                    // 儲存
-                    localStorage.setItem("fridge_firebase_config", JSON.stringify(configObj));
-                    localStorage.setItem("fridge_user_name", inputUserName.value.trim());
-
-                    currentUserName.value = inputUserName.value.trim();
-                    editingUserName.value = currentUserName.value;
-                    
-                    initializeFirebase(configObj);
-
-                } catch (e) {
-                    console.error(e);
-                    loginError.value = "設定格式錯誤，請確認貼上的是正確的 JSON 格式 (包含 {})";
-                }
-            };
-
-            const initializeFirebase = (config) => {
-                try {
-                    // 如果已經初始化過，避免重複
-                    if (!app) {
-                        app = initializeApp(config);
-                        db = getFirestore(app);
-                    }
-                    isConfigReady.value = true;
-                    isLoading.value = true;
-
-                    // 開始監聽資料
-                    startDataListeners();
-
-                    // 註冊使用者 (若不存在則新增，若存在則視為登入)
-                    registerUser(currentUserName.value);
-
-                } catch (e) {
-                    console.error("Firebase init failed", e);
-                    loginError.value = "連線失敗，請檢查設定是否正確";
-                    isConfigReady.value = false;
-                    localStorage.removeItem("fridge_firebase_config"); // 清除錯誤設定
-                }
-            };
-
-            const startDataListeners = () => {
-                // 1. 監聽物品清單
-                onSnapshot(collection(db, "fridge_items"), (snapshot) => {
-                    items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                    isLoading.value = false;
-                    showUpdateModal(false);
-                });
-
-                // 2. 監聽家庭設定 (家庭名稱)
-                onSnapshot(doc(db, "fridge_metadata", "settings"), (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        familyName.value = data.familyName || "";
-                        editingFamilyName.value = familyName.value;
-                    } else {
-                        // 預設值
-                        familyName.value = "我的冰箱";
-                        editingFamilyName.value = "我的冰箱";
-                    }
-                });
-
-                // 3. 監聽家庭成員
-                onSnapshot(collection(db, "fridge_users"), (snapshot) => {
-                    familyMembers.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                });
-            };
-
-            const registerUser = async (name) => {
-                try {
-                    await setDoc(doc(db, "fridge_users", name), {
-                        lastActive: new Date(),
-                        device: navigator.userAgent
-                    }, { merge: true });
-                } catch (e) {
-                    console.error("User register failed", e);
-                }
-            };
-
-            const updateFamilyName = async () => {
-                if (!editingFamilyName.value) return;
-                try {
-                    await setDoc(doc(db, "fridge_metadata", "settings"), {
-                        familyName: editingFamilyName.value
-                    }, { merge: true });
-                    alert("家庭名稱已更新");
-                } catch (e) {
-                    alert("更新失敗");
-                }
-            };
-
-            const updateUserName = async () => {
-                const newName = editingUserName.value.trim();
-                const oldName = currentUserName.value;
-
-                if (!newName || newName === oldName) return;
-
-                // 檢查是否已存在
-                const exists = familyMembers.value.find(u => u.id === newName);
-                if (exists) {
-                    alert("此名稱已被其他家庭成員使用，請換一個名字");
-                    return;
-                }
-
-                if (confirm(`確定要將名稱從 ${oldName} 改為 ${newName} 嗎？\n這將會更新您的登入資訊。`)) {
-                    try {
-                        // 1. 建立新使用者
-                        await setDoc(doc(db, "fridge_users", newName), {
-                            lastActive: new Date(),
-                            device: navigator.userAgent
-                        });
-                        
-                        // 2. 刪除舊使用者
-                        await deleteDoc(doc(db, "fridge_users", oldName));
-
-                        // 3. 更新本地狀態
-                        currentUserName.value = newName;
-                        localStorage.setItem("fridge_user_name", newName);
-                        alert("名稱修改成功");
-
-                    } catch (e) {
-                        console.error(e);
-                        alert("修改失敗");
-                    }
-                }
-            };
-
-            const logout = () => {
-                if(confirm("確定要登出並清除此裝置的設定嗎？")) {
-                    localStorage.removeItem("fridge_firebase_config");
-                    localStorage.removeItem("fridge_user_name");
-                    location.reload();
-                }
-            };
-
             const loadSettings = () => {
-                const saved = localStorage.getItem("fridge_settings_v1");
+                const saved = localStorage.getItem(LS_KEY_SETTINGS);
                 if (saved) {
                     try {
                         const obj = JSON.parse(saved);
@@ -683,7 +688,7 @@
             };
 
             const saveSettings = () => {
-                localStorage.setItem("fridge_settings_v1", JSON.stringify(settings.value));
+                localStorage.setItem(LS_KEY_SETTINGS, JSON.stringify(settings.value));
             };
 
             const compareVersions = (a, b) => {
@@ -724,10 +729,6 @@
                 if (!item?.expiryDate) return true;
                 return false;
             };
-
-            watch(() => settings.value.updateNotifyEnabled, () => {
-                saveSettings();
-            });
 
             const processImage = async (event) => {
                 const file = event.target.files[0];
@@ -786,7 +787,7 @@
                         noExpiry: noExpiryFinal,
                         image: newItem.value.image,
                         createdAt: new Date(),
-                        createdBy: currentUserName.value // 紀錄是誰新增的(選擇性)
+                        createdBy: currentUserName.value
                     });
 
                     newItem.value = {
@@ -850,10 +851,6 @@
                 currentPage.value = "home";
             };
 
-            const goSettings = () => {
-                currentPage.value = "settings";
-            };
-
             const filteredItems = computed(() => {
                 const keyword = searchText.value?.trim() || "";
                 let list = items.value;
@@ -862,7 +859,6 @@
                     list = list.filter(i => String(i.name || "").includes(keyword));
                 }
 
-                // 排序：到期日越近越前，無期限放最後
                 const toSortKey = (it) => {
                     const noExp = isNoExpiry(it);
                     const exp = (!noExp && it.expiryDate) ? it.expiryDate : "9999-12-31";
@@ -877,7 +873,6 @@
                     if (ka.exp < kb.exp) return -1;
                     if (ka.exp > kb.exp) return 1;
 
-                    // 到期日相同時，存入較早的排前面
                     if (ka.stored < kb.stored) return -1;
                     if (ka.stored > kb.stored) return 1;
 
@@ -885,33 +880,34 @@
                 });
             });
 
+            onMounted(() => {
+                loadSettings();
+                checkConfig();
+            });
+
+            watch(() => settings.value.updateNotifyEnabled, () => {
+                saveSettings();
+            });
+
             return {
-                // 狀態
+                appState, setupForm, saveSetup, logout,
+                familyName, tempFamilyName, updateFamilyName,
+                currentUserName, editUserName, updateUserName, memberList,
+                
                 items, searchText, isUploading, isCompressing, isLoading,
                 closeBtn, fileInput,
                 currentPage,
-                
-                // Login 相關
-                isConfigReady, inputConfigJson, inputUserName, loginError,
-                saveConfigAndLogin, logout,
-                
-                // Family 相關
-                familyName, editingFamilyName, updateFamilyName,
-                currentUserName, editingUserName, updateUserName, familyMembers,
 
-                // 新增
                 newItem, processImage, addItem, deleteItem,
                 getDays, addDays, getAlertClass, filteredItems,
                 isNoExpiry,
 
-                // 設定與版本
                 settings, saveSettings,
                 appVersion: APP_VERSION,
                 latestVersion, updateLogs, latestLog,
                 showUpdateModal, markUpdateSeen,
 
-                // 導航
-                goHome, goSettings, goSettingsFromSidebar
+                goHome, goSettingsFromSidebar
             };
         }
     }).mount("#app");
