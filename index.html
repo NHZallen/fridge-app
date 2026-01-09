@@ -3,26 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>智慧冰箱管理</title>
+    <title>智慧冰箱管理 - 掃碼版</title>
     <!-- iOS 專用圖示設定 -->
     <link rel="apple-touch-icon" href="icon.png">
     
     <!-- Android / PWA 專用設定 -->
     <link rel="manifest" href="manifest.json">
     
-    <!-- 設定手機狀態列顏色 (選用，讓質感更好) -->
     <meta name="theme-color" content="#0d6efd">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <!-- 引入 Bootstrap (美化介面) -->
+    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     
+    <!-- 引入 Html5-Qrcode (掃描條碼用) -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
     <style>
         /* CSS 樣式設定 */
         body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; }
         
-        /* 卡片樣式 */
         .item-card { 
             border: none; border-radius: 15px; overflow: hidden; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; 
@@ -33,28 +34,28 @@
         }
         .item-img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 過期警示顏色 */
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
         .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
         
-        /* 懸浮新增按鈕 (右下角) */
         .fab-btn {
             position: fixed; bottom: 30px; right: 25px;
             width: 65px; height: 65px; border-radius: 50%;
-            background: linear-gradient(45deg, #007bff, #0056b3);
+            background: linear-gradient(45deg, #0d6efd, #0a58ca);
             color: white; font-size: 30px; border: none;
-            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
             display: flex; align-items: center; justify-content: center;
             z-index: 1000;
         }
         .fab-btn:active { transform: scale(0.95); }
 
-        /* 讀取遮罩 */
         .loading-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.95); z-index: 9999;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
+        
+        /* 掃描器樣式 */
+        #reader { width: 100%; border-radius: 10px; overflow: hidden; background: #000; }
         
         [v-cloak] { display: none; }
     </style>
@@ -85,26 +86,22 @@
     <div class="row g-3 pb-5">
         <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
             <div class="card item-card h-100" :class="getAlertClass(item.expiryDate)">
-                <!-- 圖片區域 -->
                 <div class="item-img-box">
                     <img v-if="item.image" :src="item.image" class="item-img">
                     <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
                 </div>
                 
-                <!-- 內容區域 -->
                 <div class="card-body p-2 d-flex flex-column">
                     <h6 class="card-title fw-bold text-truncate mb-1">{{ item.name }}</h6>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <small class="text-muted">數量: {{ item.quantity }}</small>
                     </div>
 
-                    <!-- 狀態 Badge -->
                     <div v-if="getDays(item.expiryDate) < 0" class="badge bg-dark w-100 mb-2">已過期</div>
                     <div v-else-if="getDays(item.expiryDate) <= 3" class="badge bg-danger w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天!</div>
                     <div v-else-if="getDays(item.expiryDate) <= 7" class="badge bg-warning text-dark w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
                     <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
 
-                    <!-- 刪除按鈕 -->
                     <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click="deleteItem(item)">
                         取出 / 吃掉
                     </button>
@@ -113,31 +110,53 @@
         </div>
     </div>
 
-    <!-- 沒有物品時顯示 -->
     <div v-if="!isLoading && filteredItems.length === 0" class="text-center text-muted mt-5 pt-5">
         <i class="bi bi-box2 display-1 opacity-25"></i>
         <p class="mt-3">冰箱是空的，或者找不到該物品</p>
     </div>
 
-    <!-- 懸浮按鈕 (開啟 Modal) -->
     <button class="fab-btn" data-bs-toggle="modal" data-bs-target="#addModal">
-        <i class="bi bi-camera-fill"></i>
+        <i class="bi bi-plus-lg"></i>
     </button>
 
     <!-- 新增物品視窗 (Modal) -->
-    <div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal fade" id="addModal" tabindex="-1" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title fw-bold">放入新物品</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" ref="closeBtn"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" ref="closeBtn" @click="stopScanner"></button>
                 </div>
                 <div class="modal-body">
+                    
+                    <!-- 掃描區塊 -->
+                    <div class="mb-3">
+                        <button v-if="!isScanning" type="button" class="btn btn-outline-primary w-100 mb-2" @click="startScanner">
+                            <i class="bi bi-upc-scan me-2"></i> 掃描條碼自動填入
+                        </button>
+                        
+                        <div v-show="isScanning" class="bg-dark rounded p-2 text-center">
+                            <div id="reader"></div>
+                            <button type="button" class="btn btn-sm btn-secondary mt-2" @click="stopScanner">
+                                取消掃描
+                            </button>
+                        </div>
+                    </div>
+
                     <form @submit.prevent="addItem">
                         <!-- 1. 拍照 -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">1. 物品照片 (必填)</label>
-                            <input type="file" class="form-control" accept="image/*" capture="environment" @change="processImage" required>
+                            <label class="form-label fw-bold">1. 物品照片</label>
+                            
+                            <!-- 預覽圖 -->
+                            <div v-if="newItem.image" class="mb-2 text-center position-relative">
+                                <img :src="newItem.image" class="img-thumbnail" style="max-height: 150px;">
+                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle" @click="newItem.image = null">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+
+                            <input type="file" class="form-control" accept="image/*" capture="environment" @change="processImage" ref="fileInput">
                             <small class="text-muted" v-if="isCompressing">正在處理圖片...</small>
                         </div>
                         
@@ -165,7 +184,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold" :disabled="isUploading || isCompressing">
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold" :disabled="isUploading || isCompressing || !newItem.image">
                             {{ (isUploading || isCompressing) ? '處理中...' : '確認放入冰箱' }}
                         </button>
                     </form>
@@ -185,15 +204,14 @@
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
-  apiKey: "AIzaSyDZNAZY29ohkR-qQ9yQdSVjuz-a-BkpVdk",
-  authDomain: "familyfridgeapp.firebaseapp.com",
-  projectId: "familyfridgeapp",
-  storageBucket: "familyfridgeapp.firebasestorage.app",
-  messagingSenderId: "302477078162",
-  appId: "1:302477078162:web:ba378d114f61da1cc8c04b"
-};
+      apiKey: "AIzaSyDZNAZY29ohkR-qQ9yQdSVjuz-a-BkpVdk",
+      authDomain: "familyfridgeapp.firebaseapp.com",
+      projectId: "familyfridgeapp",
+      storageBucket: "familyfridgeapp.firebasestorage.app",
+      messagingSenderId: "302477078162",
+      appId: "1:302477078162:web:ba378d114f61da1cc8c04b"
+    };
 
-    // 初始化 App
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
@@ -207,8 +225,12 @@
             const isCompressing = ref(false);
             const isLoading = ref(true);
             const closeBtn = ref(null);
+            const fileInput = ref(null);
             
-            // 預設日期為今天
+            // 掃描相關狀態
+            const isScanning = ref(false);
+            let html5QrcodeScanner = null;
+
             const getTodayStr = () => new Date().toISOString().split('T')[0];
 
             const newItem = ref({
@@ -218,7 +240,6 @@
                 image: null
             });
 
-            // 即時同步資料庫
             onMounted(() => {
                 const q = query(collection(db, "fridge_items"), orderBy("expiryDate"));
                 onSnapshot(q, (snapshot) => {
@@ -227,14 +248,97 @@
                 });
             });
 
-            // 圖片壓縮邏輯 (轉成 Base64 字串，不存檔案)
+            // 啟動掃描器
+            const startScanner = () => {
+                isScanning.value = true;
+                // 延遲一下讓 DOM 渲染 reader div
+                setTimeout(() => {
+                    html5QrcodeScanner = new Html5Qrcode("reader");
+                    const config = { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 };
+                    
+                    html5QrcodeScanner.start(
+                        { facingMode: "environment" }, // 後鏡頭
+                        config,
+                        onScanSuccess
+                    ).catch(err => {
+                        console.error("無法啟動相機", err);
+                        alert("無法啟動相機，請檢查權限");
+                        isScanning.value = false;
+                    });
+                }, 100);
+            };
+
+            // 停止掃描器
+            const stopScanner = () => {
+                if (html5QrcodeScanner && isScanning.value) {
+                    html5QrcodeScanner.stop().then(() => {
+                        html5QrcodeScanner.clear();
+                        isScanning.value = false;
+                    }).catch(err => console.error("停止失敗", err));
+                } else {
+                    isScanning.value = false;
+                }
+            };
+
+            // 掃描成功 Callback
+            const onScanSuccess = async (decodedText, decodedResult) => {
+                // 1. 停止掃描
+                stopScanner();
+                isCompressing.value = true; // 借用這個 loading 狀態
+
+                try {
+                    // 2. 呼叫 Open Food Facts API
+                    // 台灣常用的條碼通常是 EAN-13
+                    const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${decodedText}.json`);
+                    const data = await response.json();
+
+                    if (data.status === 1) {
+                        const product = data.product;
+                        
+                        // 3. 填入名稱
+                        newItem.value.name = product.product_name_zh || product.product_name || "未知商品";
+
+                        // 4. 抓取圖片並轉換為 Base64 (保持資料庫一致性)
+                        const imageUrl = product.image_front_small_url || product.image_url;
+                        if (imageUrl) {
+                            await convertUrlToImage(imageUrl);
+                        } else {
+                            alert("找不到此商品的圖片，請手動拍照");
+                        }
+                    } else {
+                        alert(`找不到此條碼 (${decodedText}) 的資料，請手動輸入。`);
+                        newItem.value.name = decodedText; // 把條碼當作預設名稱方便辨識
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("查詢商品資料失敗，請檢查網路");
+                } finally {
+                    isCompressing.value = false;
+                }
+            };
+
+            // 將外部 URL 圖片轉為壓縮後的 Base64
+            const convertUrlToImage = async (url) => {
+                try {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    // 重複利用既有的壓縮邏輯
+                    const compressed = await compressFileLogic(blob);
+                    newItem.value.image = compressed;
+                } catch (e) {
+                    console.error("圖片轉換失敗", e);
+                    alert("無法下載商品圖片，請手動拍照");
+                }
+            };
+
+            // 手動上傳圖片
             const processImage = async (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
                 
                 isCompressing.value = true;
                 try {
-                    const compressed = await compressFile(file);
+                    const compressed = await compressFileLogic(file);
                     newItem.value.image = compressed;
                 } catch (e) {
                     alert("圖片處理失敗");
@@ -243,16 +347,18 @@
                 }
             };
 
-            const compressFile = (file) => {
+            // 核心圖片壓縮邏輯 (抽離出來共用)
+            const compressFileLogic = (blobOrFile) => {
                 return new Promise((resolve) => {
                     const reader = new FileReader();
-                    reader.readAsDataURL(file);
+                    reader.readAsDataURL(blobOrFile);
                     reader.onload = (e) => {
                         const img = new Image();
+                        img.crossOrigin = "Anonymous"; // 防止 Canvas 跨域污染
                         img.src = e.target.result;
                         img.onload = () => {
                             const canvas = document.createElement('canvas');
-                            const MAX_WIDTH = 800; // 限制寬度減少體積
+                            const MAX_WIDTH = 800; 
                             const scale = MAX_WIDTH / img.width;
                             const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
                             const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
@@ -262,16 +368,15 @@
                             const ctx = canvas.getContext('2d');
                             ctx.drawImage(img, 0, 0, w, h);
                             
-                            // 輸出 JPEG 品質 0.6
                             resolve(canvas.toDataURL('image/jpeg', 0.6));
                         }
+                        img.onerror = () => resolve(null);
                     }
                 });
             };
 
-            // 新增物品
             const addItem = async () => {
-                if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
+                if (!newItem.value.image) { alert("請記得拍照或掃描條碼喔！"); return; }
                 
                 isUploading.value = true;
                 try {
@@ -280,26 +385,23 @@
                         createdAt: new Date()
                     });
                     
-                    // 重置表單
                     newItem.value = { name: "", quantity: "1", expiryDate: getTodayStr(), image: null };
-                    document.querySelector('input[type="file"]').value = "";
-                    closeBtn.value.click(); // 關閉視窗
+                    if(fileInput.value) fileInput.value.value = "";
+                    closeBtn.value.click(); 
                 } catch (e) {
                     console.error(e);
-                    alert("上傳失敗，可能是照片太大了");
+                    alert("上傳失敗");
                 } finally {
                     isUploading.value = false;
                 }
             };
 
-            // 刪除物品
             const deleteItem = async (item) => {
                 if(confirm(`確定要把 ${item.name} 移出冰箱嗎？`)) {
                     await deleteDoc(doc(db, "fridge_items", item.id));
                 }
             };
 
-            // 計算天數
             const getDays = (dateStr) => {
                 const today = new Date();
                 today.setHours(0,0,0,0);
@@ -313,7 +415,6 @@
                 newItem.value.expiryDate = d.toISOString().split('T')[0];
             };
 
-            // 警示顏色
             const getAlertClass = (dateStr) => {
                 const d = getDays(dateStr);
                 if (d <= 3) return "alert-red";
@@ -321,14 +422,14 @@
                 return "";
             };
 
-            // 搜尋過濾
             const filteredItems = computed(() => {
                 if(!searchText.value) return items.value;
                 return items.value.filter(i => i.name.includes(searchText.value));
             });
 
             return {
-                items, searchText, newItem, isLoading, isUploading, isCompressing, closeBtn,
+                items, searchText, newItem, isLoading, isUploading, isCompressing, closeBtn, fileInput,
+                isScanning, startScanner, stopScanner,
                 processImage, addItem, deleteItem, getDays, addDays, getAlertClass, filteredItems
             };
         }
