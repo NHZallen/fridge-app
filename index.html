@@ -14,37 +14,57 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     
     <style>
-        /* --- 基礎樣式 --- */
+        /* --- 基礎變數 --- */
         :root {
             --bg-color: #f0f2f5;
             --text-color: #212529;
             --card-bg: #ffffff;
+            --input-bg: #ffffff;
+            --border-color: #ced4da;
         }
-        /* 深色模式變數 */
+
+        /* --- 深色模式核心樣式 --- */
         body.dark-mode {
             --bg-color: #121212;
             --text-color: #e0e0e0;
             --card-bg: #1e1e1e;
-            background-color: var(--bg-color) !important;
-            color: var(--text-color);
-        }
-        body.dark-mode .modal-content, 
-        body.dark-mode .offcanvas,
-        body.dark-mode .form-control,
-        body.dark-mode .list-group-item {
-            background-color: #2d2d2d;
-            color: #fff;
-            border-color: #444;
-        }
-        body.dark-mode .input-group-text {
-            background-color: #3d3d3d;
-            border-color: #444;
-            color: #fff;
+            --input-bg: #2d2d2d;
+            --border-color: #444;
+            color: var(--text-color) !important;
         }
 
+        /* 強制覆蓋 Bootstrap 元件在深色模式下的樣式 */
+        body.dark-mode .bg-white, 
+        body.dark-mode .bg-light,
+        body.dark-mode .card,
+        body.dark-mode .modal-content,
+        body.dark-mode .offcanvas {
+            background-color: var(--card-bg) !important;
+            color: var(--text-color) !important;
+        }
+
+        body.dark-mode .form-control,
+        body.dark-mode .input-group-text {
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        
+        body.dark-mode .form-control::placeholder { color: #888; }
+        
+        body.dark-mode .list-group-item {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+        
+        body.dark-mode .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+        body.dark-mode hr { border-color: #666; }
+
+        /* --- 版面樣式 --- */
         body { background-color: var(--bg-color); font-family: system-ui, -apple-system, sans-serif; transition: background-color 0.3s; }
         
-        /* 卡片樣式 */
+        /* 卡片 */
         .item-card { 
             border: none; border-radius: 15px; overflow: hidden; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; 
@@ -54,6 +74,8 @@
             width: 100%; height: 180px; background: #e9ecef; 
             display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
+        /* 深色模式下圖片框變暗一點 */
+        body.dark-mode .item-img-box { background: #2d2d2d; }
         .item-img { width: 100%; height: 100%; object-fit: cover; }
         
         /* 懸浮按鈕 */
@@ -66,7 +88,7 @@
             display: flex; align-items: center; justify-content: center; z-index: 1000;
         }
 
-        /* --- 設定頁面 (全螢幕) --- */
+        /* 設定頁面 (全螢幕) */
         .settings-page {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-color);
@@ -78,16 +100,11 @@
         }
         .settings-page.show { transform: translateX(0); }
 
-        /* --- 藥丸開關 (Switch) --- */
-        .form-switch .form-check-input {
-            width: 3em; height: 1.5em; cursor: pointer;
-        }
-        
-        /* --- 側邊欄底部按鈕 --- */
+        /* 側邊欄底部 */
         .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid #dee2e6; }
-        body.dark-mode .sidebar-footer { border-color: #444; }
+        body.dark-mode .sidebar-footer { border-color: var(--border-color); }
 
-        /* --- 讀取遮罩 --- */
+        /* 讀取遮罩 */
         .loading-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.95); z-index: 9999;
@@ -98,14 +115,13 @@
         [v-cloak] { display: none; }
     </style>
 </head>
-<body :class="{ 'dark-mode': isDarkMode }">
+<body>
 
 <div id="app" class="container py-3" v-cloak>
     
     <!-- 頂部導航列 -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-3">
-            <!-- 漢堡選單按鈕 -->
             <button class="btn btn-link text-decoration-none p-0 text-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
                 <i class="bi bi-list fs-1"></i>
             </button>
@@ -145,7 +161,7 @@
                     <div v-else-if="getDays(item.expiryDate) <= 7" class="badge bg-warning text-dark w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
                     <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
                     
-                    <!-- 顯示存入日期 (選項) -->
+                    <!-- 存入日期 -->
                     <small class="text-muted mb-2" style="font-size: 0.75rem;">存入: {{ item.depositDate || '未知' }}</small>
 
                     <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click="deleteItem(item)">
@@ -174,9 +190,10 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body d-flex flex-column">
-            <div class="list-group list-group-flush">
-                <a href="#" class="list-group-item list-group-item-action border-0 fs-5"><i class="bi bi-journal-text me-2"></i> 食譜建議 (開發中)</a>
-                <a href="#" class="list-group-item list-group-item-action border-0 fs-5"><i class="bi bi-cart me-2"></i> 採購清單 (開發中)</a>
+            <!-- 這裡清空了原本的清單，目前留白或可顯示歡迎訊息 -->
+            <div class="text-muted text-center mt-5">
+                <i class="bi bi-emoji-smile fs-1"></i>
+                <p class="mt-2">美好的一天，<br>從整理冰箱開始！</p>
             </div>
             
             <!-- 底部設定按鈕 -->
@@ -192,7 +209,6 @@
     <!-- 設定頁面 (全螢幕覆蓋) -->
     <div class="settings-page" :class="{ 'show': isSettingsOpen }">
         <div class="container py-3">
-            <!-- 設定頁頭部 -->
             <div class="d-flex align-items-center mb-4">
                 <button class="btn btn-link text-decoration-none text-body p-0 me-3" @click="isSettingsOpen = false">
                     <i class="bi bi-arrow-left fs-1"></i>
@@ -200,7 +216,7 @@
                 <h2 class="fw-bold m-0">設定</h2>
             </div>
 
-            <!-- 設定內容 -->
+            <!-- 外觀設定 -->
             <div class="card mb-3 shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title fw-bold mb-3">外觀</h5>
@@ -215,19 +231,19 @@
                 </div>
             </div>
 
+            <!-- 家庭成員 (開發中) -->
             <div class="card mb-3 shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title fw-bold mb-3">家庭成員</h5>
-                    <!-- 這裡可以放頭像列表，目前先做靜態顯示 -->
-                    <div class="d-flex align-items-center gap-3 mb-2">
-                        <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">爸</div>
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">媽</div>
-                        <button class="btn btn-outline-secondary rounded-circle" style="width: 40px; height: 40px;"><i class="bi bi-plus"></i></button>
+                    <div class="text-center py-4 bg-light rounded border border-dashed">
+                        <i class="bi bi-people-fill fs-1 text-muted opacity-50"></i>
+                        <p class="text-muted mt-2 mb-0 fw-bold">功能開發中</p>
+                        <small class="text-muted">之後您將可以邀請家人一起管理冰箱！</small>
                     </div>
-                    <small class="text-muted">管理誰可以看到冰箱內容</small>
                 </div>
             </div>
 
+            <!-- 關於 -->
             <div class="card mb-3 shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title fw-bold mb-3">關於應用程式</h5>
@@ -291,12 +307,10 @@
 
                         <!-- 3. 日期設定 -->
                         <div class="row g-2 mb-4">
-                            <!-- 存入日期 (新增功能) -->
                             <div class="col-6">
                                 <label class="form-label fw-bold small">存入日期</label>
                                 <input type="date" class="form-control" v-model="newItem.depositDate" required>
                             </div>
-                            <!-- 到期日 -->
                             <div class="col-6">
                                 <label class="form-label fw-bold small">有效期限</label>
                                 <input type="date" class="form-control" v-model="newItem.expiryDate" required>
@@ -347,7 +361,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     
-    // 匯入版本控制 (記得要跟 HTML 放在同一個資料夾)
+    // 匯入版本控制
     import { currentVersion, updateLogs } from './update-logs.js';
 
     const firebaseConfig = {
@@ -377,23 +391,34 @@
             // 設定相關
             const isSettingsOpen = ref(false);
             const isDarkMode = ref(localStorage.getItem('darkMode') === 'true');
-            const notifyUpdate = ref(localStorage.getItem('notifyUpdate') !== 'false'); // 預設為 true
+            const notifyUpdate = ref(localStorage.getItem('notifyUpdate') !== 'false');
             const currentAppVersion = currentVersion;
-            const latestLog = updateLogs[0]; // 取最新的一筆
+            const latestLog = updateLogs[0];
 
-            // 取得今日日期字串 YYYY-MM-DD
             const getTodayStr = () => new Date().toISOString().split('T')[0];
 
             const newItem = ref({
                 name: "",
                 quantity: "1",
-                depositDate: getTodayStr(), // 新增：存入日期預設今天
+                depositDate: getTodayStr(),
                 expiryDate: getTodayStr(),
                 image: null
             });
 
+            // 應用深色模式到 Body (因為 body 在 Vue app 範圍外)
+            const applyTheme = () => {
+                if(isDarkMode.value) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+            };
+
             // --- 生命週期 ---
             onMounted(() => {
+                // 初始化主題
+                applyTheme();
+
                 // 1. 同步資料庫
                 const q = query(collection(db, "fridge_items"), orderBy("expiryDate"));
                 onSnapshot(q, (snapshot) => {
@@ -407,43 +432,37 @@
 
             // --- 功能函式 ---
 
-            // 版本檢查邏輯
             const checkVersionUpdate = () => {
                 const lastSeenVersion = localStorage.getItem('lastSeenVersion');
-                
-                // 如果開啟通知 且 (從沒看過版本 OR 本地版本舊於目前版本)
                 if (notifyUpdate.value && lastSeenVersion !== currentVersion) {
-                    // 使用 Bootstrap API 開啟 Modal
                     const updateModal = new bootstrap.Modal(document.getElementById('updateModal'));
                     updateModal.show();
                 }
             };
 
-            // 使用者點擊「我知道了」
             const confirmUpdateSeen = () => {
                 localStorage.setItem('lastSeenVersion', currentVersion);
             };
 
-            // 開啟設定頁面 (需先關閉側邊欄，不然背景會黑黑的)
             const openSettings = () => {
                 const sidebarEl = document.getElementById('sidebar');
                 const sidebar = bootstrap.Offcanvas.getInstance(sidebarEl);
-                if(sidebar) sidebar.hide(); // 關閉側邊欄
-                
-                isSettingsOpen.value = true; // 開啟全螢幕設定
+                if(sidebar) sidebar.hide();
+                isSettingsOpen.value = true;
             };
 
             // 切換深色模式
             const toggleDarkMode = () => {
+                // 儲存設定
                 localStorage.setItem('darkMode', isDarkMode.value);
+                // 立即應用樣式到 body
+                applyTheme();
             };
 
-            // 儲存其他設定 (如通知開關)
             const saveSettings = () => {
                 localStorage.setItem('notifyUpdate', notifyUpdate.value);
             };
 
-            // 圖片處理 (維持原樣)
             const processImage = async (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -477,7 +496,6 @@
                 });
             };
 
-            // 新增物品
             const addItem = async () => {
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
                 isUploading.value = true;
@@ -486,7 +504,6 @@
                         ...newItem.value,
                         createdAt: new Date()
                     });
-                    // 重置
                     newItem.value = { 
                         name: "", quantity: "1", 
                         depositDate: getTodayStr(), 
