@@ -21,7 +21,6 @@
         .item-card {
             border: none; border-radius: 15px; overflow: hidden;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
-            /* 禁止長按時的系統預設選單，改用自定義邏輯 */
             user-select: none; -webkit-user-select: none;
             cursor: pointer;
         }
@@ -34,6 +33,12 @@
         }
         .item-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
         .item-img-box:active .item-img { opacity: 0.8; }
+
+        /* 新增：區域顏色條 */
+        .zone-bar {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
+            opacity: 0.85; /* 微微透明 */
+        }
 
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
         .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
@@ -97,10 +102,17 @@
 
         /* 側邊欄調整 */
         .sidebar-user-block {
-            margin-bottom: 5px; /* 縮小與分隔線的距離 */
+            margin-bottom: 5px; 
         }
         .sidebar-divider {
             margin-top: 5px; margin-bottom: 20px;
+        }
+
+        /* 區域統計徽章 */
+        .zone-stat-badge {
+            font-size: 0.75rem;
+            min-width: 20px;
+            text-align: center;
         }
     </style>
 </head>
@@ -165,10 +177,17 @@
                 <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
             </div>
 
-            <!-- 搜尋 -->
+            <!-- 搜尋與篩選 -->
             <div class="input-group mb-4 shadow-sm">
                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                 <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
+                <!-- 右側下拉選單 -->
+                <select class="form-select border-start-0 bg-light" v-model="filterZone" style="max-width: 110px;">
+                    <option value="all">全區</option>
+                    <option value="cold">冷藏區</option>
+                    <option value="frozen">冷凍區</option>
+                    <option value="veggie">蔬果區</option>
+                </select>
                 <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
             </div>
 
@@ -190,6 +209,8 @@
                         <div class="item-img-box" @click.stop="openPreview(item.image)">
                             <img v-if="item.image" :src="item.image" class="item-img">
                             <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
+                            <!-- 區域顏色顯示 -->
+                            <div class="zone-bar" :style="{ backgroundColor: getZoneColor(item.zone) }"></div>
                         </div>
 
                         <div class="card-body p-2 d-flex flex-column">
@@ -204,7 +225,7 @@
                                 <small class="text-muted" v-else>存入: 未填</small>
                             </div>
 
-                            <!-- 到期狀態 (修正：補上過期日期) -->
+                            <!-- 到期狀態 -->
                             <div v-if="isNoExpiry(item)" class="badge bg-light text-secondary border w-100 mb-2">無期限</div>
                             <template v-else>
                                 <div v-if="getDays(item.expiryDate) < 0" class="badge bg-dark w-100 mb-2">已過期 ({{ item.expiryDate }})</div>
@@ -223,7 +244,7 @@
 
             <div v-if="filteredItems.length === 0" class="text-center text-muted mt-5 pt-5">
                 <i class="bi bi-box2 display-1 opacity-25"></i>
-                <p class="mt-3">冰箱是空的，或者找不到該物品</p>
+                <p class="mt-3">該區域是空的，或者找不到該物品</p>
             </div>
 
             <!-- 懸浮新增按鈕 -->
@@ -258,24 +279,39 @@
                             <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
 
+                        <!-- 新增：存放區域選擇 -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">2. 存放區域</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="zone" id="zone-cold" value="cold" v-model="newItem.zone" checked>
+                                <label class="btn btn-outline-primary" for="zone-cold">冷藏區</label>
+
+                                <input type="radio" class="btn-check" name="zone" id="zone-frozen" value="frozen" v-model="newItem.zone">
+                                <label class="btn btn-outline-primary" for="zone-frozen">冷凍區</label>
+
+                                <input type="radio" class="btn-check" name="zone" id="zone-veggie" value="veggie" v-model="newItem.zone">
+                                <label class="btn btn-outline-primary" for="zone-veggie">蔬果區</label>
+                            </div>
+                        </div>
+
                         <div class="row g-3 mb-3">
                             <div class="col-7">
-                                <label class="form-label fw-bold">2. 名稱</label>
+                                <label class="form-label fw-bold">3. 名稱</label>
                                 <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
                             </div>
                             <div class="col-5">
-                                <label class="form-label fw-bold">3. 數量</label>
+                                <label class="form-label fw-bold">4. 數量</label>
                                 <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold">4. 存入日期</label>
+                            <label class="form-label fw-bold">5. 存入日期</label>
                             <input type="date" class="form-control form-control-lg" v-model="newItem.storedDate" required>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold">5. 到期日（可不填）</label>
+                            <label class="form-label fw-bold">6. 到期日（可不填）</label>
                             <input type="date" class="form-control form-control-lg" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
 
                             <div class="form-check form-switch mt-3">
@@ -479,12 +515,39 @@
             </div>
 
             <div class="offcanvas-body d-flex flex-column">
-                <!-- 修正：分隔線位置與間距 -->
                 <div class="sidebar-user-block">
                     <div class="text-muted small">目前使用者</div>
                     <div class="fw-bold fs-5">{{ currentUserName }}</div>
                 </div>
                 <hr class="sidebar-divider">
+
+                <!-- 區域導航按鈕 -->
+                <div class="d-grid gap-2 mb-4">
+                    <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
+                        <span><i class="bi bi-snow me-2"></i>冷藏區</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.cold.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日過期">{{ zoneStats.cold.exp7 }}</span>
+                            <span class="badge bg-danger zone-stat-badge" title="3日過期">{{ zoneStats.cold.exp3 }}</span>
+                        </div>
+                    </button>
+                    <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
+                        <span><i class="bi bi-box-seam me-2"></i>冷凍區</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.frozen.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.frozen.exp7 }}</span>
+                            <span class="badge bg-danger zone-stat-badge">{{ zoneStats.frozen.exp3 }}</span>
+                        </div>
+                    </button>
+                    <button class="btn btn-outline-success text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('veggie')">
+                        <span><i class="bi bi-flower1 me-2"></i>蔬果區</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.veggie.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.veggie.exp7 }}</span>
+                            <span class="badge bg-danger zone-stat-badge">{{ zoneStats.veggie.exp3 }}</span>
+                        </div>
+                    </button>
+                </div>
 
                 <div class="mt-auto">
                     <button class="btn btn-primary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
@@ -587,6 +650,7 @@
             // 冰箱資料
             const items = ref([]);
             const searchText = ref("");
+            const filterZone = ref("all"); // 篩選區域
             const isUploading = ref(false);
             const isCompressing = ref(false);
             const isLoading = ref(false);
@@ -628,13 +692,14 @@
             // 新增/編輯物品表單
             const getTodayStr = () => new Date().toISOString().split("T")[0];
             const newItem = ref({
-                id: null, // 用於判斷編輯模式
+                id: null,
                 name: "",
                 quantity: "1",
                 storedDate: getTodayStr(),
                 expiryDate: "",
                 noExpiry: false,
-                image: null
+                image: null,
+                zone: "cold" // 預設冷藏
             });
 
             // --- 方法 ---
@@ -951,6 +1016,7 @@
                     expiryDate: expiryDateClean,
                     noExpiry: noExpiryFinal,
                     image: newItem.value.image,
+                    zone: newItem.value.zone || 'cold'
                 };
 
                 isUploading.value = true;
@@ -999,7 +1065,6 @@
                 }
             };
             const handleTouchMove = () => {
-                // 如果手指移動了，取消長按
                 if (longPressTimer) {
                     clearTimeout(longPressTimer);
                     longPressTimer = null;
@@ -1068,6 +1133,53 @@
                 return "";
             };
 
+            // --- 區域顏色邏輯 ---
+            const getZoneColor = (zone) => {
+                // 若舊資料沒有 zone，預設視為 cold
+                const z = zone || 'cold';
+                switch(z) {
+                    case 'cold': return '#80aaff';
+                    case 'frozen': return '#002266';
+                    case 'veggie': return '#29a329';
+                    default: return '#80aaff';
+                }
+            };
+
+            // --- 區域統計邏輯 ---
+            const zoneStats = computed(() => {
+                const stats = {
+                    cold: { total: 0, exp7: 0, exp3: 0 },
+                    frozen: { total: 0, exp7: 0, exp3: 0 },
+                    veggie: { total: 0, exp7: 0, exp3: 0 }
+                };
+
+                items.value.forEach(item => {
+                    // 預設區域為冷藏
+                    const z = item.zone || 'cold';
+                    if (!stats[z]) return;
+
+                    stats[z].total++;
+                    
+                    if (!isNoExpiry(item)) {
+                        const days = getDays(item.expiryDate);
+                        if (days !== null) {
+                            if (days <= 7) stats[z].exp7++;
+                            if (days <= 3) stats[z].exp3++;
+                        }
+                    }
+                });
+                return stats;
+            });
+
+            const selectZoneFromSidebar = (zone) => {
+                filterZone.value = zone;
+                // 關閉側邊欄
+                const el = document.getElementById("sidebar");
+                const inst = bootstrap.Offcanvas.getInstance(el);
+                if (inst) inst.hide();
+                goHome();
+            };
+
             // 導航邏輯
             const goToAddPage = () => {
                 newItem.value = {
@@ -1077,14 +1189,13 @@
                     storedDate: getTodayStr(),
                     expiryDate: "",
                     noExpiry: false,
-                    image: null
+                    image: null,
+                    zone: "cold"
                 };
                 currentPage.value = "add";
             };
 
             const goToEditPage = (item) => {
-                // 進入編輯模式，帶入資料
-                // 停止長按計時器 (如果有的話)
                 if(longPressTimer) clearTimeout(longPressTimer);
 
                 newItem.value = {
@@ -1094,7 +1205,8 @@
                     storedDate: item.storedDate,
                     expiryDate: item.expiryDate,
                     noExpiry: item.noExpiry,
-                    image: item.image
+                    image: item.image,
+                    zone: item.zone || 'cold'
                 };
                 currentPage.value = "edit";
             };
@@ -1108,15 +1220,21 @@
 
             const goHome = () => {
                 currentPage.value = "home";
-                previewImageUrl.value = null; // 確保預覽關閉
+                previewImageUrl.value = null; 
             };
 
             const filteredItems = computed(() => {
                 const keyword = searchText.value?.trim() || "";
                 let list = items.value;
 
+                // 篩選搜尋關鍵字
                 if (keyword) {
                     list = list.filter(i => String(i.name || "").includes(keyword));
+                }
+
+                // 篩選區域
+                if (filterZone.value !== 'all') {
+                    list = list.filter(i => (i.zone || 'cold') === filterZone.value);
                 }
 
                 const toSortKey = (it) => {
@@ -1139,7 +1257,7 @@
 
             return {
                 // 狀態
-                items, searchText, isUploading, isCompressing, isLoading,
+                items, searchText, filterZone, isUploading, isCompressing, isLoading,
                 fileInput, currentPage, previewImageUrl,
                 
                 // Config & User 狀態
@@ -1157,6 +1275,9 @@
 
                 // 圖片預覽 & 長按
                 openPreview, closePreview, handleTouchStart, handleTouchEnd, handleTouchMove, goToEditPage,
+
+                // 區域邏輯
+                getZoneColor, zoneStats, selectZoneFromSidebar,
 
                 // 新增 & 編輯
                 newItem, processImage, submitItem, 
