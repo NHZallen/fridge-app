@@ -17,8 +17,15 @@
 
   <style>
     body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; }
-    .item-card { border: none; border-radius: 15px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; }
-    .item-img-box { width: 100%; height: 180px; background: #e9ecef; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+    .item-card {
+      border: none; border-radius: 15px; overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
+    }
+    .item-img-box {
+      width: 100%; height: 180px; background: #e9ecef;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
     .item-img { width: 100%; height: 100%; object-fit: cover; }
 
     .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
@@ -43,8 +50,14 @@
     }
 
     [v-cloak] { display: none; }
+
     .settings-page { min-height: 100vh; }
-    .section-card { border: none; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+
+    .section-card {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
   </style>
 </head>
 
@@ -240,7 +253,7 @@
           <div class="accordion-item" v-for="log in updateLogs" :key="log.version">
             <h2 class="accordion-header">
               <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                :data-bs-target="'#v'+log.version.replaceAll('.','_')">
+                      :data-bs-target="'#v'+log.version.replaceAll('.','_')">
                 <div class="d-flex flex-column">
                   <div class="fw-bold">v{{ log.version }}　{{ log.title }}</div>
                   <div class="small text-muted">{{ log.date }}</div>
@@ -259,6 +272,7 @@
 
       </div>
     </div>
+
   </div>
 
   <!-- 左側邊欄 -->
@@ -457,8 +471,14 @@
     setDoc,
     getDoc,
     onSnapshot,
-    serverTimestamp
+    serverTimestamp,
+    query,
+    where,
+    limit,
+    getDocs,
+    runTransaction
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
   import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
 
   const firebaseConfig = {
@@ -499,9 +519,9 @@
       const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
 
       // 家庭登入狀態
-      const currentFamilyKey = ref(localStorage.getItem("currentFamilyKey") || "");
+      const currentFamilyId = ref(localStorage.getItem("currentFamilyId") || "");
       const currentFamilyName = ref(localStorage.getItem("currentFamilyName") || "");
-      const isAuthed = computed(() => !!currentFamilyKey.value);
+      const isAuthed = computed(() => !!currentFamilyId.value);
 
       // 註冊/加入表單
       const authBusy = ref(false);
@@ -571,11 +591,7 @@
 
       const guardAuthed = (featureName) => {
         if (isAuthed.value) return;
-        if (featureName) {
-          alert(`${featureName}已鎖定。請前往設定頁註冊或加入家庭後再使用。`);
-        } else {
-          alert("此功能已鎖定。請前往設定頁註冊或加入家庭後再使用。");
-        }
+        alert(`${featureName}已鎖定。請前往設定頁註冊或加入家庭後再使用。`);
         currentPage.value = "settings";
       };
 
@@ -627,25 +643,32 @@
         modal.hide();
       };
 
-      const subscribeFamilyItems = (familyKey) => {
+      // ✅ 用 nameKey 找到家庭（解決不同設備加入不到）
+      const findFamilyByKey = async (familyKey) => {
+        const q = query(collection(db, "families"), where("nameKey", "==", familyKey), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) return null;
+        const d = snap.docs[0];
+        return { id: d.id, ...d.data() };
+      };
+
+      const subscribeFamilyItems = (familyId) => {
         if (unsubscribeItems) {
           unsubscribeItems();
           unsubscribeItems = null;
         }
 
         items.value = [];
-        if (!familyKey) {
+        if (!familyId) {
           isLoading.value = false;
           return;
         }
 
         isLoading.value = true;
-        const itemsCol = collection(db, "families", familyKey, "fridge_items");
+        const itemsCol = collection(db, "families", familyId, "fridge_items");
         unsubscribeItems = onSnapshot(itemsCol, (snapshot) => {
           items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
           isLoading.value = false;
-
-          // 第一次載入完成後再檢查更新
           showUpdateModal(false);
         }, (err) => {
           console.error(err);
@@ -654,20 +677,21 @@
         });
       };
 
-      const setFamilySession = (familyKey, familyName) => {
-        currentFamilyKey.value = familyKey;
-        currentFamilyName.value = familyName || familyName === "" ? familyName : "";
-        localStorage.setItem("currentFamilyKey", familyKey);
+      const setFamilySession = (familyId, familyName) => {
+        currentFamilyId.value = familyId;
+        currentFamilyName.value = familyName || "";
+        localStorage.setItem("currentFamilyId", familyId);
         localStorage.setItem("currentFamilyName", familyName || "");
       };
 
       const clearFamilySession = () => {
-        currentFamilyKey.value = "";
+        currentFamilyId.value = "";
         currentFamilyName.value = "";
-        localStorage.removeItem("currentFamilyKey");
+        localStorage.removeItem("currentFamilyId");
         localStorage.removeItem("currentFamilyName");
       };
 
+      // ✅ 註冊：transaction 防重複 + 固定 docId = familyKey
       const registerFamily = async () => {
         if (authBusy.value) return;
 
@@ -687,22 +711,26 @@
 
         authBusy.value = true;
         try {
-          const familyRef = doc(db, "families", familyKey);
-          const snap = await getDoc(familyRef);
-          if (snap.exists()) {
-            alert("此家庭名稱已被註冊，請換一個名稱");
-            return;
-          }
-
           const salt = crypto.getRandomValues(new Uint8Array(16));
           const hash = await deriveHash(pwd, salt);
 
-          await setDoc(familyRef, {
-            name,
-            nameKey: familyKey,
-            passSalt: toBase64(salt),
-            passHash: hash,
-            createdAt: serverTimestamp()
+          await runTransaction(db, async (tx) => {
+            // 先查 nameKey 是否存在
+            const q = query(collection(db, "families"), where("nameKey", "==", familyKey), limit(1));
+            const qs = await getDocs(q);
+            if (!qs.empty) {
+              throw new Error("FAMILY_EXISTS");
+            }
+
+            // 用固定 docId 存，之後好找也好維護
+            const familyRef = doc(db, "families", familyKey);
+            tx.set(familyRef, {
+              name,
+              nameKey: familyKey,
+              passSalt: toBase64(salt),
+              passHash: hash,
+              createdAt: serverTimestamp()
+            });
           });
 
           setFamilySession(familyKey, name);
@@ -710,13 +738,18 @@
           alert("註冊成功，已自動登入");
           currentPage.value = "home";
         } catch (e) {
-          console.error(e);
-          alert("註冊失敗，請稍後再試");
+          if (String(e?.message || "").includes("FAMILY_EXISTS")) {
+            alert("此家庭名稱已被註冊，請換一個名稱");
+          } else {
+            console.error(e);
+            alert("註冊失敗，請稍後再試");
+          }
         } finally {
           authBusy.value = false;
         }
       };
 
+      // ✅ 加入：用 nameKey 查詢家庭 doc（兼容舊資料）
       const joinFamily = async () => {
         if (authBusy.value) return;
 
@@ -730,24 +763,24 @@
 
         authBusy.value = true;
         try {
-          const familyRef = doc(db, "families", familyKey);
-          const snap = await getDoc(familyRef);
+          const fam = await findFamilyByKey(familyKey);
 
-          if (!snap.exists()) {
+          if (!fam) {
             alert("找不到此家庭名稱，請確認是否輸入正確");
             return;
           }
 
-          const data = snap.data();
-          const saltBytes = fromBase64(data.passSalt);
+          const saltBytes = fromBase64(fam.passSalt);
           const hash = await deriveHash(pwd, saltBytes);
 
-          if (hash !== data.passHash) {
+          if (hash !== fam.passHash) {
             alert("密碼錯誤");
             return;
           }
 
-          setFamilySession(familyKey, data.name || name);
+          // ✅ 用找到的 docId 當家庭 id，舊資料也能讀到
+          setFamilySession(fam.id, fam.name || name);
+
           closeModalById("joinFamilyModal");
           alert("登入成功");
           currentPage.value = "home";
@@ -779,20 +812,16 @@
 
       onMounted(() => {
         loadSettings();
-
-        // 依目前 session 決定是否訂閱
-        subscribeFamilyItems(currentFamilyKey.value);
-
-        // 沒登入就不要卡 loading
-        if (!currentFamilyKey.value) isLoading.value = false;
+        subscribeFamilyItems(currentFamilyId.value);
+        if (!currentFamilyId.value) isLoading.value = false;
       });
 
       watch(() => settings.value.updateNotifyEnabled, () => {
         saveSettings();
       });
 
-      watch(() => currentFamilyKey.value, (newKey) => {
-        subscribeFamilyItems(newKey);
+      watch(() => currentFamilyId.value, (newId) => {
+        subscribeFamilyItems(newId);
       });
 
       const processImage = async (event) => {
@@ -846,7 +875,7 @@
 
         isUploading.value = true;
         try {
-          const itemsCol = collection(db, "families", currentFamilyKey.value, "fridge_items");
+          const itemsCol = collection(db, "families", currentFamilyId.value, "fridge_items");
           await addDoc(itemsCol, {
             name: newItem.value.name,
             quantity: newItem.value.quantity,
@@ -879,7 +908,7 @@
       const deleteItem = async (item) => {
         if (!isAuthed.value) { guardAuthed("刪除功能"); return; }
         if (confirm(`確定要把 ${item.name} 移出冰箱嗎？`)) {
-          await deleteDoc(doc(db, "families", currentFamilyKey.value, "fridge_items", item.id));
+          await deleteDoc(doc(db, "families", currentFamilyId.value, "fridge_items", item.id));
         }
       };
 
