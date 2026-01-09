@@ -57,10 +57,9 @@
 
         [v-cloak] { display: none; }
 
-        /* 全螢幕頁面共用樣式 */
-        .full-page {
+        .page-container {
             min-height: 100vh;
-            background-color: #f0f2f5;
+            padding-bottom: 40px;
         }
 
         .section-card {
@@ -74,43 +73,12 @@
             border-bottom: 1px solid #eee;
         }
         .member-row:last-child { border-bottom: none; }
-
-        /* 圖片選擇按鈕樣式 */
-        .img-select-btn {
-            height: 80px;
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #64748b;
-            background: white;
-            transition: 0.2s;
-        }
-        .img-select-btn:active {
-            background: #f1f5f9;
-            border-color: #94a3b8;
-        }
-        .img-preview-box {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .img-preview-box img {
-            width: 100%;
-            max-height: 300px;
-            object-fit: cover;
-        }
-        .remove-img-btn {
-            position: absolute;
-            top: 10px; right: 10px;
-            background: rgba(0,0,0,0.6);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 32px; height: 32px;
+        
+        /* 數量選擇器的樣式 */
+        .qty-btn {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; font-weight: bold;
         }
     </style>
 </head>
@@ -153,36 +121,30 @@
 
     <!-- 主應用程式 (已設定 Config 才顯示) -->
     <template v-else>
-        
-        <!-- 頂部導航列 (HOME) -->
-        <div class="d-flex justify-content-between align-items-center mb-3" v-if="currentPage==='home'">
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
-                    <i class="bi bi-list"></i>
-                </button>
-                <div class="d-flex flex-column">
-                    <h4 class="fw-bold m-0"><i class="bi bi-snow2 text-primary"></i> 冰箱庫存</h4>
-                    <small class="text-muted" style="font-size: 0.8rem;">{{ familySettings.familyName }}</small>
-                </div>
-            </div>
-            <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
-        </div>
-
-        <!-- 搜尋 (HOME) -->
-        <div v-if="currentPage==='home'" class="input-group mb-4 shadow-sm">
-            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
-            <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
-        </div>
-
-        <!-- 讀取中畫面 -->
-        <div v-if="isLoading" class="loading-mask">
-            <div class="spinner-border text-primary mb-3" role="status"></div>
-            <p class="text-muted fw-bold">正在同步 {{ familySettings.familyName || '家庭' }} 資料...</p>
-        </div>
-
-        <!-- HOME：物品列表 -->
+        <!-- HOME PAGE -->
         <div v-if="!isLoading && currentPage==='home'">
+            <!-- 頂部列 -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div class="d-flex flex-column">
+                        <h4 class="fw-bold m-0"><i class="bi bi-snow2 text-primary"></i> 冰箱庫存</h4>
+                        <small class="text-muted" style="font-size: 0.8rem;">{{ familySettings.familyName }}</small>
+                    </div>
+                </div>
+                <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
+            </div>
+
+            <!-- 搜尋 -->
+            <div class="input-group mb-4 shadow-sm">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
+                <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
+            </div>
+
+            <!-- 物品列表 -->
             <div class="row g-3 pb-5">
                 <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
                     <div class="card item-card h-100" :class="getAlertClass(item)">
@@ -212,7 +174,8 @@
                                 <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
                             </template>
 
-                            <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click.stop="openDeleteModal(item)">
+                            <!-- 按下取出按鈕：觸發 checkAction -->
+                            <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click.stop="checkQuantityAndAction(item)">
                                 取出 / 吃掉
                             </button>
                         </div>
@@ -225,14 +188,14 @@
                 <p class="mt-3">冰箱是空的，或者找不到該物品</p>
             </div>
 
-            <!-- 懸浮新增按鈕 (改為切換頁面) -->
+            <!-- 懸浮新增按鈕：點擊切換頁面 -->
             <button class="fab-btn" @click="goToAddPage">
                 <i class="bi bi-plus-lg"></i>
             </button>
         </div>
 
-        <!-- ADD：全螢幕新增物品頁 -->
-        <div v-if="!isLoading && currentPage==='add'" class="full-page">
+        <!-- ADD PAGE：全螢幕新增物品頁 -->
+        <div v-if="!isLoading && currentPage==='add'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 取消
@@ -244,77 +207,54 @@
             <div class="card section-card">
                 <div class="card-body">
                     <form @submit.prevent="addItem">
-                        <!-- 1. 圖片選擇區 -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold mb-2">1. 物品照片</label>
-                            
-                            <!-- 隱藏的 input，分別對應相機與相簿 -->
-                            <input ref="cameraInput" type="file" accept="image/*" capture="environment" style="display:none" @change="processImage">
-                            <input ref="albumInput" type="file" accept="image/*" style="display:none" @change="processImage">
-
-                            <!-- 預覽區 -->
-                            <div v-if="newItem.image" class="img-preview-box mb-2">
-                                <img :src="newItem.image" alt="Preview">
-                                <button type="button" class="remove-img-btn" @click="newItem.image = null">
-                                    <i class="bi bi-x"></i>
-                                </button>
-                            </div>
-
-                            <!-- 按鈕區 -->
-                            <div v-else class="row g-2">
-                                <div class="col-6">
-                                    <div class="img-select-btn" @click="$refs.cameraInput.click()">
-                                        <i class="bi bi-camera-fill fs-3 mb-1 text-primary"></i>
-                                        <span class="small fw-bold">拍一張</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="img-select-btn" @click="$refs.albumInput.click()">
-                                        <i class="bi bi-images fs-3 mb-1 text-success"></i>
-                                        <span class="small fw-bold">選相簿</span>
-                                    </div>
+                            <label class="form-label fw-bold fs-5">1. 物品照片</label>
+                            <div class="d-flex flex-column align-items-center justify-content-center border rounded bg-light p-3" style="min-height: 200px;" @click="$refs.fileInput.click()">
+                                <img v-if="newItem.image" :src="newItem.image" class="w-100 rounded" style="max-height: 300px; object-fit: contain;">
+                                <div v-else class="text-center text-muted">
+                                    <i class="bi bi-camera fs-1"></i>
+                                    <div class="mt-2">點擊選擇相機或相簿</div>
                                 </div>
                             </div>
-                            <small class="text-muted" v-if="isCompressing">正在處理圖片...</small>
+                            <!-- 移除 capture 屬性，讓手機自動跳出 相機/檔案 選擇選單 -->
+                            <input ref="fileInput" type="file" class="d-none" accept="image/*" @change="processImage">
+                            <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
 
-                        <!-- 2. 基本資訊 -->
                         <div class="row g-3 mb-3">
-                            <div class="col-8">
+                            <div class="col-7">
                                 <label class="form-label fw-bold">2. 名稱</label>
-                                <input type="text" class="form-control" v-model="newItem.name" placeholder="例如：鮮奶" required>
+                                <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
                             </div>
-                            <div class="col-4">
+                            <div class="col-5">
                                 <label class="form-label fw-bold">3. 數量</label>
-                                <input type="text" class="form-control" v-model="newItem.quantity" placeholder="1瓶" required>
+                                <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
                             </div>
                         </div>
 
-                        <!-- 3. 日期 -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">4. 存入日期</label>
-                            <input type="date" class="form-control" v-model="newItem.storedDate" required>
+                            <input type="date" class="form-control form-control-lg" v-model="newItem.storedDate" required>
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label fw-bold">5. 到期日（可不填）</label>
-                            <input type="date" class="form-control" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
+                            <input type="date" class="form-control form-control-lg" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
 
-                            <div class="form-check form-switch mt-2">
+                            <div class="form-check form-switch mt-3">
                                 <input class="form-check-input" type="checkbox" id="noExpirySwitch" v-model="newItem.noExpiry">
                                 <label class="form-check-label fw-bold" for="noExpirySwitch">此物品無期限</label>
                             </div>
 
-                            <div class="mt-2 d-flex gap-2 overflow-auto" v-if="!newItem.noExpiry">
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(3)">+3天</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(7)">+1週</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(14)">+2週</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" @click="addDays(30)">+1月</button>
+                            <div class="mt-3 d-flex gap-2 overflow-auto" v-if="!newItem.noExpiry">
+                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(3)">+3天</button>
+                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(7)">+1週</button>
+                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(14)">+2週</button>
+                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(30)">+1月</button>
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow" :disabled="isUploading || isCompressing">
-                            <i class="bi bi-check-lg me-1"></i>
+                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm" :disabled="isUploading || isCompressing">
                             {{ (isUploading || isCompressing) ? '處理中...' : '確認放入冰箱' }}
                         </button>
                     </form>
@@ -323,7 +263,7 @@
         </div>
 
         <!-- SETTINGS：全螢幕設定頁 -->
-        <div v-if="!isLoading && currentPage==='settings'" class="full-page settings-page">
+        <div v-if="!isLoading && currentPage==='settings'" class="settings-page page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 返回
@@ -418,7 +358,6 @@
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
-
                     <div class="accordion" id="updateAccordion">
                         <div class="accordion-item" v-for="log in updateLogs" :key="log.version">
                             <h2 class="accordion-header">
@@ -439,13 +378,18 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
             <button class="btn btn-outline-danger w-100 rounded-pill mt-4" @click="resetApp">
                 重設 APP (清除設定與登出)
             </button>
+        </div>
+
+        <!-- 讀取中畫面 -->
+        <div v-if="isLoading" class="loading-mask">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <p class="text-muted fw-bold">正在同步 {{ familySettings.familyName || '家庭' }} 資料...</p>
         </div>
 
         <!-- 左側邊欄 -->
@@ -471,44 +415,51 @@
             </div>
         </div>
 
-        <!-- 刪除/取出 確認視窗 -->
+        <!-- 刪除/全部取出 確認視窗 -->
         <div class="modal fade" id="deleteModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow">
                     <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title fw-bold">取出物品</h5>
+                        <h5 class="modal-title fw-bold">取出物品確認</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                            <img v-if="itemToDelete?.image" :src="itemToDelete.image" class="rounded" style="width: 60px; height: 60px; object-fit: cover;">
-                            <div>
-                                <h5 class="fw-bold mb-0">{{ itemToDelete?.name }}</h5>
-                                <div class="text-muted small">目前數量: {{ itemToDelete?.quantity }}</div>
-                            </div>
+                        <p class="fs-5">確定要把 <span class="fw-bold text-danger">{{ itemToDelete?.name }}</span> 移出冰箱嗎？</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger rounded-pill fw-bold" @click="confirmDelete">確定吃掉 / 取出</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 部分取出/數量選擇視窗 -->
+        <div class="modal fade" id="takeOutModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title fw-bold">選擇取出數量</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <h5 class="fw-bold mb-3">{{ itemToDelete?.name }}</h5>
+                        <div class="text-muted mb-4">目前庫存：{{ itemToDelete?.quantity }}</div>
+
+                        <div class="d-flex justify-content-center align-items-center gap-3 mb-4">
+                            <button class="btn btn-outline-secondary qty-btn" @click="takeOutAmount > 1 ? takeOutAmount-- : null"><i class="bi bi-dash"></i></button>
+                            <div class="fs-1 fw-bold" style="width: 60px;">{{ takeOutAmount }}</div>
+                            <button class="btn btn-outline-secondary qty-btn" @click="takeOutAmount < maxTakeOut ? takeOutAmount++ : null"><i class="bi bi-plus"></i></button>
                         </div>
 
-                        <!-- 數量選擇 (如果可解析出數字且 > 1) -->
-                        <div v-if="deleteMode === 'partial'">
-                            <label class="form-label fw-bold">請問要取出多少？</label>
-                            <div class="input-group mb-3">
-                                <button class="btn btn-outline-secondary" type="button" @click="deleteAmount > 1 ? deleteAmount-- : null"><i class="bi bi-dash"></i></button>
-                                <input type="number" class="form-control text-center" v-model.number="deleteAmount" min="1" :max="maxDeleteQty">
-                                <button class="btn btn-outline-secondary" type="button" @click="deleteAmount < maxDeleteQty ? deleteAmount++ : null"><i class="bi bi-plus"></i></button>
-                            </div>
-                            <div class="text-muted small">
-                                取出後剩餘: {{ maxDeleteQty - deleteAmount }} {{ deleteUnitStr }}
-                            </div>
-                        </div>
-
-                        <div v-else>
-                            <p class="fs-5">確定要把這個物品全部移出冰箱嗎？</p>
+                        <div v-if="takeOutAmount === maxTakeOut" class="alert alert-warning small py-2">
+                            將會取出全部，該物品會從清單中移除。
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">取消</button>
-                        <button type="button" class="btn btn-danger rounded-pill fw-bold" @click="confirmDelete">
-                            {{ deleteMode === 'partial' && deleteAmount < maxDeleteQty ? '確認取出' : '全部吃掉/移除' }}
+                        <button type="button" class="btn btn-primary rounded-pill fw-bold w-50" @click="confirmPartialTakeOut">
+                            確認取出
                         </button>
                     </div>
                 </div>
@@ -586,11 +537,11 @@
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
 
-    // 全域變數
+    // 全域變數，待初始化後賦值
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.2.0"; // 版本號更新，因功能有重大變更
+    const APP_VERSION = "1.1.0";
 
     const { createApp, ref, computed, onMounted, watch } = Vue;
 
@@ -611,13 +562,12 @@
             const isCompressing = ref(false);
             const isLoading = ref(false);
 
-            // 刪除/取出相關
+            // 刪除 & 取出邏輯相關
             const itemToDelete = ref(null);
-            const deleteMode = ref('all'); // 'all' or 'partial'
-            const deleteAmount = ref(1);
-            const maxDeleteQty = ref(1);
-            const deleteUnitStr = ref("");
+            const takeOutAmount = ref(1);
+            const maxTakeOut = ref(1);
             let deleteModalInstance = null;
+            let takeOutModalInstance = null;
 
             // 家庭資料
             const familySettings = ref({
@@ -630,8 +580,8 @@
             const nameEditError = ref("");
 
             // UI 參考
-            const cameraInput = ref(null);
-            const albumInput = ref(null);
+            const closeBtn = ref(null);
+            const fileInput = ref(null);
             const currentPage = ref("home");
 
             // 設定
@@ -655,6 +605,7 @@
 
             // --- 方法 ---
 
+            // 1. 初始化檢查
             const checkConfig = async () => {
                 const storedConfig = localStorage.getItem("fridge_firebase_config");
                 const storedUser = localStorage.getItem("fridge_user_name");
@@ -673,6 +624,7 @@
                 }
             };
 
+            // 2. 初始化 Firebase
             const initFirebase = async (config, userName) => {
                 try {
                     if (!appFirebase) {
@@ -711,9 +663,11 @@
                     let cleanStr = inputConfigStr.value.trim();
                     cleanStr = cleanStr.replace(/const\s+firebaseConfig\s*=\s*/, '');
                     cleanStr = cleanStr.replace(/;$/, '');
+                    
                     const configObj = (new Function(`return ${cleanStr}`))();
 
                     if (!configObj.projectId) throw new Error("無效的設定內容");
+
                     await initFirebase(configObj, inputUserName.value.trim());
                     localStorage.setItem("fridge_firebase_config", JSON.stringify(configObj));
                     
@@ -765,12 +719,10 @@
                         const data = docSnap.data();
                         familySettings.value.familyName = data.familyName;
                         familySettings.value.members = data.members || [];
-
                         if (data.latest_rename) {
                             const { from, to, at } = data.latest_rename;
                             const now = Date.now();
                             if (from === currentUserName.value && (now - at < 60000)) {
-                                console.log(`Detected remote rename: ${from} -> ${to}`);
                                 currentUserName.value = to;
                                 localStorage.setItem("fridge_user_name", to);
                             }
@@ -806,7 +758,11 @@
             const confirmEditUserName = async () => {
                 const newName = editUserNameTemp.value.trim();
                 const oldName = currentUserName.value;
-                if (!newName) { nameEditError.value = "名稱不能為空"; return; }
+
+                if (!newName) {
+                    nameEditError.value = "名稱不能為空";
+                    return;
+                }
                 if (newName === oldName) {
                     bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide();
                     return;
@@ -819,6 +775,7 @@
                 try {
                     const updatedMembers = familySettings.value.members.filter(m => m !== oldName);
                     updatedMembers.push(newName);
+
                     await updateDoc(doc(db, "family_metadata", "general"), {
                         members: updatedMembers,
                         latest_rename: {
@@ -827,227 +784,25 @@
                             at: Date.now()
                         }
                     });
+
                     currentUserName.value = newName;
                     localStorage.setItem("fridge_user_name", newName);
+
                     bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide();
                 } catch (e) {
-                    nameEditError.value = "更新失敗";
+                    console.error(e);
+                    nameEditError.value = "更新失敗，請稍後再試";
                 }
             };
 
             const resetApp = () => {
-                if(confirm("確定要重設嗎？這將會清除此裝置的登入資訊。")) {
+                if(confirm("確定要重設嗎？這將會清除此裝置的登入資訊（冰箱資料會保留在雲端）。")) {
                     localStorage.removeItem("fridge_firebase_config");
                     localStorage.removeItem("fridge_user_name");
                     location.reload();
                 }
             };
 
-            // --- 圖片處理 ---
-            const processImage = async (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                isCompressing.value = true;
-                try {
-                    const compressed = await compressFile(file);
-                    newItem.value.image = compressed;
-                } catch (e) {
-                    alert("圖片處理失敗");
-                } finally {
-                    isCompressing.value = false;
-                    // 清空 input 讓同一張圖可以再次觸發 change (如果取消後重選)
-                    event.target.value = '';
-                }
-            };
-
-            const compressFile = (file) => {
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.src = e.target.result;
-                        img.onload = () => {
-                            const canvas = document.createElement("canvas");
-                            const MAX_WIDTH = 800;
-                            const scale = MAX_WIDTH / img.width;
-                            const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
-                            const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
-
-                            canvas.width = w;
-                            canvas.height = h;
-                            const ctx = canvas.getContext("2d");
-                            ctx.drawImage(img, 0, 0, w, h);
-
-                            resolve(canvas.toDataURL("image/jpeg", 0.6));
-                        };
-                    };
-                });
-            };
-
-            // --- 物品操作 ---
-            const goToAddPage = () => {
-                newItem.value = {
-                    name: "",
-                    quantity: "1",
-                    storedDate: getTodayStr(),
-                    expiryDate: "",
-                    noExpiry: false,
-                    image: null
-                };
-                currentPage.value = 'add';
-            };
-
-            const addItem = async () => {
-                if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
-                if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
-                if (!db) return;
-
-                const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
-                const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
-
-                isUploading.value = true;
-                try {
-                    await addDoc(collection(db, "fridge_items"), {
-                        name: newItem.value.name,
-                        quantity: newItem.value.quantity,
-                        storedDate: newItem.value.storedDate,
-                        expiryDate: expiryDateClean,
-                        noExpiry: noExpiryFinal,
-                        image: newItem.value.image,
-                        createdAt: new Date()
-                    });
-                    
-                    goHome();
-                } catch (e) {
-                    console.error(e);
-                    alert("上傳失敗，可能是照片太大了");
-                } finally {
-                    isUploading.value = false;
-                }
-            };
-
-            // 開啟刪除/取出視窗，並分析數量
-            const openDeleteModal = (item) => {
-                itemToDelete.value = item;
-                
-                // 嘗試解析數量: "5瓶" -> 5
-                // 正則：開頭是數字，後面接其他字串
-                const match = String(item.quantity).match(/^(\d+)(.*)$/);
-                
-                if (match) {
-                    const qty = parseInt(match[1], 10);
-                    if (!isNaN(qty) && qty > 1) {
-                        deleteMode.value = 'partial';
-                        maxDeleteQty.value = qty;
-                        deleteUnitStr.value = match[2] || ""; // 保存單位 "瓶"
-                        deleteAmount.value = 1;
-                    } else {
-                        deleteMode.value = 'all';
-                    }
-                } else {
-                    // 解析失敗(例如 "很多")，只能全刪
-                    deleteMode.value = 'all';
-                }
-
-                const el = document.getElementById('deleteModal');
-                if (el) {
-                    deleteModalInstance = new bootstrap.Modal(el);
-                    deleteModalInstance.show();
-                }
-            };
-
-            const confirmDelete = async () => {
-                if (!db || !itemToDelete.value) return;
-                
-                try {
-                    const docRef = doc(db, "fridge_items", itemToDelete.value.id);
-
-                    if (deleteMode.value === 'partial') {
-                        // 計算剩餘數量
-                        const remaining = maxDeleteQty.value - deleteAmount.value;
-                        
-                        if (remaining <= 0) {
-                            // 減光了 -> 刪除
-                            await deleteDoc(docRef);
-                        } else {
-                            // 還有剩 -> 更新
-                            const newQtyStr = remaining + deleteUnitStr.value;
-                            await updateDoc(docRef, { quantity: newQtyStr });
-                        }
-                    } else {
-                        // 模式為全刪
-                        await deleteDoc(docRef);
-                    }
-
-                    if (deleteModalInstance) deleteModalInstance.hide();
-                } catch(e) {
-                    console.error(e);
-                    alert("操作失敗");
-                }
-            };
-
-            const getDays = (dateStr) => {
-                if (!dateStr) return null;
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const target = new Date(dateStr);
-                if (isNaN(target.getTime())) return null;
-                return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-            };
-
-            const addDays = (days) => {
-                const base = newItem.value.expiryDate ? new Date(newItem.value.expiryDate) : new Date();
-                base.setHours(0,0,0,0);
-                base.setDate(base.getDate() + days);
-                newItem.value.expiryDate = base.toISOString().split("T")[0];
-            };
-
-            const getAlertClass = (item) => {
-                if (isNoExpiry(item)) return "";
-                const d = getDays(item.expiryDate);
-                if (d === null) return "";
-                if (d <= 3) return "alert-red";
-                if (d <= 7) return "alert-yellow";
-                return "";
-            };
-
-            const goSettingsFromSidebar = () => {
-                const el = document.getElementById("sidebar");
-                const inst = bootstrap.Offcanvas.getInstance(el);
-                if (inst) inst.hide();
-                currentPage.value = "settings";
-            };
-
-            const goHome = () => {
-                currentPage.value = "home";
-            };
-
-            const filteredItems = computed(() => {
-                const keyword = searchText.value?.trim() || "";
-                let list = items.value;
-                if (keyword) {
-                    list = list.filter(i => String(i.name || "").includes(keyword));
-                }
-                const toSortKey = (it) => {
-                    const noExp = isNoExpiry(it);
-                    const exp = (!noExp && it.expiryDate) ? it.expiryDate : "9999-12-31";
-                    const stored = it.storedDate || "9999-12-31";
-                    return { exp, stored };
-                };
-                return [...list].sort((a, b) => {
-                    const ka = toSortKey(a);
-                    const kb = toSortKey(b);
-                    if (ka.exp < kb.exp) return -1;
-                    if (ka.exp > kb.exp) return 1;
-                    if (ka.stored < kb.stored) return -1;
-                    if (ka.stored > kb.stored) return 1;
-                    return 0;
-                });
-            });
-
-            // 初始化與設定讀取
             const loadSettings = () => {
                 const saved = localStorage.getItem("fridge_settings_v1");
                 if (saved) {
@@ -1062,7 +817,6 @@
                 localStorage.setItem("fridge_settings_v1", JSON.stringify(settings.value));
             };
 
-            // 版本控制
             const compareVersions = (a, b) => {
                 const pa = String(a).split(".").map(n => parseInt(n, 10) || 0);
                 const pb = String(b).split(".").map(n => parseInt(n, 10) || 0);
@@ -1094,6 +848,12 @@
                 localStorage.setItem("lastSeenUpdateVersion", latestVersion.value);
             };
 
+            const isNoExpiry = (item) => {
+                if (item?.noExpiry) return true;
+                if (!item?.expiryDate) return true;
+                return false;
+            };
+
             onMounted(() => {
                 loadSettings();
                 checkConfig();
@@ -1103,10 +863,220 @@
                 saveSettings();
             });
 
+            const processImage = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                isCompressing.value = true;
+                try {
+                    const compressed = await compressFile(file);
+                    newItem.value.image = compressed;
+                } catch (e) {
+                    alert("圖片處理失敗");
+                } finally {
+                    isCompressing.value = false;
+                }
+            };
+
+            const compressFile = (file) => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement("canvas");
+                            const MAX_WIDTH = 800;
+                            const scale = MAX_WIDTH / img.width;
+                            const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                            const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
+
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext("2d");
+                            ctx.drawImage(img, 0, 0, w, h);
+
+                            resolve(canvas.toDataURL("image/jpeg", 0.6));
+                        };
+                    };
+                });
+            };
+
+            const addItem = async () => {
+                if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
+                if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
+                if (!db) return;
+
+                const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
+                const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
+
+                isUploading.value = true;
+                try {
+                    await addDoc(collection(db, "fridge_items"), {
+                        name: newItem.value.name,
+                        quantity: newItem.value.quantity,
+                        storedDate: newItem.value.storedDate,
+                        expiryDate: expiryDateClean,
+                        noExpiry: noExpiryFinal,
+                        image: newItem.value.image,
+                        createdAt: new Date()
+                    });
+
+                    // 成功後重置並返回首頁
+                    newItem.value = {
+                        name: "",
+                        quantity: "1",
+                        storedDate: getTodayStr(),
+                        expiryDate: "",
+                        noExpiry: false,
+                        image: null
+                    };
+                    currentPage.value = "home";
+                } catch (e) {
+                    console.error(e);
+                    alert("上傳失敗，可能是照片太大了");
+                } finally {
+                    isUploading.value = false;
+                }
+            };
+
+            // ---- 取出邏輯 ----
+
+            // 1. 判斷點擊取出時的動作
+            const checkQuantityAndAction = (item) => {
+                itemToDelete.value = item;
+                
+                // 嘗試將數量轉為數字
+                // parseInt("3") -> 3, parseInt("3瓶") -> 3, parseInt("一些") -> NaN
+                const qty = parseInt(item.quantity);
+
+                if (!isNaN(qty) && qty > 1) {
+                    // 數量大於1，開啟「數量選擇視窗」
+                    takeOutAmount.value = 1;
+                    maxTakeOut.value = qty;
+                    
+                    const el = document.getElementById('takeOutModal');
+                    if (el) {
+                        takeOutModalInstance = new bootstrap.Modal(el);
+                        takeOutModalInstance.show();
+                    }
+                } else {
+                    // 數量為1，或非數字，直接開啟「刪除確認視窗」
+                    const el = document.getElementById('deleteModal');
+                    if (el) {
+                        deleteModalInstance = new bootstrap.Modal(el);
+                        deleteModalInstance.show();
+                    }
+                }
+            };
+
+            // 2. 確認完全刪除 (當數量1或全部取出時)
+            const confirmDelete = async () => {
+                if (!db || !itemToDelete.value) return;
+                try {
+                    await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
+                    if (deleteModalInstance) deleteModalInstance.hide();
+                } catch(e) {
+                    alert("刪除失敗");
+                }
+            };
+
+            // 3. 確認部分取出
+            const confirmPartialTakeOut = async () => {
+                if (!db || !itemToDelete.value) return;
+
+                if (takeOutAmount.value >= maxTakeOut.value) {
+                    // 如果選的數量等於最大庫存，視為刪除
+                    if (takeOutModalInstance) takeOutModalInstance.hide();
+                    await confirmDelete();
+                } else {
+                    // 部分取出，更新文件
+                    try {
+                        const newQty = maxTakeOut.value - takeOutAmount.value;
+                        const itemRef = doc(db, "fridge_items", itemToDelete.value.id);
+                        await updateDoc(itemRef, {
+                            quantity: newQty // 這裡存入數字或字串視乎原本設計，這裡存成數字
+                        });
+                        if (takeOutModalInstance) takeOutModalInstance.hide();
+                    } catch(e) {
+                        console.error(e);
+                        alert("更新失敗");
+                    }
+                }
+            };
+
+            const getDays = (dateStr) => {
+                if (!dateStr) return null;
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const target = new Date(dateStr);
+                if (isNaN(target.getTime())) return null;
+                return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+            };
+
+            const addDays = (days) => {
+                const base = newItem.value.expiryDate ? new Date(newItem.value.expiryDate) : new Date();
+                base.setHours(0,0,0,0);
+                base.setDate(base.getDate() + days);
+                newItem.value.expiryDate = base.toISOString().split("T")[0];
+            };
+
+            const getAlertClass = (item) => {
+                if (isNoExpiry(item)) return "";
+                const d = getDays(item.expiryDate);
+                if (d === null) return "";
+                if (d <= 3) return "alert-red";
+                if (d <= 7) return "alert-yellow";
+                return "";
+            };
+
+            // 導航邏輯
+            const goToAddPage = () => {
+                currentPage.value = "add";
+            };
+
+            const goSettingsFromSidebar = () => {
+                const el = document.getElementById("sidebar");
+                const inst = bootstrap.Offcanvas.getInstance(el);
+                if (inst) inst.hide();
+                currentPage.value = "settings";
+            };
+
+            const goHome = () => {
+                currentPage.value = "home";
+            };
+
+            const filteredItems = computed(() => {
+                const keyword = searchText.value?.trim() || "";
+                let list = items.value;
+
+                if (keyword) {
+                    list = list.filter(i => String(i.name || "").includes(keyword));
+                }
+
+                const toSortKey = (it) => {
+                    const noExp = isNoExpiry(it);
+                    const exp = (!noExp && it.expiryDate) ? it.expiryDate : "9999-12-31";
+                    const stored = it.storedDate || "9999-12-31";
+                    return { exp, stored };
+                };
+
+                return [...list].sort((a, b) => {
+                    const ka = toSortKey(a);
+                    const kb = toSortKey(b);
+                    if (ka.exp < kb.exp) return -1;
+                    if (ka.exp > kb.exp) return 1;
+                    if (ka.stored < kb.stored) return -1;
+                    if (ka.stored > kb.stored) return 1;
+                    return 0;
+                });
+            });
+
             return {
                 // 狀態
                 items, searchText, isUploading, isCompressing, isLoading,
-                cameraInput, albumInput,
+                closeBtn, fileInput,
                 currentPage,
                 
                 // Config & User 狀態
@@ -1118,12 +1088,12 @@
                 startEditFamilyName, saveFamilyName,
                 editUserNameTemp, nameEditError, startEditUserName, confirmEditUserName,
 
-                // 刪除/取出
-                itemToDelete, openDeleteModal, confirmDelete, 
-                deleteMode, deleteAmount, maxDeleteQty, deleteUnitStr,
+                // 刪除 & 取出邏輯
+                itemToDelete, takeOutAmount, maxTakeOut,
+                checkQuantityAndAction, confirmDelete, confirmPartialTakeOut,
 
                 // 新增
-                newItem, processImage, addItem, goToAddPage,
+                newItem, processImage, addItem, 
                 getDays, addDays, getAlertClass, filteredItems,
                 isNoExpiry,
 
@@ -1134,7 +1104,7 @@
                 showUpdateModal, markUpdateSeen,
 
                 // 導航
-                goHome, goSettingsFromSidebar
+                goHome, goToAddPage, goSettingsFromSidebar
             };
         }
     }).mount("#app");
