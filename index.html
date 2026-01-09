@@ -113,7 +113,7 @@
 
     <!-- 主應用程式 (已設定 Config 才顯示) -->
     <template v-else>
-        <!-- 頂部列：左側邊欄按鈕 + 標題 -->
+        <!-- 頂部列 -->
         <div class="d-flex justify-content-between align-items-center mb-3" v-if="currentPage==='home'">
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
@@ -171,7 +171,8 @@
                                 <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
                             </template>
 
-                            <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click="deleteItem(item)">
+                            <!-- 使用 .stop 阻止冒泡，並開啟 Modal 避免手機版 confirm 失效 -->
+                            <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click.stop="openDeleteModal(item)">
                                 取出 / 吃掉
                             </button>
                         </div>
@@ -229,7 +230,7 @@
                         <i class="bi bi-people text-primary"></i>
                         <div class="fw-bold">家庭成員 ({{ familySettings.members.length }})</div>
                     </div>
-                    <div class="text-muted small mb-3">只有您可以修改自己的名稱，修改後資料會自動同步。</div>
+                    <div class="text-muted small mb-3">只有您可以修改自己的名稱，修改後所有裝置會自動同步。</div>
 
                     <div class="d-flex flex-column">
                         <div v-for="member in familySettings.members" :key="member" class="member-row d-flex justify-content-between align-items-center">
@@ -280,6 +281,34 @@
                         <div class="text-muted">最新版本</div>
                         <div class="fw-bold">{{ latestVersion }}</div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
+
+                    <div class="accordion" id="updateAccordion">
+                        <div class="accordion-item" v-for="log in updateLogs" :key="log.version">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        :data-bs-target="'#v'+log.version.replaceAll('.','_')">
+                                    <div class="d-flex flex-column">
+                                        <div class="fw-bold">v{{ log.version }}　{{ log.title }}</div>
+                                        <div class="small text-muted">{{ log.date }}</div>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div class="accordion-collapse collapse" :id="'v'+log.version.replaceAll('.','_')" data-bs-parent="#updateAccordion">
+                                <div class="accordion-body">
+                                    <ul class="mb-0">
+                                        <li v-for="c in log.changes" :key="c">{{ c }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -372,6 +401,25 @@
             </div>
         </div>
 
+        <!-- 刪除確認視窗 (解決手機版 confirm 失效問題) -->
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title fw-bold">取出物品確認</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="fs-5">確定要把 <span class="fw-bold text-danger">{{ itemToDelete?.name }}</span> 移出冰箱嗎？</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-danger rounded-pill fw-bold" @click="confirmDelete">確定吃掉 / 取出</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 編輯使用者名稱視窗 -->
         <div class="modal fade" id="editNameModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
@@ -383,6 +431,9 @@
                     <div class="modal-body">
                         <input type="text" class="form-control" v-model="editUserNameTemp" placeholder="輸入新名稱">
                         <div class="text-danger small mt-2" v-if="nameEditError">{{ nameEditError }}</div>
+                        <div class="text-muted small mt-2">
+                            <i class="bi bi-exclamation-circle"></i> 修改後，您在其他裝置上的名稱也會自動更新。
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-primary rounded-pill w-100" @click="confirmEditUserName">儲存修改</button>
@@ -465,6 +516,10 @@
             const isCompressing = ref(false);
             const isLoading = ref(false);
 
+            // 刪除相關
+            const itemToDelete = ref(null);
+            let deleteModalInstance = null;
+
             // 家庭資料
             const familySettings = ref({
                 familyName: "我的家庭",
@@ -537,7 +592,7 @@
                     isConfigured.value = true;
                     isLoading.value = true;
 
-                    // 檢查並更新家庭成員 (若第一次登入該家庭)
+                    // 檢查並加入家庭 (若第一次登入該家庭)
                     await checkAndJoinFamily(userName);
 
                     // 啟動資料監聽
@@ -564,16 +619,10 @@
                 
                 try {
                     // 嘗試解析使用者貼上的字串
-                    // 使用 new Function 來安全地執行宣告並回傳物件
-                    // 假設使用者貼的是 "const firebaseConfig = { ... };" 或只貼 "{ ... }"
                     let cleanStr = inputConfigStr.value.trim();
-                    
-                    // 移除 const firebaseConfig = 
                     cleanStr = cleanStr.replace(/const\s+firebaseConfig\s*=\s*/, '');
-                    // 移除結尾的分號
                     cleanStr = cleanStr.replace(/;$/, '');
                     
-                    // 解析 JSON 物件 (使用 eval 的封裝 new Function 比較能容錯 JS 物件寫法)
                     const configObj = (new Function(`return ${cleanStr}`))();
 
                     if (!configObj.projectId) throw new Error("無效的設定內容");
@@ -587,14 +636,13 @@
                 } catch (e) {
                     console.error(e);
                     setupError.value = "設定失敗，請檢查代碼是否正確或是網路連線異常";
-                    // 失敗時重置 app 變數以便重試
                     appFirebase = null; 
                 } finally {
                     isSettingUp.value = false;
                 }
             };
 
-            // 4. 檢查並加入家庭 (核心邏輯：家庭 metadata)
+            // 4. 檢查並加入家庭
             const checkAndJoinFamily = async (userName) => {
                 const settingsRef = doc(db, "family_metadata", "general");
                 
@@ -602,18 +650,18 @@
                     const docSnap = await getDoc(settingsRef);
                     
                     if (!docSnap.exists()) {
-                        // 第一次建立這個家庭
+                        // 第一次建立
                         await setDoc(settingsRef, {
                             familyName: "我的家庭",
                             members: [userName]
                         });
                         familySettings.value = { familyName: "我的家庭", members: [userName] };
                     } else {
-                        // 家庭已存在，檢查成員
+                        // 家庭已存在
                         const data = docSnap.data();
                         let members = data.members || [];
                         
-                        // 如果我不在裡面，加進去
+                        // 若不在名單內則加入 (這解決了「相同名稱登入則視為同一個人」的基本需求，因為如果名稱一樣，就不會重複 push)
                         if (!members.includes(userName)) {
                             members.push(userName);
                             await updateDoc(settingsRef, { members: members });
@@ -638,15 +686,26 @@
                     showUpdateModal(false);
                 });
 
-                // 監聽家庭設定 (同步名稱與成員)
+                // 監聽家庭設定 (同步名稱、成員與廣播)
                 onSnapshot(doc(db, "family_metadata", "general"), (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         familySettings.value.familyName = data.familyName;
                         familySettings.value.members = data.members || [];
-                        
-                        // 防呆：如果雲端成員列表沒有我 (被踢出?)，要加回去嗎? 
-                        // 暫時不處理踢人邏輯，只要確保 UI 同步
+
+                        // 核心邏輯：檢查是否有「更名廣播」
+                        if (data.latest_rename) {
+                            const { from, to, at } = data.latest_rename;
+                            // 檢查是否是我現在用的名字被改了 (且時間在 1 分鐘內，避免讀到太舊的歷史)
+                            const now = Date.now();
+                            if (from === currentUserName.value && (now - at < 60000)) {
+                                // 發現我的名字在別台裝置被改了 -> 同步更新
+                                console.log(`Detected remote rename: ${from} -> ${to}`);
+                                currentUserName.value = to;
+                                localStorage.setItem("fridge_user_name", to);
+                                // 可以選擇跳個 Toast 通知，這裡先不打擾使用者，直接變更
+                            }
+                        }
                     }
                 });
             };
@@ -685,7 +744,6 @@
                     return;
                 }
                 if (newName === oldName) {
-                    // 沒改
                     bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide();
                     return;
                 }
@@ -695,12 +753,18 @@
                 }
 
                 try {
-                    // 更新 Firestore 成員列表 (移除舊的，加新的)
+                    // 原子更新：移除舊名，加入新名，並寫入廣播事件
+                    // 這樣做可以確保「不會直接另外建立人物」，而是「更名」
                     const updatedMembers = familySettings.value.members.filter(m => m !== oldName);
                     updatedMembers.push(newName);
 
                     await updateDoc(doc(db, "family_metadata", "general"), {
-                        members: updatedMembers
+                        members: updatedMembers,
+                        latest_rename: {
+                            from: oldName,
+                            to: newName,
+                            at: Date.now()
+                        }
                     });
 
                     // 更新本地狀態
@@ -722,7 +786,7 @@
                 }
             };
 
-            // --- 原有冰箱功能 (邏輯保持不變，僅需確認 db 存在) ---
+            // --- 原有冰箱功能 ---
             
             const loadSettings = () => {
                 const saved = localStorage.getItem("fridge_settings_v1");
@@ -827,7 +891,7 @@
             const addItem = async () => {
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
                 if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
-                if (!db) return; // 安全檢查
+                if (!db) return;
 
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
@@ -863,10 +927,24 @@
                 }
             };
 
-            const deleteItem = async (item) => {
-                if (!db) return;
-                if (confirm(`確定要把 ${item.name} 移出冰箱嗎？`)) {
-                    await deleteDoc(doc(db, "fridge_items", item.id));
+            // 修改：使用 Modal 來確認刪除，解決手機版 confirm 相容性問題
+            const openDeleteModal = (item) => {
+                itemToDelete.value = item;
+                const el = document.getElementById('deleteModal');
+                if (el) {
+                    deleteModalInstance = new bootstrap.Modal(el);
+                    deleteModalInstance.show();
+                }
+            };
+
+            const confirmDelete = async () => {
+                if (!db || !itemToDelete.value) return;
+                
+                try {
+                    await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
+                    if (deleteModalInstance) deleteModalInstance.hide();
+                } catch(e) {
+                    alert("刪除失敗");
                 }
             };
 
@@ -951,8 +1029,11 @@
                 startEditFamilyName, saveFamilyName,
                 editUserNameTemp, nameEditError, startEditUserName, confirmEditUserName,
 
+                // 刪除確認
+                itemToDelete, openDeleteModal, confirmDelete,
+
                 // 新增
-                newItem, processImage, addItem, deleteItem,
+                newItem, processImage, addItem, 
                 getDays, addDays, getAlertClass, filteredItems,
                 isNoExpiry,
 
