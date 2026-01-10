@@ -34,10 +34,9 @@
         .item-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
         .item-img-box:active .item-img { opacity: 0.8; }
 
-        /* 區域顏色條 */
         .zone-bar {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
-            opacity: 0.85; 
+            opacity: 0.85;
         }
 
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
@@ -86,7 +85,6 @@
         }
         .member-row:last-child { border-bottom: none; }
         
-        /* 圖片預覽層 */
         .image-preview-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 2000;
@@ -108,6 +106,14 @@
             min-width: 20px;
             text-align: center;
         }
+        
+        /* 所有人下拉選單樣式 */
+        .owner-dropdown-menu {
+            width: 100%;
+            padding: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -120,7 +126,7 @@
         <img :src="previewImageUrl" class="preview-img" @click.stop>
     </div>
 
-    <!-- 初始設定畫面 -->
+    <!-- 初始設定畫面 (若未設定 Config 則顯示) -->
     <div v-if="!isConfigured" class="setup-screen">
         <div class="text-center mb-4">
             <i class="bi bi-snow2 text-primary display-1"></i>
@@ -134,12 +140,17 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold">1. Firebase 設定碼</label>
                         <textarea class="form-control font-monospace small" rows="5" v-model="inputConfigStr" placeholder='請貼上 const firebaseConfig = { ... }' required></textarea>
+                        <div class="form-text">請貼上完整的 const firebaseConfig 程式碼段落</div>
                     </div>
+
                     <div class="mb-4">
-                        <label class="form-label fw-bold">2. 您的稱呼</label>
+                        <label class="form-label fw-bold">2. 您的稱呼 (家庭成員名稱)</label>
                         <input type="text" class="form-control" v-model="inputUserName" placeholder="例如：爸爸、媽媽" required>
+                        <div class="form-text">這將作為您在這個家庭中的識別名稱</div>
                     </div>
+
                     <div v-if="setupError" class="alert alert-danger py-2 mb-3">{{ setupError }}</div>
+
                     <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold" :disabled="isSettingUp">
                         {{ isSettingUp ? '連線中...' : '開始使用' }}
                     </button>
@@ -148,7 +159,7 @@
         </div>
     </div>
 
-    <!-- 主應用程式 -->
+    <!-- 主應用程式 (已設定 Config 才顯示) -->
     <template v-else>
         <!-- HOME PAGE -->
         <div v-if="!isLoading && currentPage==='home'">
@@ -170,6 +181,7 @@
             <div class="input-group mb-4 shadow-sm">
                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                 <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
+                <!-- 右側下拉選單 -->
                 <select class="form-select border-start-0 bg-light" v-model="filterZone" style="max-width: 110px;">
                     <option value="all">全區</option>
                     <option value="cold">冷藏區</option>
@@ -186,6 +198,7 @@
             <!-- 物品列表 -->
             <div class="row g-3 pb-5">
                 <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
+                    <!-- 加入長按事件監聽 -->
                     <div class="card item-card h-100" 
                          :class="getAlertClass(item)"
                          @touchstart="handleTouchStart(item)"
@@ -203,14 +216,15 @@
                         <div class="card-body p-2 d-flex flex-column">
                             <h6 class="card-title fw-bold text-truncate mb-1">{{ item.name }}</h6>
 
-                            <div class="d-flex flex-column mb-2">
-                                <div class="text-muted small">數量: {{ item.quantity }}</div>
-                                <!-- 新增：顯示物品所有人 -->
-                                <div class="mt-1">
-                                    <span v-for="owner in (item.owners || ['全家'])" :key="owner" class="badge rounded-pill bg-info text-dark me-1" style="font-size: 0.7rem; font-weight: normal; opacity: 0.9;">
-                                        {{ owner }}
-                                    </span>
-                                </div>
+                            <div class="d-flex justify-content-between align-items-center mb-0">
+                                <small class="text-muted">數量: {{ item.quantity }}</small>
+                            </div>
+
+                            <!-- 顯示所有人 -->
+                            <div class="mb-1 text-truncate">
+                                <small class="text-primary" style="font-size: 0.75rem;">
+                                    <i class="bi bi-person-fill"></i> {{ formatOwners(item.owners) }}
+                                </small>
                             </div>
 
                             <div class="mb-2">
@@ -246,7 +260,7 @@
             </button>
         </div>
 
-        <!-- ADD / EDIT PAGE -->
+        <!-- ADD / EDIT PAGE：全螢幕新增或編輯頁 -->
         <div v-if="!isLoading && (currentPage==='add' || currentPage==='edit')" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -272,6 +286,7 @@
                             <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
 
+                        <!-- 存放區域 -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">2. 存放區域</label>
                             <div class="btn-group w-100" role="group">
@@ -286,42 +301,37 @@
                             </div>
                         </div>
 
-                        <!-- 新增：物品所有人下拉多選 -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">3. 物品所有人</label>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                    <span class="text-truncate">
-                                        {{ newItem.owners && newItem.owners.length > 0 ? newItem.owners.join(', ') : '請選擇所有人' }}
-                                    </span>
-                                </button>
-                                <ul class="dropdown-menu w-100 p-2 shadow">
-                                    <li>
-                                        <div class="form-check p-2">
-                                            <input class="form-check-input" type="checkbox" value="全家" id="owner-all" v-model="newItem.owners">
-                                            <label class="form-check-label w-100" for="owner-all">全家 (Family)</label>
-                                        </div>
-                                    </li>
-                                    <li><hr class="dropdown-divider my-1"></li>
-                                    <li v-for="member in familySettings.members" :key="member">
-                                        <div class="form-check p-2">
-                                            <input class="form-check-input" type="checkbox" :value="member" :id="'owner-'+member" v-model="newItem.owners">
-                                            <label class="form-check-label w-100" :for="'owner-'+member">{{ member }}</label>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
                         <div class="row g-3 mb-3">
                             <div class="col-7">
-                                <label class="form-label fw-bold">4. 名稱</label>
+                                <label class="form-label fw-bold">3. 名稱</label>
                                 <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
                             </div>
                             <div class="col-5">
-                                <label class="form-label fw-bold">5. 數量</label>
+                                <label class="form-label fw-bold">4. 數量</label>
                                 <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
                             </div>
+                        </div>
+
+                        <!-- 物品所有人 (新增) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">5. 物品所有人</label>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary w-100 dropdown-toggle text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                    <span class="text-truncate">{{ formatOwners(newItem.owners) }}</span>
+                                </button>
+                                <div class="dropdown-menu owner-dropdown-menu">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="owner-all" value="全家" v-model="newItem.owners">
+                                        <label class="form-check-label fw-bold" for="owner-all">全家</label>
+                                    </div>
+                                    <hr class="dropdown-divider">
+                                    <div class="form-check mb-2" v-for="member in familySettings.members" :key="member">
+                                        <input class="form-check-input" type="checkbox" :id="'owner-'+member" :value="member" v-model="newItem.owners">
+                                        <label class="form-check-label" :for="'owner-'+member">{{ member }}</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">可複選，預設為全家。</div>
                         </div>
 
                         <div class="mb-3">
@@ -354,7 +364,7 @@
             </div>
         </div>
 
-        <!-- TAKE OUT PAGE -->
+        <!-- TAKE OUT PAGE：全螢幕取出頁面 -->
         <div v-if="!isLoading && currentPage==='takeout'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -396,7 +406,7 @@
             </div>
         </div>
 
-        <!-- SETTINGS -->
+        <!-- SETTINGS：全螢幕設定頁 -->
         <div v-if="!isLoading && currentPage==='settings'" class="settings-page page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -455,7 +465,6 @@
                 </div>
             </div>
 
-            <!-- 版本通知 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -476,7 +485,6 @@
                 </div>
             </div>
 
-            <!-- 版本資訊 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="fw-bold mb-2"><i class="bi bi-info-circle text-primary me-1"></i> 版本資訊</div>
@@ -491,7 +499,6 @@
                 </div>
             </div>
 
-            <!-- 更新資訊 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
@@ -672,7 +679,7 @@
             // 冰箱資料
             const items = ref([]);
             const searchText = ref("");
-            const filterZone = ref("all"); // 篩選區域
+            const filterZone = ref("all"); 
             const isUploading = ref(false);
             const isCompressing = ref(false);
             const isLoading = ref(false);
@@ -701,7 +708,7 @@
 
             // 長按計時器
             let longPressTimer = null;
-            const LONG_PRESS_DURATION = 600; // ms
+            const LONG_PRESS_DURATION = 600; 
 
             // 設定
             const settings = ref({ updateNotifyEnabled: true });
@@ -722,7 +729,7 @@
                 noExpiry: false,
                 image: null,
                 zone: "cold",
-                owners: ["全家"] // 預設全家
+                owners: ["全家"] // 預設全員
             });
 
             // --- 方法 ---
@@ -1028,6 +1035,11 @@
             const submitItem = async () => {
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
                 if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
+                // 確保 owners 至少有一個值，若為空則預設全家
+                const finalOwners = (newItem.value.owners && newItem.value.owners.length > 0) 
+                                    ? newItem.value.owners 
+                                    : ['全家'];
+
                 if (!db) return;
 
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
@@ -1040,7 +1052,7 @@
                     noExpiry: noExpiryFinal,
                     image: newItem.value.image,
                     zone: newItem.value.zone || 'cold',
-                    owners: newItem.value.owners // 儲存所有人
+                    owners: finalOwners
                 };
 
                 isUploading.value = true;
@@ -1168,7 +1180,7 @@
                 }
             };
 
-            // --- 區域統計邏輯 (修正過期計算) ---
+            // --- 區域統計邏輯 (修正：分離已過期與七日警告) ---
             const zoneStats = computed(() => {
                 const stats = {
                     cold: { total: 0, exp7: 0, expired: 0 },
@@ -1186,10 +1198,10 @@
                         const days = getDays(item.expiryDate);
                         if (days !== null) {
                             if (days < 0) {
-                                // 嚴格已過期
+                                // 已過期 (紅燈)
                                 stats[z].expired++;
                             } else if (days <= 7) {
-                                // 0~7天過期
+                                // 7日警告 (黃燈)，不包含已過期的
                                 stats[z].exp7++;
                             }
                         }
@@ -1205,6 +1217,12 @@
                 const inst = bootstrap.Offcanvas.getInstance(el);
                 if (inst) inst.hide();
                 goHome();
+            };
+
+            // 格式化所有人顯示
+            const formatOwners = (owners) => {
+                if (!owners || owners.length === 0) return "所有人: 全家";
+                return "所有人: " + owners.join("、");
             };
 
             // 導航邏輯
@@ -1307,6 +1325,9 @@
 
                 // 區域邏輯
                 getZoneColor, zoneStats, selectZoneFromSidebar,
+                
+                // 所有人邏輯
+                formatOwners,
 
                 // 新增 & 編輯
                 newItem, processImage, submitItem, 
