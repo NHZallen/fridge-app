@@ -111,7 +111,6 @@
             text-align: center;
         }
         
-        /* 自定義下拉選單樣式 (用於所有人選擇) */
         .owners-dropdown-menu {
             max-height: 250px;
             overflow-y: auto;
@@ -223,7 +222,7 @@
                                 <small class="text-muted">數量: {{ item.quantity }}</small>
                             </div>
 
-                            <!-- 新增：物品所有人顯示 -->
+                            <!-- 物品所有人顯示 -->
                             <div class="mb-2">
                                 <small class="text-muted d-block text-truncate">
                                     <i class="bi bi-person-fill"></i> 所有人: {{ getOwnersText(item.owners) }}
@@ -315,7 +314,7 @@
                             </div>
                         </div>
 
-                        <!-- 新增：物品所有人設定 (下拉選單多選) -->
+                        <!-- 物品所有人設定 (下拉選單多選，修正預設勾選與互動邏輯) -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">5. 物品所有人</label>
                             <div class="dropdown">
@@ -326,6 +325,7 @@
                                 </button>
                                 <div class="dropdown-menu owners-dropdown-menu p-2 w-100 shadow">
                                     <div class="form-check mb-2">
+                                        <!-- 判斷方式：如果 owners 陣列為空，則視為全家 -->
                                         <input class="form-check-input" type="checkbox" id="owner-all" 
                                                :checked="!newItem.owners || newItem.owners.length === 0"
                                                @change="toggleOwner('all')">
@@ -1226,20 +1226,25 @@
                 goHome();
             };
 
-            // --- 所有人邏輯 ---
+            // --- 所有人邏輯 (修正後) ---
             const toggleOwner = (val) => {
+                const currentOwners = newItem.value.owners || [];
+                
                 if (val === 'all') {
                     // 選全家 -> 清空陣列
                     newItem.value.owners = [];
                 } else {
                     // 選個人
-                    let list = newItem.value.owners || [];
-                    if (list.includes(val)) {
-                        list = list.filter(m => m !== val);
+                    let newOwners = [...currentOwners]; // 複製一份
+                    
+                    if (newOwners.includes(val)) {
+                        newOwners = newOwners.filter(m => m !== val);
                     } else {
-                        list.push(val);
+                        newOwners.push(val);
                     }
-                    newItem.value.owners = list;
+                    
+                    // 賦值回 reactive 物件，確保 Vue 偵測到變動
+                    newItem.value.owners = newOwners;
                 }
             };
 
