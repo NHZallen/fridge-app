@@ -314,7 +314,7 @@
                             </div>
                         </div>
 
-                        <!-- 物品所有人設定 (修正：正確的全家默認邏輯) -->
+                        <!-- 物品所有人設定 (下拉選單多選，修正全家邏輯) -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">5. 物品所有人</label>
                             <div class="dropdown">
@@ -324,26 +324,17 @@
                                     </span>
                                 </button>
                                 <div class="dropdown-menu owners-dropdown-menu p-2 w-100 shadow">
-                                    <!-- 全家選項 -->
                                     <div class="form-check mb-2">
-                                        <!-- 
-                                          這裡使用 newItem.owners.length === 0 來決定是否勾選
-                                          @change 觸發 toggleOwner('all') 強制清空陣列 
-                                        -->
+                                        <!-- 修正：使用 isAllFamily 計算屬性控制 checked -->
                                         <input class="form-check-input" type="checkbox" id="owner-all" 
-                                               :checked="!newItem.owners || newItem.owners.length === 0"
+                                               :checked="isAllFamily"
                                                @change="toggleOwner('all')">
                                         <label class="form-check-label fw-bold text-primary" for="owner-all">
                                             全家 (預設)
                                         </label>
                                     </div>
                                     <hr class="my-2">
-                                    
-                                    <!-- 成員選項 -->
                                     <div v-for="member in familySettings.members" :key="member" class="form-check py-1">
-                                        <!-- 
-                                          @change 觸發 toggleOwner(member)
-                                        -->
                                         <input class="form-check-input" type="checkbox" :id="'owner-'+member"
                                                :value="member" 
                                                :checked="newItem.owners && newItem.owners.includes(member)"
@@ -1235,27 +1226,28 @@
                 goHome();
             };
 
-            // --- 所有人邏輯 (修正版) ---
-            const toggleOwner = (val) => {
-                // 如果點選全家
-                if (val === 'all') {
-                    newItem.value.owners = []; // 清空陣列代表全家
-                    return;
-                }
+            // --- 所有人邏輯 (修正與優化) ---
+            
+            // 計算屬性：是否為全家 (當陣列為空時)
+            const isAllFamily = computed(() => {
+                return !newItem.value.owners || newItem.value.owners.length === 0;
+            });
 
-                // 如果點選成員
-                let list = [...(newItem.value.owners || [])]; // 使用展開運算子確保 Vue 偵測到變更
-                
-                if (list.includes(val)) {
-                    // 取消該成員
-                    list = list.filter(m => m !== val);
+            const toggleOwner = (val) => {
+                if (val === 'all') {
+                    // 選全家 -> 強制清空陣列 (即為全家)
+                    newItem.value.owners = [];
                 } else {
-                    // 勾選該成員
-                    list.push(val);
+                    // 選個人
+                    let list = [...(newItem.value.owners || [])]; // 複製陣列確保響應式
+
+                    if (list.includes(val)) {
+                        list = list.filter(m => m !== val);
+                    } else {
+                        list.push(val);
+                    }
+                    newItem.value.owners = list;
                 }
-                
-                // 自動歸位邏輯：如果清空了所有人，就自動變成全家 (空陣列)
-                newItem.value.owners = list;
             };
 
             const getOwnersText = (owners) => {
@@ -1274,7 +1266,7 @@
                     noExpiry: false,
                     image: null,
                     zone: "cold",
-                    owners: [] // 初始化為全家
+                    owners: []
                 };
                 currentPage.value = "add";
             };
@@ -1291,7 +1283,7 @@
                     noExpiry: item.noExpiry,
                     image: item.image,
                     zone: item.zone || 'cold',
-                    owners: item.owners || [] // 確保有值
+                    owners: item.owners || []
                 };
                 currentPage.value = "edit";
             };
@@ -1363,7 +1355,7 @@
                 getZoneColor, zoneStats, selectZoneFromSidebar,
 
                 // 所有人功能
-                toggleOwner, getOwnersText,
+                toggleOwner, getOwnersText, isAllFamily,
 
                 // 新增 & 編輯
                 newItem, processImage, submitItem, 
