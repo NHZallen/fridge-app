@@ -36,7 +36,7 @@
 
         .zone-bar {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
-            opacity: 0.85;
+            opacity: 0.85; 
         }
 
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
@@ -85,6 +85,7 @@
         }
         .member-row:last-child { border-bottom: none; }
         
+        /* 圖片預覽層 */
         .image-preview-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 2000;
@@ -98,13 +99,26 @@
             color: white; font-size: 2rem; background: none; border: none;
         }
 
-        .sidebar-user-block { margin-bottom: 5px; }
-        .sidebar-divider { margin-top: 5px; margin-bottom: 20px; }
+        /* 側邊欄調整 */
+        .sidebar-user-block {
+            margin-bottom: 5px; 
+        }
+        .sidebar-divider {
+            margin-top: 5px; margin-bottom: 20px;
+        }
 
+        /* 區域統計徽章 */
         .zone-stat-badge {
             font-size: 0.75rem;
             min-width: 20px;
             text-align: center;
+        }
+        
+        /* 所有人下拉選單樣式修正 */
+        .dropdown-menu-custom {
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -190,7 +204,6 @@
             <!-- 物品列表 -->
             <div class="row g-3 pb-5">
                 <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
-                    <!-- 加入長按事件監聽 -->
                     <div class="card item-card h-100" 
                          :class="getAlertClass(item)"
                          @touchstart="handleTouchStart(item)"
@@ -201,20 +214,19 @@
                         <div class="item-img-box" @click.stop="openPreview(item.image)">
                             <img v-if="item.image" :src="item.image" class="item-img">
                             <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
-                            <!-- 區域顏色顯示 -->
                             <div class="zone-bar" :style="{ backgroundColor: getZoneColor(item.zone) }"></div>
                         </div>
 
                         <div class="card-body p-2 d-flex flex-column">
                             <h6 class="card-title fw-bold text-truncate mb-1">{{ item.name }}</h6>
 
-                            <div class="d-flex justify-content-between align-items-center mb-0">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
                                 <small class="text-muted">數量: {{ item.quantity }}</small>
                             </div>
 
-                            <!-- 顯示所有人 -->
-                            <div class="mb-1 text-truncate">
-                                <small class="text-primary" style="font-size: 0.75rem;">
+                            <!-- 新增：物品所有人顯示 -->
+                            <div class="mb-2">
+                                <small class="text-muted text-truncate d-block">
                                     <i class="bi bi-person-fill"></i> {{ formatOwners(item.owners) }}
                                 </small>
                             </div>
@@ -278,7 +290,7 @@
                             <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
 
-                        <!-- 存放區域 -->
+                        <!-- 存放區域選擇 -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">2. 存放區域</label>
                             <div class="btn-group w-100" role="group">
@@ -293,31 +305,42 @@
                             </div>
                         </div>
 
-                        <div class="row g-3 mb-3">
-                            <div class="col-7">
-                                <label class="form-label fw-bold">3. 名稱</label>
-                                <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
-                            </div>
-                            <div class="col-5">
-                                <label class="form-label fw-bold">4. 數量</label>
-                                <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
+                        <!-- 物品所有人 (新增功能) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">3. 物品所有人</label>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                    <span class="text-truncate">{{ formatOwners(newItem.owners) }}</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-custom shadow border-0">
+                                    <li><h6 class="dropdown-header">請選擇歸屬成員 (可多選)</h6></li>
+                                    <!-- 全家 -->
+                                    <li class="px-3 py-1">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="owner-family" value="全家" v-model="newItem.owners">
+                                            <label class="form-check-label w-100 stretched-link" for="owner-family">全家</label>
+                                        </div>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <!-- 成員列表 -->
+                                    <li v-for="member in familySettings.members" :key="member" class="px-3 py-1">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" :id="'owner-'+member" :value="member" v-model="newItem.owners">
+                                            <label class="form-check-label w-100 stretched-link" :for="'owner-'+member">{{ member }}</label>
+                                        </div>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
 
-                        <!-- 物品所有人 (改為原生 Checkbox 平鋪) -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">5. 物品所有人 (可多選)</label>
-                            <div class="card bg-light border-0">
-                                <div class="card-body p-2">
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="checkbox" id="owner-all" value="全家" v-model="newItem.owners">
-                                        <label class="form-check-label fw-bold" for="owner-all">全家</label>
-                                    </div>
-                                    <div class="form-check form-check-inline" v-for="member in familySettings.members" :key="member">
-                                        <input class="form-check-input" type="checkbox" :id="'owner-'+member" :value="member" v-model="newItem.owners">
-                                        <label class="form-check-label" :for="'owner-'+member">{{ member }}</label>
-                                    </div>
-                                </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-7">
+                                <label class="form-label fw-bold">4. 名稱</label>
+                                <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label fw-bold">5. 數量</label>
+                                <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
                             </div>
                         </div>
 
@@ -537,30 +560,30 @@
                 </div>
                 <hr class="sidebar-divider">
 
-                <!-- 區域導航按鈕 -->
+                <!-- 區域導航按鈕 (顯示：總數 | 7日警告 | 已過期) -->
                 <div class="d-grid gap-2 mb-4">
                     <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
                         <span><i class="bi bi-snow me-2"></i>冷藏區</span>
                         <div class="d-flex gap-1">
                             <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.cold.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日過期">{{ zoneStats.cold.exp7 }}</span>
-                            <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.cold.expired }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日警告">{{ zoneStats.cold.warning }}</span>
+                            <span class="badge bg-dark zone-stat-badge" title="已過期">{{ zoneStats.cold.expired }}</span>
                         </div>
                     </button>
                     <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
                         <span><i class="bi bi-box-seam me-2"></i>冷凍區</span>
                         <div class="d-flex gap-1">
                             <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.frozen.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.frozen.exp7 }}</span>
-                            <span class="badge bg-danger zone-stat-badge">{{ zoneStats.frozen.expired }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.frozen.warning }}</span>
+                            <span class="badge bg-dark zone-stat-badge">{{ zoneStats.frozen.expired }}</span>
                         </div>
                     </button>
                     <button class="btn btn-outline-success text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('veggie')">
                         <span><i class="bi bi-flower1 me-2"></i>蔬果區</span>
                         <div class="d-flex gap-1">
                             <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.veggie.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.veggie.exp7 }}</span>
-                            <span class="badge bg-danger zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.veggie.warning }}</span>
+                            <span class="badge bg-dark zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
                         </div>
                     </button>
                 </div>
@@ -666,7 +689,7 @@
             // 冰箱資料
             const items = ref([]);
             const searchText = ref("");
-            const filterZone = ref("all"); 
+            const filterZone = ref("all");
             const isUploading = ref(false);
             const isCompressing = ref(false);
             const isLoading = ref(false);
@@ -695,7 +718,7 @@
 
             // 長按計時器
             let longPressTimer = null;
-            const LONG_PRESS_DURATION = 600; 
+            const LONG_PRESS_DURATION = 600;
 
             // 設定
             const settings = ref({ updateNotifyEnabled: true });
@@ -716,7 +739,7 @@
                 noExpiry: false,
                 image: null,
                 zone: "cold",
-                owners: ["全家"]
+                owners: ["全家"] // 預設全員
             });
 
             // --- 方法 ---
@@ -1022,11 +1045,12 @@
             const submitItem = async () => {
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
                 if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
-                const finalOwners = (newItem.value.owners && newItem.value.owners.length > 0) 
-                                    ? newItem.value.owners 
-                                    : ['全家'];
-
                 if (!db) return;
+
+                // 若 owners 為空，預設全家
+                if (!newItem.value.owners || newItem.value.owners.length === 0) {
+                    newItem.value.owners = ["全家"];
+                }
 
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
@@ -1038,7 +1062,7 @@
                     noExpiry: noExpiryFinal,
                     image: newItem.value.image,
                     zone: newItem.value.zone || 'cold',
-                    owners: finalOwners
+                    owners: newItem.value.owners
                 };
 
                 isUploading.value = true;
@@ -1094,12 +1118,11 @@
             };
 
             // ---- 取出邏輯 (改為全螢幕) ----
-
             const goToTakeOutPage = (item) => {
                 itemToDelete.value = item;
                 const qty = parseInt(item.quantity);
                 maxTakeOut.value = (!isNaN(qty) && qty > 0) ? qty : 1;
-                takeOutAmount.value = 1; // 預設 1
+                takeOutAmount.value = 1;
                 currentPage.value = "takeout";
             };
 
@@ -1107,7 +1130,6 @@
                 if (!db || !itemToDelete.value) return;
 
                 if (takeOutAmount.value >= maxTakeOut.value) {
-                    // 全部取出 -> 刪除
                     try {
                         await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
                         goHome();
@@ -1115,7 +1137,6 @@
                         alert("刪除失敗");
                     }
                 } else {
-                    // 部分取出 -> 更新
                     try {
                         const newQty = maxTakeOut.value - takeOutAmount.value;
                         const itemRef = doc(db, "fridge_items", itemToDelete.value.id);
@@ -1166,12 +1187,12 @@
                 }
             };
 
-            // --- 區域統計邏輯 (紅燈只含已過期，黃燈只含7日內過期) ---
+            // --- 區域統計邏輯 (修正：warning 與 expired 分開計算) ---
             const zoneStats = computed(() => {
                 const stats = {
-                    cold: { total: 0, exp7: 0, expired: 0 },
-                    frozen: { total: 0, exp7: 0, expired: 0 },
-                    veggie: { total: 0, exp7: 0, expired: 0 }
+                    cold: { total: 0, warning: 0, expired: 0 },
+                    frozen: { total: 0, warning: 0, expired: 0 },
+                    veggie: { total: 0, warning: 0, expired: 0 }
                 };
 
                 items.value.forEach(item => {
@@ -1184,11 +1205,11 @@
                         const days = getDays(item.expiryDate);
                         if (days !== null) {
                             if (days < 0) {
-                                // 已過期 (紅燈)
+                                // 已過期
                                 stats[z].expired++;
                             } else if (days <= 7) {
-                                // 7日警告 (黃燈)，不包含已過期的
-                                stats[z].exp7++;
+                                // 7日警告 (不包含已過期)
+                                stats[z].warning++;
                             }
                         }
                     }
@@ -1196,19 +1217,18 @@
                 return stats;
             });
 
+            // --- 顯示所有人格式 ---
+            const formatOwners = (owners) => {
+                if (!owners || owners.length === 0) return "所有人: 全家";
+                return "所有人: " + owners.join(", ");
+            };
+
             const selectZoneFromSidebar = (zone) => {
                 filterZone.value = zone;
-                // 關閉側邊欄
                 const el = document.getElementById("sidebar");
                 const inst = bootstrap.Offcanvas.getInstance(el);
                 if (inst) inst.hide();
                 goHome();
-            };
-
-            // 格式化所有人顯示
-            const formatOwners = (owners) => {
-                if (!owners || owners.length === 0) return "所有人: 全家";
-                return "所有人: " + owners.join("、");
             };
 
             // 導航邏輯
@@ -1239,7 +1259,7 @@
                     noExpiry: item.noExpiry,
                     image: item.image,
                     zone: item.zone || 'cold',
-                    owners: item.owners || ['全家']
+                    owners: item.owners || ["全家"]
                 };
                 currentPage.value = "edit";
             };
@@ -1260,12 +1280,10 @@
                 const keyword = searchText.value?.trim() || "";
                 let list = items.value;
 
-                // 篩選搜尋關鍵字
                 if (keyword) {
                     list = list.filter(i => String(i.name || "").includes(keyword));
                 }
 
-                // 篩選區域
                 if (filterZone.value !== 'all') {
                     list = list.filter(i => (i.zone || 'cold') === filterZone.value);
                 }
@@ -1309,11 +1327,8 @@
                 // 圖片預覽 & 長按
                 openPreview, closePreview, handleTouchStart, handleTouchEnd, handleTouchMove, goToEditPage,
 
-                // 區域邏輯
-                getZoneColor, zoneStats, selectZoneFromSidebar,
-                
-                // 所有人邏輯
-                formatOwners,
+                // 區域 & 所有人邏輯
+                getZoneColor, zoneStats, selectZoneFromSidebar, formatOwners,
 
                 // 新增 & 編輯
                 newItem, processImage, submitItem, 
