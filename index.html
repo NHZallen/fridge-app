@@ -126,6 +126,17 @@
         .dropdown-item-custom:hover { background-color: #f8f9fa; }
         .dropdown-item-custom input { margin-right: 10px; transform: scale(1.2); }
 
+        /* 自定義冷凍區按鈕樣式 (深藍色) */
+        .btn-outline-frozen {
+            color: #002266;
+            border-color: #002266;
+        }
+        .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active {
+            color: #fff;
+            background-color: #002266;
+            border-color: #002266;
+        }
+
     </style>
 </head>
 <body>
@@ -415,7 +426,7 @@
             </div>
         </div>
 
-        <!-- SETTINGS (已恢復版本控制) -->
+        <!-- SETTINGS -->
         <div v-if="!isLoading && currentPage==='settings'" class="settings-page page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -474,13 +485,13 @@
                 </div>
             </div>
             
-            <!-- 版本更新設定 (已恢復) -->
+            <!-- 版本更新設定 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <div class="fw-bold"><i class="bi bi-bell text-primary me-1"></i> 版本更新通知</div>
-                            <div class="text-muted small">開啟後，若偵測到新版本，進入 App 會彈出更新資訊</div>
+                            <div class="text-muted small">開啟後，若偵測到新版本，進入 App 會自動顯示更新資訊</div>
                         </div>
                         <div class="form-check form-switch m-0">
                             <input class="form-check-input" type="checkbox" id="updateNotifySwitch" v-model="settings.updateNotifyEnabled" @change="saveSettings">
@@ -510,7 +521,7 @@
                 </div>
             </div>
 
-            <!-- 更新歷史 (已恢復) -->
+            <!-- 更新歷史 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
@@ -542,6 +553,49 @@
             </button>
         </div>
 
+        <!-- UPDATE INFO PAGE (全螢幕) -->
+        <div v-if="!isLoading && currentPage==='update-info'" class="page-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light border rounded-pill" @click="closeUpdatePage">
+                    <i class="bi bi-arrow-left"></i> 返回
+                </button>
+                <h5 class="fw-bold m-0">發現新版本</h5>
+                <div style="width: 74px;"></div>
+            </div>
+
+            <div class="card section-card border-primary border-2 mb-3">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-stars text-primary display-1"></i>
+                    <h3 class="fw-bold mt-3">v{{ latestLog?.version }} 更新囉！</h3>
+                    <p class="text-muted">{{ latestLog?.title }}</p>
+                </div>
+            </div>
+
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                         <div class="fw-bold fs-5">更新內容</div>
+                         <small class="text-muted">{{ latestLog?.date }}</small>
+                    </div>
+                    
+                    <ul class="list-group list-group-flush" v-if="latestLog?.changes?.length">
+                        <li class="list-group-item px-0" v-for="c in latestLog.changes" :key="c">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>{{ c }}
+                        </li>
+                    </ul>
+                    <div class="text-muted" v-else>沒有更新詳細內容</div>
+                </div>
+            </div>
+
+            <div class="alert alert-light border small text-muted text-center mt-4">
+                按下「我知道了」後，同一版本將不會再自動彈出通知
+            </div>
+
+            <button class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm mt-2" @click="closeUpdatePage">
+                我知道了
+            </button>
+        </div>
+
         <!-- 讀取中畫面 -->
         <div v-if="isLoading" class="loading-mask">
             <div class="spinner-border text-primary mb-3" role="status"></div>
@@ -562,7 +616,7 @@
                 </div>
                 <hr class="sidebar-divider">
 
-                <!-- 區域導航按鈕 (更新徽章邏輯) -->
+                <!-- 區域導航按鈕 (已修正冷凍區顏色) -->
                 <div class="d-grid gap-2 mb-4">
                     <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
                         <span><i class="bi bi-snow me-2"></i>冷藏區</span>
@@ -572,7 +626,8 @@
                             <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.cold.expired }}</span>
                         </div>
                     </button>
-                    <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
+                    <!-- 這裡改用 btn-outline-frozen -->
+                    <button class="btn btn-outline-frozen text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
                         <span><i class="bi bi-box-seam me-2"></i>冷凍區</span>
                         <div class="d-flex gap-1">
                             <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.frozen.total }}</span>
@@ -590,8 +645,6 @@
                     </button>
                 </div>
                 
-                <!-- 已移除說明文字框 -->
-
                 <div class="mt-auto">
                     <button class="btn btn-primary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
                         <i class="bi bi-gear me-1"></i> 設定
@@ -620,43 +673,6 @@
             </div>
         </div>
         
-        <!-- 更新資訊彈窗 (已恢復) -->
-        <div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header">
-                        <h5 class="modal-title fw-bold"><i class="bi bi-megaphone text-primary me-1"></i> 發現新版本</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-2">
-                            <div class="text-muted">目前版本：<span class="fw-bold">{{ appVersion }}</span></div>
-                            <div class="text-muted">最新版本：<span class="fw-bold">{{ latestVersion }}</span></div>
-                        </div>
-
-                        <div class="card border-0 bg-light">
-                            <div class="card-body">
-                                <div class="fw-bold mb-1">v{{ latestLog?.version }}　{{ latestLog?.title }}</div>
-                                <div class="small text-muted mb-2">{{ latestLog?.date }}</div>
-                                <ul class="mb-0" v-if="latestLog?.changes?.length">
-                                    <li v-for="c in latestLog.changes" :key="c">{{ c }}</li>
-                                </ul>
-                                <div class="text-muted" v-else>沒有更新內容</div>
-                            </div>
-                        </div>
-
-                        <div class="text-muted small mt-3">
-                            關閉後同一版本不會再自動彈出，除非有更新到更高版本
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-primary rounded-pill w-100" data-bs-dismiss="modal" @click="markUpdateSeen">
-                            我知道了
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
     </template>
 
 </div>
@@ -667,7 +683,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js"; // 已恢復引入
+    import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
 
     let appFirebase;
     let db;
@@ -709,6 +725,8 @@
 
             const fileInput = ref(null);
             const currentPage = ref("home");
+            const previousPage = ref("home"); // 紀錄上一頁，用於更新頁返回
+
             let longPressTimer = null;
             const LONG_PRESS_DURATION = 600;
 
@@ -857,6 +875,7 @@
                 });
             };
 
+            // ... 家庭設定相關 (省略重複代碼) ...
             const startEditFamilyName = () => {
                 editFamilyNameTemp.value = familySettings.value.familyName;
                 isEditingFamilyName.value = true;
@@ -936,6 +955,7 @@
                 return 0;
             };
 
+            // 改為全螢幕頁面切換，而非彈窗
             const showUpdateModal = (force = false) => {
                 const hasNew = compareVersions(latestVersion.value, APP_VERSION) === 1;
                 if (!force) {
@@ -944,14 +964,20 @@
                     const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
                     if (lastSeen === latestVersion.value) return;
                 }
-                const el = document.getElementById("updateModal");
-                if (!el) return;
-                const modal = bootstrap.Modal.getOrCreateInstance(el);
-                modal.show();
+                
+                // 記錄目前頁面，以便返回
+                previousPage.value = currentPage.value;
+                currentPage.value = 'update-info';
             };
 
-            const markUpdateSeen = () => {
+            const closeUpdatePage = () => {
                 localStorage.setItem("lastSeenUpdateVersion", latestVersion.value);
+                // 返回上一頁，如果是從設定進來就回設定，否則回首頁
+                if (previousPage.value === 'settings') {
+                    currentPage.value = 'settings';
+                } else {
+                    currentPage.value = 'home';
+                }
             };
 
             const isNoExpiry = (item) => {
@@ -1009,28 +1035,16 @@
                 });
             };
 
-            // 切換所有人選擇
             const toggleOwner = (name) => {
                 let owners = newItem.value.owners || [];
-                
                 if (name === '全家') {
-                    if (!owners.includes('全家')) {
-                        newItem.value.owners = ['全家'];
-                    } else {
-                        newItem.value.owners = [];
-                    }
+                    if (!owners.includes('全家')) { newItem.value.owners = ['全家']; } 
+                    else { newItem.value.owners = []; }
                 } else {
-                    if (owners.includes('全家')) {
-                        owners = owners.filter(o => o !== '全家');
-                    }
-                    if (owners.includes(name)) {
-                        owners = owners.filter(o => o !== name);
-                    } else {
-                        owners.push(name);
-                    }
-                    if (owners.length === 0) {
-                        owners = ['全家'];
-                    }
+                    if (owners.includes('全家')) { owners = owners.filter(o => o !== '全家'); }
+                    if (owners.includes(name)) { owners = owners.filter(o => o !== name); } 
+                    else { owners.push(name); }
+                    if (owners.length === 0) { owners = ['全家']; }
                     newItem.value.owners = owners;
                 }
             };
@@ -1132,8 +1146,8 @@
                 if (isNoExpiry(item)) return "";
                 const d = getDays(item.expiryDate);
                 if (d === null) return "";
-                if (d < 0) return "alert-red"; // 已過期
-                if (d <= 7) return "alert-yellow"; // 7天內警告
+                if (d < 0) return "alert-red"; 
+                if (d <= 7) return "alert-yellow";
                 return "";
             };
 
@@ -1165,9 +1179,9 @@
                         const days = getDays(item.expiryDate);
                         if (days !== null) {
                             if (days < 0) {
-                                stats[z].expired++; // 已過期
+                                stats[z].expired++; 
                             } else if (days <= 7) {
-                                stats[z].warning++; // 7天內
+                                stats[z].warning++;
                             }
                         }
                     }
@@ -1265,7 +1279,7 @@
                 
                 // 版本與設定
                 appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
-                settings, saveSettings, showUpdateModal, markUpdateSeen,
+                settings, saveSettings, showUpdateModal, closeUpdatePage, // 注意這裡改用 closeUpdatePage
 
                 goHome, goToAddPage, goSettingsFromSidebar,
                 toggleOwner, formatOwners
