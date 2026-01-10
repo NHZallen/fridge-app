@@ -314,7 +314,7 @@
                             </div>
                         </div>
 
-                        <!-- 物品所有人設定 (下拉選單多選，修正預設勾選與互動邏輯) -->
+                        <!-- 修正：物品所有人設定 (使用 isAllOwners 判斷顯示) -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">5. 物品所有人</label>
                             <div class="dropdown">
@@ -325,9 +325,8 @@
                                 </button>
                                 <div class="dropdown-menu owners-dropdown-menu p-2 w-100 shadow">
                                     <div class="form-check mb-2">
-                                        <!-- 判斷方式：如果 owners 陣列為空，則視為全家 -->
                                         <input class="form-check-input" type="checkbox" id="owner-all" 
-                                               :checked="!newItem.owners || newItem.owners.length === 0"
+                                               :checked="isAllOwners"
                                                @change="toggleOwner('all')">
                                         <label class="form-check-label fw-bold text-primary" for="owner-all">
                                             全家 (預設)
@@ -563,7 +562,7 @@
                 </div>
                 <hr class="sidebar-divider">
 
-                <!-- 區域導航按鈕 (修正後的統計) -->
+                <!-- 區域導航按鈕 -->
                 <div class="d-grid gap-2 mb-4">
                     <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
                         <span><i class="bi bi-snow me-2"></i>冷藏區</span>
@@ -1226,26 +1225,27 @@
                 goHome();
             };
 
-            // --- 所有人邏輯 (修正後) ---
+            // --- 所有人邏輯 (修正版：計算屬性 + 強制響應) ---
+            const isAllOwners = computed(() => {
+                return !newItem.value.owners || newItem.value.owners.length === 0;
+            });
+
             const toggleOwner = (val) => {
-                const currentOwners = newItem.value.owners || [];
-                
+                let currentList = [...(newItem.value.owners || [])];
+
                 if (val === 'all') {
                     // 選全家 -> 清空陣列
-                    newItem.value.owners = [];
+                    currentList = [];
                 } else {
                     // 選個人
-                    let newOwners = [...currentOwners]; // 複製一份
-                    
-                    if (newOwners.includes(val)) {
-                        newOwners = newOwners.filter(m => m !== val);
+                    if (currentList.includes(val)) {
+                        currentList = currentList.filter(m => m !== val);
                     } else {
-                        newOwners.push(val);
+                        currentList.push(val);
                     }
-                    
-                    // 賦值回 reactive 物件，確保 Vue 偵測到變動
-                    newItem.value.owners = newOwners;
                 }
+                // 重新賦值以觸發響應
+                newItem.value.owners = currentList;
             };
 
             const getOwnersText = (owners) => {
@@ -1352,8 +1352,8 @@
                 // 區域與統計
                 getZoneColor, zoneStats, selectZoneFromSidebar,
 
-                // 所有人功能
-                toggleOwner, getOwnersText,
+                // 所有人功能 (修正)
+                toggleOwner, getOwnersText, isAllOwners,
 
                 // 新增 & 編輯
                 newItem, processImage, submitItem, 
