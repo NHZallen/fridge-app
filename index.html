@@ -36,7 +36,7 @@
 
         .zone-bar {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
-            opacity: 0.85; 
+            opacity: 0.85;
         }
 
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
@@ -84,7 +84,7 @@
             border-bottom: 1px solid #eee;
         }
         .member-row:last-child { border-bottom: none; }
-        
+
         .image-preview-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 2000;
@@ -99,7 +99,7 @@
         }
 
         .sidebar-user-block {
-            margin-bottom: 5px; 
+            margin-bottom: 5px;
         }
         .sidebar-divider {
             margin-top: 5px; margin-bottom: 20px;
@@ -110,25 +110,17 @@
             min-width: 20px;
             text-align: center;
         }
-        
-        .owners-dropdown-menu {
-            max-height: 250px;
-            overflow-y: auto;
-            width: 100%;
-        }
     </style>
 </head>
 <body>
 
 <div id="app" class="container py-3" v-cloak>
 
-    <!-- 圖片預覽層 -->
     <div v-if="previewImageUrl" class="image-preview-overlay" @click="closePreview">
         <button class="preview-close"><i class="bi bi-x-circle"></i></button>
         <img :src="previewImageUrl" class="preview-img" @click.stop>
     </div>
 
-    <!-- 初始設定畫面 (若未設定 Config 則顯示) -->
     <div v-if="!isConfigured" class="setup-screen">
         <div class="text-center mb-4">
             <i class="bi bi-snow2 text-primary display-1"></i>
@@ -161,11 +153,8 @@
         </div>
     </div>
 
-    <!-- 主應用程式 (已設定 Config 才顯示) -->
     <template v-else>
-        <!-- HOME PAGE -->
         <div v-if="!isLoading && currentPage==='home'">
-            <!-- 頂部列 -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center gap-2">
                     <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
@@ -179,7 +168,6 @@
                 <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
             </div>
 
-            <!-- 搜尋與篩選 -->
             <div class="input-group mb-4 shadow-sm">
                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                 <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
@@ -196,16 +184,15 @@
                 <small class="text-muted"><i class="bi bi-info-circle me-1"></i>長按物品可編輯</small>
             </div>
 
-            <!-- 物品列表 -->
             <div class="row g-3 pb-5">
                 <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
-                    <div class="card item-card h-100" 
+                    <div class="card item-card h-100"
                          :class="getAlertClass(item)"
                          @touchstart="handleTouchStart(item)"
                          @touchend="handleTouchEnd"
                          @touchmove="handleTouchMove"
                          @contextmenu.prevent="goToEditPage(item)">
-                        
+
                         <div class="item-img-box" @click.stop="openPreview(item.image)">
                             <img v-if="item.image" :src="item.image" class="item-img">
                             <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
@@ -219,9 +206,10 @@
                                 <small class="text-muted">數量: {{ item.quantity }}</small>
                             </div>
 
-                            <div class="mb-2">
-                                <small class="text-muted d-block text-truncate">
-                                    <i class="bi bi-person-fill"></i> 所有人: {{ getOwnersText(item.owners) }}
+                            <!-- 新增：所有人顯示在數量下方 -->
+                            <div class="mb-1">
+                                <small class="text-muted">
+                                    所有人: {{ displayOwners(item) }}
                                 </small>
                             </div>
 
@@ -256,7 +244,6 @@
             </button>
         </div>
 
-        <!-- ADD / EDIT PAGE -->
         <div v-if="!isLoading && (currentPage==='add' || currentPage==='edit')" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -307,36 +294,14 @@
                             </div>
                         </div>
 
-                        <!-- 物品所有人設定 (修正邏輯) -->
+                        <!-- 新增：所有人多選 -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">5. 物品所有人</label>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                    <span class="text-truncate">
-                                        {{ getOwnersText(newItem.owners) }}
-                                    </span>
-                                </button>
-                                <div class="dropdown-menu owners-dropdown-menu p-2 w-100 shadow">
-                                    <div class="form-check mb-2">
-                                        <!-- 使用 isAllFamily 計算屬性作為 v-model，確保勾選狀態正確 -->
-                                        <input class="form-check-input" type="checkbox" id="owner-all" 
-                                               v-model="isAllFamily">
-                                        <label class="form-check-label fw-bold text-primary" for="owner-all">
-                                            全家 (預設)
-                                        </label>
-                                    </div>
-                                    <hr class="my-2">
-                                    <!-- 使用 v-model="newItem.owners" 自動處理陣列增減 -->
-                                    <div v-for="member in familySettings.members" :key="member" class="form-check py-1">
-                                        <input class="form-check-input" type="checkbox" :id="'owner-'+member"
-                                               :value="member" 
-                                               v-model="newItem.owners">
-                                        <label class="form-check-label" :for="'owner-'+member">
-                                            {{ member }}
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
+                            <label class="form-label fw-bold">5. 物品所有人 (可多選)</label>
+                            <select class="form-select form-select-lg" v-model="newItem.owners" multiple>
+                                <option value="全家">全家</option>
+                                <option v-for="m in familySettings.members" :key="m" :value="m">{{ m }}</option>
+                            </select>
+                            <div class="form-text">可同時選擇全家與多位成員</div>
                         </div>
 
                         <div class="mb-3">
@@ -369,7 +334,6 @@
             </div>
         </div>
 
-        <!-- TAKE OUT PAGE -->
         <div v-if="!isLoading && currentPage==='takeout'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -411,7 +375,6 @@
             </div>
         </div>
 
-        <!-- SETTINGS -->
         <div v-if="!isLoading && currentPage==='settings'" class="settings-page page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
@@ -427,7 +390,7 @@
                         <i class="bi bi-house-heart text-primary"></i>
                         <div class="fw-bold">家庭名稱</div>
                     </div>
-                    
+
                     <div v-if="!isEditingFamilyName" class="d-flex justify-content-between align-items-center">
                         <span class="fs-5 fw-bold">{{ familySettings.familyName }}</span>
                         <button class="btn btn-sm btn-outline-secondary rounded-pill" @click="startEditFamilyName">
@@ -533,13 +496,11 @@
             </button>
         </div>
 
-        <!-- 讀取中畫面 -->
         <div v-if="isLoading" class="loading-mask">
             <div class="spinner-border text-primary mb-3" role="status"></div>
             <p class="text-muted fw-bold">正在同步 {{ familySettings.familyName || '家庭' }} 資料...</p>
         </div>
 
-        <!-- 左側邊欄 -->
         <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
             <div class="offcanvas-header">
                 <h5 class="offcanvas-title fw-bold" id="sidebarLabel"><i class="bi bi-snow2 text-primary"></i> 功能選單</h5>
@@ -553,29 +514,32 @@
                 </div>
                 <hr class="sidebar-divider">
 
+                <!-- 只保留：總數、7日警告、已過期 -->
                 <div class="d-grid gap-2 mb-4">
                     <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
                         <span><i class="bi bi-snow me-2"></i>冷藏區</span>
                         <div class="d-flex gap-1">
                             <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.cold.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日警告">{{ zoneStats.cold.exp7 }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日過期">{{ zoneStats.cold.exp7 }}</span>
                             <span class="badge bg-dark zone-stat-badge" title="已過期">{{ zoneStats.cold.expired }}</span>
                         </div>
                     </button>
+
                     <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
                         <span><i class="bi bi-box-seam me-2"></i>冷凍區</span>
                         <div class="d-flex gap-1">
-                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.frozen.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.frozen.exp7 }}</span>
-                            <span class="badge bg-dark zone-stat-badge">{{ zoneStats.frozen.expired }}</span>
+                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.frozen.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日過期">{{ zoneStats.frozen.exp7 }}</span>
+                            <span class="badge bg-dark zone-stat-badge" title="已過期">{{ zoneStats.frozen.expired }}</span>
                         </div>
                     </button>
+
                     <button class="btn btn-outline-success text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('veggie')">
                         <span><i class="bi bi-flower1 me-2"></i>蔬果區</span>
                         <div class="d-flex gap-1">
-                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.veggie.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.veggie.exp7 }}</span>
-                            <span class="badge bg-dark zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
+                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.veggie.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日過期">{{ zoneStats.veggie.exp7 }}</span>
+                            <span class="badge bg-dark zone-stat-badge" title="已過期">{{ zoneStats.veggie.expired }}</span>
                         </div>
                     </button>
                 </div>
@@ -589,7 +553,6 @@
             </div>
         </div>
 
-        <!-- 編輯使用者名稱視窗 -->
         <div class="modal fade" id="editNameModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow">
@@ -611,7 +574,6 @@
             </div>
         </div>
 
-        <!-- 更新資訊彈窗 -->
         <div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow">
@@ -663,7 +625,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.1.0";
+    const APP_VERSION = "1.2.0";
 
     const { createApp, ref, computed, onMounted, watch } = Vue;
 
@@ -705,12 +667,14 @@
             const LONG_PRESS_DURATION = 600;
 
             const settings = ref({ updateNotifyEnabled: true });
-            
+
             const updateLogs = ref(UPDATE_LOGS);
             const latestVersion = ref(LATEST_VERSION);
             const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
-            
+
             const getTodayStr = () => new Date().toISOString().split("T")[0];
+
+            // 新增：owners 預設全家
             const newItem = ref({
                 id: null,
                 name: "",
@@ -720,10 +684,8 @@
                 noExpiry: false,
                 image: null,
                 zone: "cold",
-                owners: [] 
+                owners: ["全家"]
             });
-
-            // --- 方法 ---
 
             const checkConfig = async () => {
                 const storedConfig = localStorage.getItem("fridge_firebase_config");
@@ -749,10 +711,10 @@
                         appFirebase = initializeApp(config);
                         db = getFirestore(appFirebase);
                     }
-                    
+
                     currentUserName.value = userName;
                     localStorage.setItem("fridge_user_name", userName);
-                    
+
                     isConfigured.value = true;
                     isLoading.value = true;
 
@@ -769,30 +731,30 @@
                     setupError.value = "格式似乎不正確，請複製包含 { ... } 的完整程式碼";
                     return;
                 }
-                
+
                 if (!inputUserName.value.trim()) {
                     setupError.value = "請輸入您的稱呼";
                     return;
                 }
 
                 isSettingUp.value = true;
-                
+
                 try {
                     let cleanStr = inputConfigStr.value.trim();
                     cleanStr = cleanStr.replace(/const\s+firebaseConfig\s*=\s*/, '');
                     cleanStr = cleanStr.replace(/;$/, '');
-                    
+
                     const configObj = (new Function(`return ${cleanStr}`))();
 
                     if (!configObj.projectId) throw new Error("無效的設定內容");
 
                     await initFirebase(configObj, inputUserName.value.trim());
                     localStorage.setItem("fridge_firebase_config", JSON.stringify(configObj));
-                    
+
                 } catch (e) {
                     console.error(e);
                     setupError.value = "設定失敗，請檢查代碼是否正確或是網路連線異常";
-                    appFirebase = null; 
+                    appFirebase = null;
                 } finally {
                     isSettingUp.value = false;
                 }
@@ -1021,6 +983,14 @@
                 });
             };
 
+            // 新增：owners 正規化
+            const normalizeOwners = (owners) => {
+                if (!Array.isArray(owners)) owners = [];
+                const cleaned = owners.map(s => String(s || "").trim()).filter(Boolean);
+                const uniq = Array.from(new Set(cleaned));
+                return uniq.length ? uniq : ["全家"];
+            };
+
             const submitItem = async () => {
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
                 if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
@@ -1028,6 +998,7 @@
 
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
+
                 const itemData = {
                     name: newItem.value.name,
                     quantity: newItem.value.quantity,
@@ -1036,7 +1007,7 @@
                     noExpiry: noExpiryFinal,
                     image: newItem.value.image,
                     zone: newItem.value.zone || 'cold',
-                    owners: newItem.value.owners || [] 
+                    owners: normalizeOwners(newItem.value.owners)
                 };
 
                 isUploading.value = true;
@@ -1091,7 +1062,7 @@
                 itemToDelete.value = item;
                 const qty = parseInt(item.quantity);
                 maxTakeOut.value = (!isNaN(qty) && qty > 0) ? qty : 1;
-                takeOutAmount.value = 1; 
+                takeOutAmount.value = 1;
                 currentPage.value = "takeout";
             };
 
@@ -1136,10 +1107,12 @@
                 newItem.value.expiryDate = base.toISOString().split("T")[0];
             };
 
+            // 修正：黃色只給 4 到 7 天，紅色包含已過期與 0 到 3 天
             const getAlertClass = (item) => {
                 if (isNoExpiry(item)) return "";
                 const d = getDays(item.expiryDate);
                 if (d === null) return "";
+                if (d < 0) return "alert-red";
                 if (d <= 3) return "alert-red";
                 if (d <= 7) return "alert-yellow";
                 return "";
@@ -1155,6 +1128,7 @@
                 }
             };
 
+            // 修正：7日警告不包含已過期
             const zoneStats = computed(() => {
                 const stats = {
                     cold: { total: 0, exp7: 0, expired: 0 },
@@ -1167,15 +1141,12 @@
                     if (!stats[z]) return;
 
                     stats[z].total++;
-                    
+
                     if (!isNoExpiry(item)) {
                         const days = getDays(item.expiryDate);
                         if (days !== null) {
-                            if (days < 0) {
-                                stats[z].expired++;
-                            } else if (days <= 7) {
-                                stats[z].exp7++;
-                            }
+                            if (days < 0) stats[z].expired++;
+                            if (days >= 0 && days <= 7) stats[z].exp7++;
                         }
                     }
                 });
@@ -1190,27 +1161,6 @@
                 goHome();
             };
 
-            // --- 所有人邏輯 (v-model 修正版) ---
-            
-            // 計算屬性：是否為全家 (當陣列為空時)
-            const isAllFamily = computed({
-                get() {
-                    return !newItem.value.owners || newItem.value.owners.length === 0;
-                },
-                set(value) {
-                    // 當使用者手動勾選「全家」，強制清空 owners 陣列
-                    if (value) {
-                        newItem.value.owners = [];
-                    }
-                }
-            });
-
-            const getOwnersText = (owners) => {
-                if (!owners || owners.length === 0) return "全家";
-                return owners.join(", ");
-            };
-
-            // 導航邏輯
             const goToAddPage = () => {
                 newItem.value = {
                     id: null,
@@ -1221,7 +1171,7 @@
                     noExpiry: false,
                     image: null,
                     zone: "cold",
-                    owners: []
+                    owners: ["全家"]
                 };
                 currentPage.value = "add";
             };
@@ -1238,7 +1188,7 @@
                     noExpiry: item.noExpiry,
                     image: item.image,
                     zone: item.zone || 'cold',
-                    owners: item.owners || []
+                    owners: normalizeOwners(item.owners)
                 };
                 currentPage.value = "edit";
             };
@@ -1252,7 +1202,7 @@
 
             const goHome = () => {
                 currentPage.value = "home";
-                previewImageUrl.value = null; 
+                previewImageUrl.value = null;
             };
 
             const filteredItems = computed(() => {
@@ -1285,46 +1235,42 @@
                 });
             });
 
+            // 新增：卡片顯示 owners
+            const displayOwners = (item) => {
+                const owners = normalizeOwners(item?.owners);
+                return owners.join("、");
+            };
+
             return {
-                // 狀態
                 items, searchText, filterZone, isUploading, isCompressing, isLoading,
                 fileInput, currentPage, previewImageUrl,
-                
-                // Config & User 狀態
+
                 isConfigured, isSettingUp, inputConfigStr, inputUserName, setupError,
                 currentUserName, saveInitialConfig, resetApp,
-                
-                // 家庭設定
+
                 familySettings, isEditingFamilyName, editFamilyNameTemp,
                 startEditFamilyName, saveFamilyName,
                 editUserNameTemp, nameEditError, startEditUserName, confirmEditUserName,
 
-                // 刪除 & 取出邏輯
                 itemToDelete, takeOutAmount, maxTakeOut,
                 goToTakeOutPage, confirmTakeOutAction,
 
-                // 圖片預覽 & 長按
                 openPreview, closePreview, handleTouchStart, handleTouchEnd, handleTouchMove, goToEditPage,
 
-                // 區域與統計
                 getZoneColor, zoneStats, selectZoneFromSidebar,
 
-                // 所有人功能
-                getOwnersText, isAllFamily,
-
-                // 新增 & 編輯
-                newItem, processImage, submitItem, 
+                newItem, processImage, submitItem,
                 getDays, addDays, getAlertClass, filteredItems,
                 isNoExpiry,
 
-                // 設定與版本
                 settings, saveSettings,
                 appVersion: APP_VERSION,
                 latestVersion, updateLogs, latestLog,
                 showUpdateModal, markUpdateSeen,
 
-                // 導航
-                goHome, goToAddPage, goSettingsFromSidebar
+                goHome, goToAddPage, goSettingsFromSidebar,
+
+                displayOwners
             };
         }
     }).mount("#app");
