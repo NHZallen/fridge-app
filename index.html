@@ -106,14 +106,6 @@
             min-width: 20px;
             text-align: center;
         }
-        
-        /* 所有人下拉選單樣式 */
-        .owner-dropdown-menu {
-            width: 100%;
-            padding: 10px;
-            max-height: 250px;
-            overflow-y: auto;
-        }
     </style>
 </head>
 <body>
@@ -312,26 +304,21 @@
                             </div>
                         </div>
 
-                        <!-- 物品所有人 (新增) -->
+                        <!-- 物品所有人 (改為原生 Checkbox 平鋪) -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">5. 物品所有人</label>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary w-100 dropdown-toggle text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                    <span class="text-truncate">{{ formatOwners(newItem.owners) }}</span>
-                                </button>
-                                <div class="dropdown-menu owner-dropdown-menu">
-                                    <div class="form-check mb-2">
+                            <label class="form-label fw-bold">5. 物品所有人 (可多選)</label>
+                            <div class="card bg-light border-0">
+                                <div class="card-body p-2">
+                                    <div class="form-check form-check-inline">
                                         <input class="form-check-input" type="checkbox" id="owner-all" value="全家" v-model="newItem.owners">
                                         <label class="form-check-label fw-bold" for="owner-all">全家</label>
                                     </div>
-                                    <hr class="dropdown-divider">
-                                    <div class="form-check mb-2" v-for="member in familySettings.members" :key="member">
+                                    <div class="form-check form-check-inline" v-for="member in familySettings.members" :key="member">
                                         <input class="form-check-input" type="checkbox" :id="'owner-'+member" :value="member" v-model="newItem.owners">
                                         <label class="form-check-label" :for="'owner-'+member">{{ member }}</label>
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-text">可複選，預設為全家。</div>
                         </div>
 
                         <div class="mb-3">
@@ -729,7 +716,7 @@
                 noExpiry: false,
                 image: null,
                 zone: "cold",
-                owners: ["全家"] // 預設全員
+                owners: ["全家"]
             });
 
             // --- 方法 ---
@@ -1035,7 +1022,6 @@
             const submitItem = async () => {
                 if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
                 if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
-                // 確保 owners 至少有一個值，若為空則預設全家
                 const finalOwners = (newItem.value.owners && newItem.value.owners.length > 0) 
                                     ? newItem.value.owners 
                                     : ['全家'];
@@ -1180,7 +1166,7 @@
                 }
             };
 
-            // --- 區域統計邏輯 (修正：分離已過期與七日警告) ---
+            // --- 區域統計邏輯 (紅燈只含已過期，黃燈只含7日內過期) ---
             const zoneStats = computed(() => {
                 const stats = {
                     cold: { total: 0, exp7: 0, expired: 0 },
