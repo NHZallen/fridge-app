@@ -1,63 +1,1261 @@
-// update-logs.js
-// 這裡只放「最新版本號」與「更新紀錄」
-// 之後每次發新版本，你只要改 LATEST_VERSION 並在 UPDATE_LOGS 最上面新增一筆即可
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智慧冰箱管理</title>
 
-export const LATEST_VERSION = "1.3.1";
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
 
-export const UPDATE_LOGS = [
-  {
-    version: "1.3.1",
-    date: "2026-01-10",
-    title: "介面體驗優化與樣式修正",
-    changes: [
-      "版本更新通知改為全螢幕頁面顯示，操作體驗更一致",
-      "修正側邊欄「冷凍區」按鈕顏色，改為深藍色以符合區域識別",
-      "優化頁面切換邏輯，閱讀完更新資訊後會自動返回原本的頁面"
-    ]
-  },
-  {
-    version: "1.3.0",
-    date: "2026-01-10",
-    title: "物品所有人功能與統計優化",
-    changes: [
-      "新增「物品所有人」功能，支援多選（全家/特定成員），並顯示於卡片",
-      "優化側邊欄統計燈號：灰色(總數)、黃色(7日警告)、紅色(已過期)",
-      "修正已過期物品的統計歸類邏輯，不再混入警告燈號",
-      "移除側邊欄圖示說明區塊，介面更簡潔"
-    ]
-  },
-  {
-    version: "1.2.0",
-    date: "2026-01-10",
-    title: "分區管理、全螢幕操作與編輯功能",
-    changes: [
-      "新增冷藏、冷凍、蔬果分區功能，圖片顯示對應顏色標示",
-      "側邊欄新增區域統計與導航，搜尋欄新增區域篩選",
-      "新增物品與取出物品改為全螢幕頁面，操作更流暢",
-      "取出物品支援下拉選單選擇數量（可部分取出或全部刪除）",
-      "支援長按物品進入編輯模式，點擊圖片可全螢幕預覽",
-      "優化圖片上傳選擇（相機/相簿）與家庭成員同步機制"
-    ]
-  },
-  {
-    version: "1.1.0",
-    date: "2026-01-09",
-    title: "新增設定頁、版本更新通知、存入日期與無期限",
-    changes: [
-      "新增左側邊欄，底部加入設定按鈕",
-      "新增全螢幕設定頁（非彈窗）",
-      "新增版本更新通知藥丸開關，可控制是否進入 App 彈出更新資訊",
-      "新增版本資訊與更新內容列表",
-      "新增物品存入日期欄位",
-      "到期日改為可不填，支援無期限物品"
-    ]
-  },
-  {
-    version: "1.0.0",
-    date: "2026-01-08",
-    title: "初版",
-    changes: [
-      "新增物品、拍照、到期提醒、刪除"
-    ]
-  }
-];
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+    <style>
+        body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; }
+
+        .item-card {
+            border: none; border-radius: 15px; overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
+            user-select: none; -webkit-user-select: none;
+            cursor: pointer;
+        }
+        .item-card:active { transform: scale(0.98); }
+
+        .item-img-box {
+            width: 100%; height: 180px; background: #e9ecef;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            position: relative;
+        }
+        .item-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
+        .item-img-box:active .item-img { opacity: 0.8; }
+
+        .zone-bar {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
+            opacity: 0.85;
+        }
+
+        .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
+        .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
+
+        .fab-btn {
+            position: fixed; bottom: 30px; right: 25px;
+            width: 65px; height: 65px; border-radius: 50%;
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white; font-size: 30px; border: none;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        .fab-btn:active { transform: scale(0.95); }
+
+        .loading-mask {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        .setup-screen {
+            min-height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
+            background: white;
+        }
+
+        [v-cloak] { display: none; }
+
+        .page-container {
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        .section-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        .member-row {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .member-row:last-child { border-bottom: none; }
+        
+        .image-preview-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 2000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .preview-img {
+            max-width: 100%; max-height: 80vh; object-fit: contain;
+        }
+        .preview-close {
+            position: absolute; top: 20px; right: 20px;
+            color: white; font-size: 2rem; background: none; border: none;
+        }
+
+        .sidebar-user-block { margin-bottom: 5px; }
+        .sidebar-divider { margin-top: 5px; margin-bottom: 20px; }
+
+        .zone-stat-badge {
+            font-size: 0.75rem;
+            min-width: 24px;
+            text-align: center;
+        }
+        
+        .dropdown-menu-custom { width: 100%; padding: 0.5rem; }
+        .dropdown-item-custom {
+            display: flex; align-items: center; padding: 8px 12px;
+            cursor: pointer; border-radius: 6px;
+        }
+        .dropdown-item-custom:hover { background-color: #f8f9fa; }
+        .dropdown-item-custom input { margin-right: 10px; transform: scale(1.2); }
+
+        .btn-outline-frozen { color: #002266; border-color: #002266; }
+        .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active {
+            color: #fff; background-color: #002266; border-color: #002266;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container py-3" v-cloak>
+
+    <!-- 圖片預覽層 -->
+    <div v-if="previewImageUrl" class="image-preview-overlay" @click="closePreview">
+        <button class="preview-close"><i class="bi bi-x-circle"></i></button>
+        <img :src="previewImageUrl" class="preview-img" @click.stop>
+    </div>
+
+    <!-- 初始設定畫面 -->
+    <div v-if="!isConfigured" class="setup-screen">
+        <div class="text-center mb-4">
+            <i class="bi bi-snow2 text-primary display-1"></i>
+            <h2 class="fw-bold mt-3">歡迎使用智慧冰箱</h2>
+            <p class="text-muted">請輸入家庭設定與您的名稱以開始使用</p>
+        </div>
+
+        <div class="card w-100 border-0 shadow-sm" style="max-width: 500px;">
+            <div class="card-body">
+                <form @submit.prevent="saveInitialConfig">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">1. Firebase 設定碼</label>
+                        <textarea class="form-control font-monospace small" rows="5" v-model="inputConfigStr" placeholder='請貼上 const firebaseConfig = { ... }' required></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">2. 您的稱呼 (家庭成員名稱)</label>
+                        <input type="text" class="form-control" v-model="inputUserName" placeholder="例如：爸爸、媽媽" required>
+                    </div>
+                    <div v-if="setupError" class="alert alert-danger py-2 mb-3">{{ setupError }}</div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold" :disabled="isSettingUp">
+                        {{ isSettingUp ? '連線中...' : '開始使用' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主應用程式 -->
+    <template v-else>
+        <!-- HOME PAGE -->
+        <div v-if="!isLoading && currentPage==='home'">
+            <!-- 頂部列 -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-light border rounded-pill" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div class="d-flex flex-column">
+                        <h4 class="fw-bold m-0"><i class="bi bi-snow2 text-primary"></i> 冰箱庫存</h4>
+                        <small class="text-muted" style="font-size: 0.8rem;">{{ familySettings.familyName }}</small>
+                    </div>
+                </div>
+                <span class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
+            </div>
+
+            <!-- 搜尋與篩選 -->
+            <div class="input-group mb-4 shadow-sm">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" class="form-control border-start-0 py-2" placeholder="搜尋物品..." v-model="searchText">
+                <select class="form-select border-start-0 bg-light" v-model="filterZone" style="max-width: 110px;">
+                    <option value="all">全區</option>
+                    <option value="cold">冷藏區</option>
+                    <option value="frozen">冷凍區</option>
+                    <option value="veggie">蔬果區</option>
+                </select>
+                <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <small class="text-muted"><i class="bi bi-info-circle me-1"></i>長按物品可編輯</small>
+            </div>
+
+            <!-- 物品列表 -->
+            <div class="row g-3 pb-5">
+                <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
+                    <div class="card item-card h-100" 
+                         :class="getAlertClass(item)"
+                         @touchstart="handleTouchStart(item)"
+                         @touchend="handleTouchEnd"
+                         @touchmove="handleTouchMove"
+                         @contextmenu.prevent="goToEditPage(item)">
+                        
+                        <div class="item-img-box" @click.stop="openPreview(item.image)">
+                            <img v-if="item.image" :src="item.image" class="item-img">
+                            <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
+                            <div class="zone-bar" :style="{ backgroundColor: getZoneColor(item.zone) }"></div>
+                        </div>
+
+                        <div class="card-body p-2 d-flex flex-column">
+                            <h6 class="card-title fw-bold text-truncate mb-1">{{ item.name }}</h6>
+
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">數量: {{ item.quantity }}</small>
+                            </div>
+                            
+                            <div class="mb-1 text-truncate">
+                                <small class="text-primary" style="font-size: 0.75rem;">
+                                    <i class="bi bi-person-fill me-1"></i>{{ formatOwners(item.owners) }}
+                                </small>
+                            </div>
+
+                            <div class="mb-2">
+                                <small class="text-muted" v-if="item.storedDate">存入: {{ item.storedDate }}</small>
+                                <small class="text-muted" v-else>存入: 未填</small>
+                            </div>
+
+                            <div v-if="isNoExpiry(item)" class="badge bg-light text-secondary border w-100 mb-2">無期限</div>
+                            <template v-else>
+                                <div v-if="getDays(item.expiryDate) < 0" class="badge bg-danger w-100 mb-2">已過期 ({{ item.expiryDate }})</div>
+                                <div v-else-if="getDays(item.expiryDate) <= 3" class="badge bg-danger w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天!</div>
+                                <div v-else-if="getDays(item.expiryDate) <= 7" class="badge bg-warning text-dark w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
+                                <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
+                            </template>
+
+                            <button class="btn btn-outline-danger btn-sm mt-auto w-100 rounded-pill" @click.stop="goToTakeOutPage(item)">
+                                取出 / 吃掉
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="filteredItems.length === 0" class="text-center text-muted mt-5 pt-5">
+                <i class="bi bi-box2 display-1 opacity-25"></i>
+                <p class="mt-3">該區域是空的，或者找不到該物品</p>
+            </div>
+
+            <button class="fab-btn" @click="goToAddPage">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+
+        <!-- ADD / EDIT PAGE -->
+        <div v-if="!isLoading && (currentPage==='add' || currentPage==='edit')" class="page-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light border rounded-pill" @click="goHome">
+                    <i class="bi bi-arrow-left"></i> 取消
+                </button>
+                <h5 class="fw-bold m-0">{{ currentPage==='edit' ? '編輯物品' : '放入新物品' }}</h5>
+                <div style="width: 74px;"></div>
+            </div>
+
+            <div class="card section-card">
+                <div class="card-body">
+                    <form @submit.prevent="submitItem">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold fs-5">1. 物品照片</label>
+                            <div class="d-flex flex-column align-items-center justify-content-center border rounded bg-light p-3" style="min-height: 200px;" @click="$refs.fileInput.click()">
+                                <img v-if="newItem.image" :src="newItem.image" class="w-100 rounded" style="max-height: 300px; object-fit: contain;">
+                                <div v-else class="text-center text-muted">
+                                    <i class="bi bi-camera fs-1"></i>
+                                    <div class="mt-2">點擊選擇相機或相簿</div>
+                                </div>
+                            </div>
+                            <input ref="fileInput" type="file" class="d-none" accept="image/*" @change="processImage">
+                            <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">2. 存放區域</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="zone" id="zone-cold" value="cold" v-model="newItem.zone" checked>
+                                <label class="btn btn-outline-primary" for="zone-cold">冷藏區</label>
+
+                                <input type="radio" class="btn-check" name="zone" id="zone-frozen" value="frozen" v-model="newItem.zone">
+                                <label class="btn btn-outline-primary" for="zone-frozen">冷凍區</label>
+
+                                <input type="radio" class="btn-check" name="zone" id="zone-veggie" value="veggie" v-model="newItem.zone">
+                                <label class="btn btn-outline-primary" for="zone-veggie">蔬果區</label>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-7">
+                                <label class="form-label fw-bold">3. 名稱</label>
+                                <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
+                            </div>
+                            <div class="col-5">
+                                <label class="form-label fw-bold">4. 數量</label>
+                                <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">5. 存入日期</label>
+                            <input type="date" class="form-control form-control-lg" v-model="newItem.storedDate" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">6. 到期日（可不填）</label>
+                            <input type="date" class="form-control form-control-lg" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
+
+                            <div class="form-check form-switch mt-3">
+                                <input class="form-check-input" type="checkbox" id="noExpirySwitch" v-model="newItem.noExpiry">
+                                <label class="form-check-label fw-bold" for="noExpirySwitch">此物品無期限</label>
+                            </div>
+
+                            <div class="mt-3 d-flex gap-2 overflow-auto" v-if="!newItem.noExpiry">
+                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(3)">+3天</button>
+                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(7)">+1週</button>
+                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(14)">+2週</button>
+                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(30)">+1月</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">7. 物品所有人</label>
+                            <div class="dropdown w-100">
+                                <button class="btn btn-outline-dark dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="text-truncate">{{ formatOwners(newItem.owners) }}</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-custom shadow border-0">
+                                    <li>
+                                        <label class="dropdown-item-custom">
+                                            <input type="checkbox" class="form-check-input" 
+                                                   :checked="newItem.owners.includes('全家')"
+                                                   @change="toggleOwner('全家')">
+                                            <span class="fw-bold">全家 (預設)</span>
+                                        </label>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li v-for="member in familySettings.members" :key="member">
+                                        <label class="dropdown-item-custom">
+                                            <input type="checkbox" class="form-check-input"
+                                                   :checked="newItem.owners.includes(member)"
+                                                   @change="toggleOwner(member)">
+                                            {{ member }}
+                                        </label>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="form-text">您可以選擇「全家」或是指定多位成員</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm" :disabled="isUploading || isCompressing">
+                            {{ (isUploading || isCompressing) ? '處理中...' : (currentPage==='edit' ? '儲存變更' : '確認放入冰箱') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAKE OUT PAGE -->
+        <div v-if="!isLoading && currentPage==='takeout'" class="page-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light border rounded-pill" @click="goHome">
+                    <i class="bi bi-arrow-left"></i> 取消
+                </button>
+                <h5 class="fw-bold m-0">取出物品</h5>
+                <div style="width: 74px;"></div>
+            </div>
+
+            <div class="card section-card">
+                <div class="card-body text-center">
+                    <div class="mb-4 d-flex justify-content-center">
+                        <div class="rounded overflow-hidden shadow-sm" style="width: 150px; height: 150px;">
+                            <img v-if="itemToDelete?.image" :src="itemToDelete.image" style="width: 100%; height: 100%; object-fit: cover;">
+                            <div v-else class="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image fs-1 text-muted"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="fw-bold mb-2">{{ itemToDelete?.name }}</h3>
+                    <p class="text-muted mb-4">目前庫存：{{ maxTakeOut }}</p>
+
+                    <div class="text-start mb-3">
+                        <label class="form-label fw-bold">請選擇要取出的數量</label>
+                        <select class="form-select form-select-lg" v-model="takeOutAmount">
+                            <option v-for="n in maxTakeOut" :key="n" :value="n">{{ n }} {{ n === maxTakeOut ? '(全部取出)' : '' }}</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-danger w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm" @click="confirmTakeOutAction">
+                        {{ takeOutAmount === maxTakeOut ? '確認吃掉 / 刪除' : '確認取出' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div v-if="!isLoading && currentPage==='settings'" class="settings-page page-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light border rounded-pill" @click="goHome">
+                    <i class="bi bi-arrow-left"></i> 返回
+                </button>
+                <h5 class="fw-bold m-0">設定</h5>
+                <div style="width: 74px;"></div>
+            </div>
+
+            <!-- 家庭設定 -->
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-house-heart text-primary"></i>
+                        <div class="fw-bold">家庭名稱</div>
+                    </div>
+                    
+                    <div v-if="!isEditingFamilyName" class="d-flex justify-content-between align-items-center">
+                        <span class="fs-5 fw-bold">{{ familySettings.familyName }}</span>
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill" @click="startEditFamilyName">
+                            <i class="bi bi-pencil"></i> 修改
+                        </button>
+                    </div>
+                    <div v-else class="input-group">
+                        <input type="text" class="form-control" v-model="editFamilyNameTemp" placeholder="輸入家庭名稱">
+                        <button class="btn btn-success" @click="saveFamilyName">儲存</button>
+                        <button class="btn btn-outline-secondary" @click="isEditingFamilyName = false">取消</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 成員設定 -->
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-people text-primary"></i>
+                        <div class="fw-bold">家庭成員 ({{ familySettings.members.length }})</div>
+                    </div>
+                    <div class="text-muted small mb-3">只有您可以修改自己的名稱，修改後所有裝置會自動同步。</div>
+
+                    <div class="d-flex flex-column">
+                        <div v-for="member in familySettings.members" :key="member" class="member-row d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-person-circle text-secondary fs-4"></i>
+                                <div>
+                                    <div class="fw-bold">{{ member }}</div>
+                                    <div class="badge bg-primary" v-if="member === currentUserName">我</div>
+                                </div>
+                            </div>
+
+                            <button v-if="member === currentUserName" class="btn btn-sm btn-light border rounded-pill" @click="startEditUserName(member)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 版本更新設定 -->
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold"><i class="bi bi-bell text-primary me-1"></i> 版本更新通知</div>
+                            <div class="text-muted small">開啟後，若偵測到新版本，進入 App 會自動顯示更新資訊</div>
+                        </div>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="updateNotifySwitch" v-model="settings.updateNotifyEnabled" @change="saveSettings">
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-outline-primary rounded-pill" @click="showUpdateModal(true)">
+                            查看最新更新內容
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 版本資訊 -->
+             <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="fw-bold mb-2"><i class="bi bi-info-circle text-primary me-1"></i> 版本資訊</div>
+                    <div class="d-flex justify-content-between">
+                        <div class="text-muted">目前版本</div>
+                        <div class="fw-bold">{{ appVersion }}</div>
+                    </div>
+                     <div class="d-flex justify-content-between mt-1">
+                        <div class="text-muted">最新版本</div>
+                        <div class="fw-bold">{{ latestVersion }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 更新歷史 -->
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
+                    <div class="accordion" id="updateAccordion">
+                        <div class="accordion-item" v-for="log in updateLogs" :key="log.version">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        :data-bs-target="'#v'+log.version.replaceAll('.','_')">
+                                    <div class="d-flex flex-column">
+                                        <div class="fw-bold">v{{ log.version }}　{{ log.title }}</div>
+                                        <div class="small text-muted">{{ log.date }}</div>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div class="accordion-collapse collapse" :id="'v'+log.version.replaceAll('.','_')" data-bs-parent="#updateAccordion">
+                                <div class="accordion-body">
+                                    <ul class="mb-0">
+                                        <li v-for="c in log.changes" :key="c">{{ c }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-outline-danger w-100 rounded-pill mt-4" @click="resetApp">
+                重設 APP (清除設定與登出)
+            </button>
+        </div>
+
+        <!-- UPDATE INFO PAGE (全螢幕) -->
+        <div v-if="!isLoading && currentPage==='update-info'" class="page-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light border rounded-pill" @click="closeUpdatePage">
+                    <i class="bi bi-arrow-left"></i> 返回
+                </button>
+                <h5 class="fw-bold m-0">發現新版本</h5>
+                <div style="width: 74px;"></div>
+            </div>
+
+            <div class="card section-card border-primary border-2 mb-3">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-stars text-primary display-1"></i>
+                    <h3 class="fw-bold mt-3">v{{ latestLog?.version }} 更新囉！</h3>
+                    <p class="text-muted">{{ latestLog?.title }}</p>
+                </div>
+            </div>
+
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                         <div class="fw-bold fs-5">更新內容</div>
+                         <small class="text-muted">{{ latestLog?.date }}</small>
+                    </div>
+                    
+                    <ul class="list-group list-group-flush" v-if="latestLog?.changes?.length">
+                        <li class="list-group-item px-0" v-for="c in latestLog.changes" :key="c">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>{{ c }}
+                        </li>
+                    </ul>
+                    <div class="text-muted" v-else>沒有更新詳細內容</div>
+                </div>
+            </div>
+
+            <div class="alert alert-light border small text-muted text-center mt-4">
+                按下「我知道了」後，同一版本將不會再自動彈出通知
+            </div>
+
+            <button class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm mt-2" @click="closeUpdatePage">
+                我知道了
+            </button>
+        </div>
+
+        <!-- 讀取中畫面 -->
+        <div v-if="isLoading" class="loading-mask">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <p class="text-muted fw-bold">正在同步 {{ familySettings.familyName || '家庭' }} 資料...</p>
+        </div>
+
+        <!-- 左側邊欄 -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title fw-bold" id="sidebarLabel"><i class="bi bi-snow2 text-primary"></i> 功能選單</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            </div>
+
+            <div class="offcanvas-body d-flex flex-column">
+                <div class="sidebar-user-block">
+                    <div class="text-muted small">目前使用者</div>
+                    <div class="fw-bold fs-5">{{ currentUserName }}</div>
+                </div>
+                <hr class="sidebar-divider">
+
+                <div class="d-grid gap-2 mb-4">
+                    <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
+                        <span><i class="bi bi-snow me-2"></i>冷藏區</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.cold.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日警告">{{ zoneStats.cold.warning }}</span>
+                            <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.cold.expired }}</span>
+                        </div>
+                    </button>
+                    <button class="btn btn-outline-frozen text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
+                        <span><i class="bi bi-box-seam me-2"></i>冷凍區</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.frozen.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.frozen.warning }}</span>
+                            <span class="badge bg-danger zone-stat-badge">{{ zoneStats.frozen.expired }}</span>
+                        </div>
+                    </button>
+                    <button class="btn btn-outline-success text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('veggie')">
+                        <span><i class="bi bi-flower1 me-2"></i>蔬果區</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.veggie.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.veggie.warning }}</span>
+                            <span class="badge bg-danger zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
+                        </div>
+                    </button>
+                </div>
+                
+                <div class="mt-auto">
+                    <button class="btn btn-primary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
+                        <i class="bi bi-gear me-1"></i> 設定
+                    </button>
+                    <div class="text-center text-muted small mt-3">v{{ appVersion }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 編輯使用者名稱視窗 -->
+        <div class="modal fade" id="editNameModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">修改我的名稱</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" class="form-control" v-model="editUserNameTemp" placeholder="輸入新名稱">
+                        <div class="text-danger small mt-2" v-if="nameEditError">{{ nameEditError }}</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary rounded-pill w-100" @click="confirmEditUserName">儲存修改</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </template>
+
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
+
+    let appFirebase;
+    let db;
+
+    const APP_VERSION = "1.3.2";
+
+    const { createApp, ref, computed, onMounted, watch } = Vue;
+
+    createApp({
+        setup() {
+            // --- 狀態變數 ---
+            const isConfigured = ref(false);
+            const isSettingUp = ref(false);
+            const inputConfigStr = ref("");
+            const inputUserName = ref("");
+            const currentUserName = ref("");
+            const setupError = ref("");
+
+            const items = ref([]);
+            const searchText = ref("");
+            const filterZone = ref("all");
+            const isUploading = ref(false);
+            const isCompressing = ref(false);
+            const isLoading = ref(false);
+
+            const previewImageUrl = ref(null);
+            const itemToDelete = ref(null);
+            const takeOutAmount = ref(1);
+            const maxTakeOut = ref(1);
+
+            const familySettings = ref({
+                familyName: "我的家庭",
+                members: []
+            });
+            const isEditingFamilyName = ref(false);
+            const editFamilyNameTemp = ref("");
+            const editUserNameTemp = ref("");
+            const nameEditError = ref("");
+
+            const fileInput = ref(null);
+            const currentPage = ref("home");
+            const previousPage = ref("home"); 
+
+            let longPressTimer = null;
+            const LONG_PRESS_DURATION = 600;
+
+            const settings = ref({ updateNotifyEnabled: true });
+            const updateLogs = ref(UPDATE_LOGS);
+            const latestVersion = ref(LATEST_VERSION);
+            const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
+
+            const getTodayStr = () => new Date().toISOString().split("T")[0];
+            const newItem = ref({
+                id: null,
+                name: "",
+                quantity: "1",
+                storedDate: getTodayStr(),
+                expiryDate: "",
+                noExpiry: false,
+                image: null,
+                zone: "cold",
+                owners: ['全家']
+            });
+
+            // --- 方法 ---
+
+            const checkConfig = async () => {
+                const storedConfig = localStorage.getItem("fridge_firebase_config");
+                const storedUser = localStorage.getItem("fridge_user_name");
+
+                if (storedConfig && storedUser) {
+                    try {
+                        const configObj = JSON.parse(storedConfig);
+                        await initFirebase(configObj, storedUser);
+                    } catch (e) {
+                        console.error("Config load error", e);
+                        localStorage.removeItem("fridge_firebase_config");
+                        isConfigured.value = false;
+                    }
+                } else {
+                    isConfigured.value = false;
+                }
+            };
+
+            const initFirebase = async (config, userName) => {
+                try {
+                    if (!appFirebase) {
+                        appFirebase = initializeApp(config);
+                        db = getFirestore(appFirebase);
+                    }
+                    
+                    currentUserName.value = userName;
+                    localStorage.setItem("fridge_user_name", userName);
+                    
+                    isConfigured.value = true;
+                    isLoading.value = true;
+
+                    await checkAndJoinFamily(userName);
+                    startListeners();
+                } catch (e) {
+                    throw e;
+                }
+            };
+
+            const saveInitialConfig = async () => {
+                setupError.value = "";
+                if (!inputConfigStr.value.includes("firebaseConfig") && !inputConfigStr.value.includes("{")) {
+                    setupError.value = "格式似乎不正確，請複製包含 { ... } 的完整程式碼";
+                    return;
+                }
+                
+                if (!inputUserName.value.trim()) {
+                    setupError.value = "請輸入您的稱呼";
+                    return;
+                }
+
+                isSettingUp.value = true;
+                
+                try {
+                    let cleanStr = inputConfigStr.value.trim();
+                    cleanStr = cleanStr.replace(/const\s+firebaseConfig\s*=\s*/, '');
+                    cleanStr = cleanStr.replace(/;$/, '');
+                    
+                    const configObj = (new Function(`return ${cleanStr}`))();
+                    if (!configObj.projectId) throw new Error("無效的設定內容");
+
+                    await initFirebase(configObj, inputUserName.value.trim());
+                    localStorage.setItem("fridge_firebase_config", JSON.stringify(configObj));
+                    
+                } catch (e) {
+                    console.error(e);
+                    setupError.value = "設定失敗，請檢查代碼是否正確或是網路連線異常";
+                    appFirebase = null; 
+                } finally {
+                    isSettingUp.value = false;
+                }
+            };
+
+            const checkAndJoinFamily = async (userName) => {
+                const settingsRef = doc(db, "family_metadata", "general");
+                try {
+                    const docSnap = await getDoc(settingsRef);
+                    if (!docSnap.exists()) {
+                        await setDoc(settingsRef, {
+                            familyName: "我的家庭",
+                            members: [userName]
+                        });
+                        familySettings.value = { familyName: "我的家庭", members: [userName] };
+                    } else {
+                        const data = docSnap.data();
+                        let members = data.members || [];
+                        if (!members.includes(userName)) {
+                            members.push(userName);
+                            await updateDoc(settingsRef, { members: members });
+                        }
+                        familySettings.value = {
+                            familyName: data.familyName || "我的家庭",
+                            members: members
+                        };
+                    }
+                } catch (e) {
+                    console.error("Family Setup Error", e);
+                }
+            };
+
+            const startListeners = () => {
+                onSnapshot(collection(db, "fridge_items"), (snapshot) => {
+                    items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    isLoading.value = false;
+                    showUpdateModal(false); // 載入完成後檢查
+                });
+
+                onSnapshot(doc(db, "family_metadata", "general"), (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        familySettings.value.familyName = data.familyName;
+                        familySettings.value.members = data.members || [];
+                        
+                        if (data.latest_rename) {
+                            const { from, to, at } = data.latest_rename;
+                            const now = Date.now();
+                            if (from === currentUserName.value && (now - at < 60000)) {
+                                currentUserName.value = to;
+                                localStorage.setItem("fridge_user_name", to);
+                            }
+                        }
+                    }
+                });
+            };
+
+            const startEditFamilyName = () => {
+                editFamilyNameTemp.value = familySettings.value.familyName;
+                isEditingFamilyName.value = true;
+            };
+
+            const saveFamilyName = async () => {
+                if (!editFamilyNameTemp.value.trim()) return;
+                try {
+                    await updateDoc(doc(db, "family_metadata", "general"), {
+                        familyName: editFamilyNameTemp.value.trim()
+                    });
+                    isEditingFamilyName.value = false;
+                } catch (e) {
+                    alert("更新失敗");
+                }
+            };
+
+            const startEditUserName = (name) => {
+                editUserNameTemp.value = name;
+                nameEditError.value = "";
+                const el = new bootstrap.Modal(document.getElementById('editNameModal'));
+                el.show();
+            };
+            
+            const confirmEditUserName = async () => {
+                const newName = editUserNameTemp.value.trim();
+                const oldName = currentUserName.value;
+                if (!newName) { nameEditError.value = "名稱不能為空"; return; }
+                if (newName === oldName) { bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide(); return; }
+                
+                try {
+                    const updatedMembers = familySettings.value.members.filter(m => m !== oldName);
+                    updatedMembers.push(newName);
+                    await updateDoc(doc(db, "family_metadata", "general"), {
+                         members: updatedMembers,
+                         latest_rename: { from: oldName, to: newName, at: Date.now() }
+                    });
+                    currentUserName.value = newName;
+                    localStorage.setItem("fridge_user_name", newName);
+                    bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide();
+                } catch (e) { nameEditError.value = "更新失敗"; }
+            };
+
+            const resetApp = () => {
+                if(confirm("確定要重設嗎？這將會清除此裝置的登入資訊（冰箱資料會保留在雲端）。")) {
+                    localStorage.removeItem("fridge_firebase_config");
+                    localStorage.removeItem("fridge_user_name");
+                    location.reload();
+                }
+            };
+            
+            const loadSettings = () => {
+                const saved = localStorage.getItem("fridge_settings_v1");
+                if (saved) {
+                    try {
+                        const obj = JSON.parse(saved);
+                        settings.value = { ...settings.value, ...obj };
+                    } catch (e) {}
+                }
+            };
+
+            const saveSettings = () => {
+                localStorage.setItem("fridge_settings_v1", JSON.stringify(settings.value));
+            };
+
+            // 全螢幕更新頁面邏輯修正
+            const showUpdateModal = (force = false) => {
+                if (force) {
+                    // 手動點擊：強制顯示
+                    previousPage.value = currentPage.value;
+                    currentPage.value = 'update-info';
+                    return;
+                }
+                
+                // 自動檢查
+                if (!settings.value.updateNotifyEnabled) return;
+                
+                const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
+                
+                // 只有當「上次看過的版本」存在（代表是舊用戶）且「上次看過的版本」不等於「目前版本」時才顯示
+                // 這樣可以確保每次 App 更新後，使用者一進來就會看到新功能介紹
+                // 如果是全新使用者 (lastSeen === null)，為了不干擾，我們選擇不顯示，直接在背景存入當前版本
+                
+                if (lastSeen === null) {
+                    localStorage.setItem("lastSeenUpdateVersion", APP_VERSION);
+                    return;
+                }
+
+                if (lastSeen === APP_VERSION) return; // 已經看過了
+
+                // 顯示更新頁
+                previousPage.value = currentPage.value;
+                currentPage.value = 'update-info';
+            };
+
+            const closeUpdatePage = () => {
+                localStorage.setItem("lastSeenUpdateVersion", latestVersion.value);
+                // 返回上一頁
+                if (previousPage.value === 'settings') {
+                    currentPage.value = 'settings';
+                } else {
+                    currentPage.value = 'home';
+                }
+            };
+
+            const isNoExpiry = (item) => {
+                if (item?.noExpiry) return true;
+                if (!item?.expiryDate) return true;
+                return false;
+            };
+
+            onMounted(() => {
+                loadSettings();
+                checkConfig();
+            });
+            
+            watch(() => settings.value.updateNotifyEnabled, () => {
+                saveSettings();
+            });
+
+            const processImage = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                isCompressing.value = true;
+                try {
+                    const compressed = await compressFile(file);
+                    newItem.value.image = compressed;
+                } catch (e) {
+                    alert("圖片處理失敗");
+                } finally {
+                    isCompressing.value = false;
+                }
+            };
+
+            const compressFile = (file) => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement("canvas");
+                            const MAX_WIDTH = 800;
+                            const scale = MAX_WIDTH / img.width;
+                            const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                            const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
+
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext("2d");
+                            ctx.drawImage(img, 0, 0, w, h);
+
+                            resolve(canvas.toDataURL("image/jpeg", 0.6));
+                        };
+                    };
+                });
+            };
+
+            const toggleOwner = (name) => {
+                let owners = newItem.value.owners || [];
+                if (name === '全家') {
+                    if (!owners.includes('全家')) { newItem.value.owners = ['全家']; } 
+                    else { newItem.value.owners = []; }
+                } else {
+                    if (owners.includes('全家')) { owners = owners.filter(o => o !== '全家'); }
+                    if (owners.includes(name)) { owners = owners.filter(o => o !== name); } 
+                    else { owners.push(name); }
+                    if (owners.length === 0) { owners = ['全家']; }
+                    newItem.value.owners = owners;
+                }
+            };
+
+            const formatOwners = (owners) => {
+                if (!owners || owners.length === 0) return '全家';
+                return owners.join('、');
+            };
+
+            const submitItem = async () => {
+                if (!newItem.value.image) { alert("請記得拍照喔！"); return; }
+                if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
+                if (!db) return;
+
+                const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
+                const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
+                const ownersFinal = (newItem.value.owners && newItem.value.owners.length > 0) ? newItem.value.owners : ['全家'];
+
+                const itemData = {
+                    name: newItem.value.name,
+                    quantity: newItem.value.quantity,
+                    storedDate: newItem.value.storedDate,
+                    expiryDate: expiryDateClean,
+                    noExpiry: noExpiryFinal,
+                    image: newItem.value.image,
+                    zone: newItem.value.zone || 'cold',
+                    owners: ownersFinal
+                };
+
+                isUploading.value = true;
+                try {
+                    if (newItem.value.id) {
+                        await updateDoc(doc(db, "fridge_items", newItem.value.id), {
+                            ...itemData,
+                            updatedAt: new Date()
+                        });
+                    } else {
+                        await addDoc(collection(db, "fridge_items"), {
+                            ...itemData,
+                            createdAt: new Date()
+                        });
+                    }
+                    goHome();
+                } catch (e) {
+                    console.error(e);
+                    alert("上傳/更新失敗，請檢查網路");
+                } finally {
+                    isUploading.value = false;
+                }
+            };
+
+            const openPreview = (url) => { previewImageUrl.value = url; };
+            const closePreview = () => { previewImageUrl.value = null; };
+
+            const handleTouchStart = (item) => {
+                longPressTimer = setTimeout(() => { goToEditPage(item); }, LONG_PRESS_DURATION);
+            };
+            const handleTouchEnd = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
+            const handleTouchMove = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
+
+            const goToTakeOutPage = (item) => {
+                itemToDelete.value = item;
+                const qty = parseInt(item.quantity);
+                maxTakeOut.value = (!isNaN(qty) && qty > 0) ? qty : 1;
+                takeOutAmount.value = 1;
+                currentPage.value = "takeout";
+            };
+
+            const confirmTakeOutAction = async () => {
+                if (!db || !itemToDelete.value) return;
+                if (takeOutAmount.value >= maxTakeOut.value) {
+                    try { await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id)); goHome(); } catch(e) { alert("刪除失敗"); }
+                } else {
+                    try {
+                        const newQty = maxTakeOut.value - takeOutAmount.value;
+                        await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { quantity: newQty });
+                        goHome();
+                    } catch(e) { alert("更新失敗"); }
+                }
+            };
+
+            const getDays = (dateStr) => {
+                if (!dateStr) return null;
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const target = new Date(dateStr);
+                if (isNaN(target.getTime())) return null;
+                return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+            };
+
+            const addDays = (days) => {
+                const base = newItem.value.expiryDate ? new Date(newItem.value.expiryDate) : new Date();
+                base.setHours(0,0,0,0);
+                base.setDate(base.getDate() + days);
+                newItem.value.expiryDate = base.toISOString().split("T")[0];
+            };
+
+            const getAlertClass = (item) => {
+                if (isNoExpiry(item)) return "";
+                const d = getDays(item.expiryDate);
+                if (d === null) return "";
+                if (d < 0) return "alert-red"; 
+                if (d <= 7) return "alert-yellow";
+                return "";
+            };
+
+            const getZoneColor = (zone) => {
+                const z = zone || 'cold';
+                switch(z) {
+                    case 'cold': return '#80aaff';
+                    case 'frozen': return '#002266';
+                    case 'veggie': return '#29a329';
+                    default: return '#80aaff';
+                }
+            };
+
+            const zoneStats = computed(() => {
+                const stats = {
+                    cold: { total: 0, warning: 0, expired: 0 },
+                    frozen: { total: 0, warning: 0, expired: 0 },
+                    veggie: { total: 0, warning: 0, expired: 0 }
+                };
+
+                items.value.forEach(item => {
+                    const z = item.zone || 'cold';
+                    if (!stats[z]) return;
+
+                    stats[z].total++;
+                    
+                    if (!isNoExpiry(item)) {
+                        const days = getDays(item.expiryDate);
+                        if (days !== null) {
+                            if (days < 0) {
+                                stats[z].expired++; 
+                            } else if (days <= 7) {
+                                stats[z].warning++;
+                            }
+                        }
+                    }
+                });
+                return stats;
+            });
+
+            const selectZoneFromSidebar = (zone) => {
+                filterZone.value = zone;
+                const el = document.getElementById("sidebar");
+                const inst = bootstrap.Offcanvas.getInstance(el);
+                if (inst) inst.hide();
+                goHome();
+            };
+
+            const goToAddPage = () => {
+                newItem.value = {
+                    id: null,
+                    name: "",
+                    quantity: "1",
+                    storedDate: getTodayStr(),
+                    expiryDate: "",
+                    noExpiry: false,
+                    image: null,
+                    zone: "cold",
+                    owners: ['全家']
+                };
+                currentPage.value = "add";
+            };
+
+            const goToEditPage = (item) => {
+                if(longPressTimer) clearTimeout(longPressTimer);
+                newItem.value = {
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    storedDate: item.storedDate,
+                    expiryDate: item.expiryDate,
+                    noExpiry: item.noExpiry,
+                    image: item.image,
+                    zone: item.zone || 'cold',
+                    owners: item.owners || ['全家']
+                };
+                currentPage.value = "edit";
+            };
+
+            const goSettingsFromSidebar = () => {
+                const el = document.getElementById("sidebar");
+                const inst = bootstrap.Offcanvas.getInstance(el);
+                if (inst) inst.hide();
+                currentPage.value = "settings";
+            };
+
+            const goHome = () => {
+                currentPage.value = "home";
+                previewImageUrl.value = null; 
+            };
+
+            const filteredItems = computed(() => {
+                const keyword = searchText.value?.trim() || "";
+                let list = items.value;
+                if (keyword) list = list.filter(i => String(i.name || "").includes(keyword));
+                if (filterZone.value !== 'all') list = list.filter(i => (i.zone || 'cold') === filterZone.value);
+                
+                const toSortKey = (it) => {
+                    const noExp = isNoExpiry(it);
+                    const exp = (!noExp && it.expiryDate) ? it.expiryDate : "9999-12-31";
+                    const stored = it.storedDate || "9999-12-31";
+                    return { exp, stored };
+                };
+
+                return [...list].sort((a, b) => {
+                    const ka = toSortKey(a);
+                    const kb = toSortKey(b);
+                    if (ka.exp < kb.exp) return -1;
+                    if (ka.exp > kb.exp) return 1;
+                    if (ka.stored < kb.stored) return -1;
+                    if (ka.stored > kb.stored) return 1;
+                    return 0;
+                });
+            });
+
+            return {
+                items, searchText, filterZone, isUploading, isCompressing, isLoading,
+                fileInput, currentPage, previewImageUrl,
+                isConfigured, isSettingUp, inputConfigStr, inputUserName, setupError,
+                currentUserName, saveInitialConfig, resetApp,
+                familySettings, isEditingFamilyName, editFamilyNameTemp, startEditFamilyName, saveFamilyName,
+                editUserNameTemp, nameEditError, startEditUserName, confirmEditUserName,
+                itemToDelete, takeOutAmount, maxTakeOut, goToTakeOutPage, confirmTakeOutAction,
+                openPreview, closePreview, handleTouchStart, handleTouchEnd, handleTouchMove, goToEditPage,
+                getZoneColor, zoneStats, selectZoneFromSidebar,
+                newItem, processImage, submitItem, 
+                getDays, addDays, getAlertClass, filteredItems, isNoExpiry,
+                appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
+                settings, saveSettings, showUpdateModal, closeUpdatePage,
+                goHome, goToAddPage, goSettingsFromSidebar,
+                toggleOwner, formatOwners
+            };
+        }
+    }).mount("#app");
+</script>
+
+</body>
+</html>
