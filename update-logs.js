@@ -2,9 +2,19 @@
 // 這裡只放「最新版本號」與「更新紀錄」
 // 之後每次發新版本，你只要改 LATEST_VERSION 並在 UPDATE_LOGS 最上面新增一筆即可
 
-export const LATEST_VERSION = "1.2.0";
+export const LATEST_VERSION = "1.3.0";
 
 export const UPDATE_LOGS = [
+  {
+    version: "1.3.0",
+    date: "2026-01-10",
+    title: "物品所有人功能與統計優化",
+    changes: [
+      "新增「物品所有人」功能，支援多選（全家/特定成員），並顯示於卡片",
+      "優化側邊欄統計燈號：灰色(總數)、黃色(7日警告)、紅色(已過期)",
+      "修正已過期物品的統計歸類邏輯錯誤問題，不再混入警告燈號"
+    ]
+  },
   {
     version: "1.2.0",
     date: "2026-01-10",
