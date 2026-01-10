@@ -34,7 +34,6 @@
         .item-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
         .item-img-box:active .item-img { opacity: 0.8; }
 
-        /* 區域顏色條 */
         .zone-bar {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
             opacity: 0.85;
@@ -86,7 +85,6 @@
         }
         .member-row:last-child { border-bottom: none; }
         
-        /* 圖片預覽層 */
         .image-preview-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 2000;
@@ -100,43 +98,27 @@
             color: white; font-size: 2rem; background: none; border: none;
         }
 
-        /* 側邊欄調整 */
         .sidebar-user-block { margin-bottom: 5px; }
         .sidebar-divider { margin-top: 5px; margin-bottom: 20px; }
 
-        /* 區域統計徽章 */
         .zone-stat-badge {
             font-size: 0.75rem;
             min-width: 24px;
             text-align: center;
         }
         
-        /* 多選下拉選單樣式 */
-        .dropdown-menu-custom {
-            width: 100%;
-            padding: 0.5rem;
-        }
+        .dropdown-menu-custom { width: 100%; padding: 0.5rem; }
         .dropdown-item-custom {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 6px;
+            display: flex; align-items: center; padding: 8px 12px;
+            cursor: pointer; border-radius: 6px;
         }
         .dropdown-item-custom:hover { background-color: #f8f9fa; }
         .dropdown-item-custom input { margin-right: 10px; transform: scale(1.2); }
 
-        /* 自定義冷凍區按鈕樣式 (深藍色) */
-        .btn-outline-frozen {
-            color: #002266;
-            border-color: #002266;
-        }
+        .btn-outline-frozen { color: #002266; border-color: #002266; }
         .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active {
-            color: #fff;
-            background-color: #002266;
-            border-color: #002266;
+            color: #fff; background-color: #002266; border-color: #002266;
         }
-
     </style>
 </head>
 <body>
@@ -225,7 +207,6 @@
                         <div class="item-img-box" @click.stop="openPreview(item.image)">
                             <img v-if="item.image" :src="item.image" class="item-img">
                             <div v-else class="text-muted"><i class="bi bi-image fs-1"></i></div>
-                            <!-- 區域顏色顯示 -->
                             <div class="zone-bar" :style="{ backgroundColor: getZoneColor(item.zone) }"></div>
                         </div>
 
@@ -236,7 +217,6 @@
                                 <small class="text-muted">數量: {{ item.quantity }}</small>
                             </div>
                             
-                            <!-- 所有人顯示 -->
                             <div class="mb-1 text-truncate">
                                 <small class="text-primary" style="font-size: 0.75rem;">
                                     <i class="bi bi-person-fill me-1"></i>{{ formatOwners(item.owners) }}
@@ -248,7 +228,6 @@
                                 <small class="text-muted" v-else>存入: 未填</small>
                             </div>
 
-                            <!-- 到期狀態 -->
                             <div v-if="isNoExpiry(item)" class="badge bg-light text-secondary border w-100 mb-2">無期限</div>
                             <template v-else>
                                 <div v-if="getDays(item.expiryDate) < 0" class="badge bg-danger w-100 mb-2">已過期 ({{ item.expiryDate }})</div>
@@ -348,7 +327,6 @@
                             </div>
                         </div>
                         
-                        <!-- 新增：物品所有人設定 -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">7. 物品所有人</label>
                             <div class="dropdown w-100">
@@ -356,7 +334,6 @@
                                     <span class="text-truncate">{{ formatOwners(newItem.owners) }}</span>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-custom shadow border-0">
-                                    <!-- 全家選項 -->
                                     <li>
                                         <label class="dropdown-item-custom">
                                             <input type="checkbox" class="form-check-input" 
@@ -366,7 +343,6 @@
                                         </label>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <!-- 成員選項 -->
                                     <li v-for="member in familySettings.members" :key="member">
                                         <label class="dropdown-item-custom">
                                             <input type="checkbox" class="form-check-input"
@@ -436,7 +412,7 @@
                 <div style="width: 74px;"></div>
             </div>
 
-            <!-- 家庭設定區塊 -->
+            <!-- 家庭設定 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-3">
@@ -458,7 +434,7 @@
                 </div>
             </div>
 
-            <!-- 成員設定區塊 -->
+            <!-- 成員設定 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-2">
@@ -616,7 +592,6 @@
                 </div>
                 <hr class="sidebar-divider">
 
-                <!-- 區域導航按鈕 (已修正冷凍區顏色) -->
                 <div class="d-grid gap-2 mb-4">
                     <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
                         <span><i class="bi bi-snow me-2"></i>冷藏區</span>
@@ -626,7 +601,6 @@
                             <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.cold.expired }}</span>
                         </div>
                     </button>
-                    <!-- 這裡改用 btn-outline-frozen -->
                     <button class="btn btn-outline-frozen text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
                         <span><i class="bi bi-box-seam me-2"></i>冷凍區</span>
                         <div class="d-flex gap-1">
@@ -688,7 +662,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.3.1";
+    const APP_VERSION = "1.3.2";
 
     const { createApp, ref, computed, onMounted, watch } = Vue;
 
@@ -725,12 +699,11 @@
 
             const fileInput = ref(null);
             const currentPage = ref("home");
-            const previousPage = ref("home"); // 紀錄上一頁，用於更新頁返回
+            const previousPage = ref("home"); 
 
             let longPressTimer = null;
             const LONG_PRESS_DURATION = 600;
 
-            // 版本與設定
             const settings = ref({ updateNotifyEnabled: true });
             const updateLogs = ref(UPDATE_LOGS);
             const latestVersion = ref(LATEST_VERSION);
@@ -854,7 +827,7 @@
                 onSnapshot(collection(db, "fridge_items"), (snapshot) => {
                     items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     isLoading.value = false;
-                    showUpdateModal(false); // 載入資料後檢查更新
+                    showUpdateModal(false); // 載入完成後檢查
                 });
 
                 onSnapshot(doc(db, "family_metadata", "general"), (docSnap) => {
@@ -875,7 +848,6 @@
                 });
             };
 
-            // ... 家庭設定相關 (省略重複代碼) ...
             const startEditFamilyName = () => {
                 editFamilyNameTemp.value = familySettings.value.familyName;
                 isEditingFamilyName.value = true;
@@ -927,7 +899,6 @@
                 }
             };
             
-            // --- 版本與設定相關 ---
             const loadSettings = () => {
                 const saved = localStorage.getItem("fridge_settings_v1");
                 if (saved) {
@@ -942,37 +913,39 @@
                 localStorage.setItem("fridge_settings_v1", JSON.stringify(settings.value));
             };
 
-            const compareVersions = (a, b) => {
-                const pa = String(a).split(".").map(n => parseInt(n, 10) || 0);
-                const pb = String(b).split(".").map(n => parseInt(n, 10) || 0);
-                const len = Math.max(pa.length, pb.length);
-                for (let i = 0; i < len; i++) {
-                    const na = pa[i] ?? 0;
-                    const nb = pb[i] ?? 0;
-                    if (na > nb) return 1;
-                    if (na < nb) return -1;
-                }
-                return 0;
-            };
-
-            // 改為全螢幕頁面切換，而非彈窗
+            // 全螢幕更新頁面邏輯修正
             const showUpdateModal = (force = false) => {
-                const hasNew = compareVersions(latestVersion.value, APP_VERSION) === 1;
-                if (!force) {
-                    if (!settings.value.updateNotifyEnabled) return;
-                    if (!hasNew) return;
-                    const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
-                    if (lastSeen === latestVersion.value) return;
+                if (force) {
+                    // 手動點擊：強制顯示
+                    previousPage.value = currentPage.value;
+                    currentPage.value = 'update-info';
+                    return;
                 }
                 
-                // 記錄目前頁面，以便返回
+                // 自動檢查
+                if (!settings.value.updateNotifyEnabled) return;
+                
+                const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
+                
+                // 只有當「上次看過的版本」存在（代表是舊用戶）且「上次看過的版本」不等於「目前版本」時才顯示
+                // 這樣可以確保每次 App 更新後，使用者一進來就會看到新功能介紹
+                // 如果是全新使用者 (lastSeen === null)，為了不干擾，我們選擇不顯示，直接在背景存入當前版本
+                
+                if (lastSeen === null) {
+                    localStorage.setItem("lastSeenUpdateVersion", APP_VERSION);
+                    return;
+                }
+
+                if (lastSeen === APP_VERSION) return; // 已經看過了
+
+                // 顯示更新頁
                 previousPage.value = currentPage.value;
                 currentPage.value = 'update-info';
             };
 
             const closeUpdatePage = () => {
                 localStorage.setItem("lastSeenUpdateVersion", latestVersion.value);
-                // 返回上一頁，如果是從設定進來就回設定，否則回首頁
+                // 返回上一頁
                 if (previousPage.value === 'settings') {
                     currentPage.value = 'settings';
                 } else {
@@ -1161,7 +1134,6 @@
                 }
             };
 
-            // --- 區域統計邏輯 ---
             const zoneStats = computed(() => {
                 const stats = {
                     cold: { total: 0, warning: 0, expired: 0 },
@@ -1276,11 +1248,8 @@
                 getZoneColor, zoneStats, selectZoneFromSidebar,
                 newItem, processImage, submitItem, 
                 getDays, addDays, getAlertClass, filteredItems, isNoExpiry,
-                
-                // 版本與設定
                 appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
-                settings, saveSettings, showUpdateModal, closeUpdatePage, // 注意這裡改用 closeUpdatePage
-
+                settings, saveSettings, showUpdateModal, closeUpdatePage,
                 goHome, goToAddPage, goSettingsFromSidebar,
                 toggleOwner, formatOwners
             };
