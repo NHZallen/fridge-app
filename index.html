@@ -396,7 +396,7 @@
                             <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
                             <div>
                                 <div class="fw-bold">發現相同物品</div>
-                                <div class="small">冰箱已有「{{ matchedExistingItem.name }}」，此操作將會把新買的加入庫存（自動建立新批次）。</div>
+                                <div class="small">冰箱已有「{{ matchedExistingItem.name }}」(庫存 {{ matchedExistingItem.quantity }})，此操作將會把新買的加入庫存（自動建立新批次）。</div>
                             </div>
                         </div>
 
@@ -948,7 +948,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.4.0";
+    const APP_VERSION = "1.5.0";
 
     const { createApp, ref, computed, onMounted, watch } = Vue;
 
