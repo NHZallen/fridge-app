@@ -1026,8 +1026,8 @@
 
                 return items.value.find(i => 
                     i.name.trim() === newItem.value.name.trim() && 
-                    (i.zone || 'cold') === newItem.value.zone &&
-                    i.quantity > 0 
+                    (i.zone || 'cold') === newItem.value.zone 
+                    // 移除 quantity > 0 檢查，允許合併至無庫存物品
                 ) || null;
             });
 
