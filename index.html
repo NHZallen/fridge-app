@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <!-- ... (前面的 HTML head 與 style 皆保持不變) ... -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>智慧冰箱管理</title>
@@ -17,7 +16,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <style>
-        /* ... (保持原有的 CSS 不變) ... */
         body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; }
 
         .item-card {
@@ -126,8 +124,7 @@
 <body>
 
 <div id="app" class="container py-3" v-cloak>
-    <!-- ... (HTML 結構保持完全不變，省略以節省篇幅) ... -->
-    <!-- 為了確保代碼完整性，請將原始 HTML 內容保留在此，下方 script 已包含邏輯修改 -->
+
     <!-- 圖片預覽層 -->
     <div v-if="previewImageUrl" class="image-preview-overlay" @click="closePreview">
         <button class="preview-close"><i class="bi bi-x-circle"></i></button>
@@ -405,23 +402,24 @@
             </div>
         </div>
 
-        <!-- SETTINGS, SIDEBAR, ETC... (保持原樣) -->
+        <!-- SETTINGS -->
         <div v-if="!isLoading && currentPage==='settings'" class="settings-page page-container">
-             <!-- ... (內容不變) ... -->
-             <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 返回
                 </button>
                 <h5 class="fw-bold m-0">設定</h5>
                 <div style="width: 74px;"></div>
             </div>
-             <!-- ... -->
-             <div class="card section-card mb-3">
+
+            <!-- 家庭設定 -->
+            <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <i class="bi bi-house-heart text-primary"></i>
                         <div class="fw-bold">家庭名稱</div>
                     </div>
+                    
                     <div v-if="!isEditingFamilyName" class="d-flex justify-content-between align-items-center">
                         <span class="fs-5 fw-bold">{{ familySettings.familyName }}</span>
                         <button class="btn btn-sm btn-outline-secondary rounded-pill" @click="startEditFamilyName">
@@ -463,11 +461,74 @@
                 </div>
             </div>
             
+            <!-- 版本更新設定 -->
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold"><i class="bi bi-bell text-primary me-1"></i> 版本更新通知</div>
+                            <div class="text-muted small">開啟後，若偵測到新版本，進入 App 會自動顯示更新資訊</div>
+                        </div>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="updateNotifySwitch" v-model="settings.updateNotifyEnabled" @change="saveSettings">
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-outline-primary rounded-pill" @click="showUpdateModal(true)">
+                            查看最新更新內容
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 版本資訊 -->
+             <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="fw-bold mb-2"><i class="bi bi-info-circle text-primary me-1"></i> 版本資訊</div>
+                    <div class="d-flex justify-content-between">
+                        <div class="text-muted">目前版本</div>
+                        <div class="fw-bold">{{ appVersion }}</div>
+                    </div>
+                     <div class="d-flex justify-content-between mt-1">
+                        <div class="text-muted">最新版本</div>
+                        <div class="fw-bold">{{ latestVersion }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 更新歷史 -->
+            <div class="card section-card mb-3">
+                <div class="card-body">
+                    <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
+                    <div class="accordion" id="updateAccordion">
+                        <div class="accordion-item" v-for="log in updateLogs" :key="log.version">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        :data-bs-target="'#v'+log.version.replaceAll('.','_')">
+                                    <div class="d-flex flex-column">
+                                        <div class="fw-bold">v{{ log.version }}　{{ log.title }}</div>
+                                        <div class="small text-muted">{{ log.date }}</div>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div class="accordion-collapse collapse" :id="'v'+log.version.replaceAll('.','_')" data-bs-parent="#updateAccordion">
+                                <div class="accordion-body">
+                                    <ul class="mb-0">
+                                        <li v-for="c in log.changes" :key="c">{{ c }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <button class="btn btn-outline-danger w-100 rounded-pill mt-4" @click="resetApp">
                 重設 APP (清除設定與登出)
             </button>
         </div>
-        
+
         <!-- UPDATE INFO PAGE (全螢幕) -->
         <div v-if="!isLoading && currentPage==='update-info'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -510,7 +571,6 @@
                 我知道了
             </button>
         </div>
-
 
         <!-- 讀取中畫面 -->
         <div v-if="isLoading" class="loading-mask">
@@ -567,7 +627,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- 編輯使用者名稱視窗 -->
         <div class="modal fade" id="editNameModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
@@ -586,7 +646,7 @@
                 </div>
             </div>
         </div>
-
+        
     </template>
 
 </div>
@@ -596,13 +656,13 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc, updateDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
 
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.4.0"; // 更新版本號
+    const APP_VERSION = "1.3.2";
 
     const { createApp, ref, computed, onMounted, watch } = Vue;
 
@@ -767,7 +827,7 @@
                 onSnapshot(collection(db, "fridge_items"), (snapshot) => {
                     items.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     isLoading.value = false;
-                    showUpdateModal(false);
+                    showUpdateModal(false); // 載入完成後檢查
                 });
 
                 onSnapshot(doc(db, "family_metadata", "general"), (docSnap) => {
@@ -788,58 +848,213 @@
                 });
             };
 
-            // ... (省略部分未更改的函式，如 startEditFamilyName, saveFamilyName, startEditUserName, confirmEditUserName, resetApp, loadSettings, saveSettings, showUpdateModal, closeUpdatePage, isNoExpiry, onMounted, watch, processImage, compressFile, toggleOwner, formatOwners) ...
-            
-            // 為了完整性，將省略的函式佔位補回 (實際執行時請保留原始碼)
-            const startEditFamilyName = () => { editFamilyNameTemp.value = familySettings.value.familyName; isEditingFamilyName.value = true; };
-            const saveFamilyName = async () => { if (!editFamilyNameTemp.value.trim()) return; try { await updateDoc(doc(db, "family_metadata", "general"), { familyName: editFamilyNameTemp.value.trim() }); isEditingFamilyName.value = false; } catch (e) { alert("更新失敗"); } };
-            const startEditUserName = (name) => { editUserNameTemp.value = name; nameEditError.value = ""; const el = new bootstrap.Modal(document.getElementById('editNameModal')); el.show(); };
-            const confirmEditUserName = async () => { const newName = editUserNameTemp.value.trim(); const oldName = currentUserName.value; if (!newName) { nameEditError.value = "名稱不能為空"; return; } if (newName === oldName) { bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide(); return; } try { const updatedMembers = familySettings.value.members.filter(m => m !== oldName); updatedMembers.push(newName); await updateDoc(doc(db, "family_metadata", "general"), { members: updatedMembers, latest_rename: { from: oldName, to: newName, at: Date.now() } }); currentUserName.value = newName; localStorage.setItem("fridge_user_name", newName); bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide(); } catch (e) { nameEditError.value = "更新失敗"; } };
-            const resetApp = () => { if(confirm("確定要重設嗎？這將會清除此裝置的登入資訊（冰箱資料會保留在雲端）。")) { localStorage.removeItem("fridge_firebase_config"); localStorage.removeItem("fridge_user_name"); location.reload(); } };
-            const loadSettings = () => { const saved = localStorage.getItem("fridge_settings_v1"); if (saved) { try { const obj = JSON.parse(saved); settings.value = { ...settings.value, ...obj }; } catch (e) {} } };
-            const saveSettings = () => { localStorage.setItem("fridge_settings_v1", JSON.stringify(settings.value)); };
-            const showUpdateModal = (force = false) => { if (force) { previousPage.value = currentPage.value; currentPage.value = 'update-info'; return; } if (!settings.value.updateNotifyEnabled) return; const lastSeen = localStorage.getItem("lastSeenUpdateVersion"); if (lastSeen === null) { localStorage.setItem("lastSeenUpdateVersion", APP_VERSION); return; } if (lastSeen === APP_VERSION) return; previousPage.value = currentPage.value; currentPage.value = 'update-info'; };
-            const closeUpdatePage = () => { localStorage.setItem("lastSeenUpdateVersion", latestVersion.value); if (previousPage.value === 'settings') { currentPage.value = 'settings'; } else { currentPage.value = 'home'; } };
-            const isNoExpiry = (item) => { if (item?.noExpiry) return true; if (!item?.expiryDate) return true; return false; };
-            onMounted(() => { loadSettings(); checkConfig(); });
-            watch(() => settings.value.updateNotifyEnabled, () => { saveSettings(); });
-            const processImage = async (event) => { const file = event.target.files[0]; if (!file) return; isCompressing.value = true; try { const compressed = await compressFile(file); newItem.value.image = compressed; } catch (e) { alert("圖片處理失敗"); } finally { isCompressing.value = false; } };
-            const compressFile = (file) => { return new Promise((resolve) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = (e) => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement("canvas"); const MAX_WIDTH = 800; const scale = MAX_WIDTH / img.width; const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width; const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height; canvas.width = w; canvas.height = h; const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, w, h); resolve(canvas.toDataURL("image/jpeg", 0.6)); }; }; }); };
-            const toggleOwner = (name) => { let owners = newItem.value.owners || []; if (name === '全家') { if (!owners.includes('全家')) { newItem.value.owners = ['全家']; } else { newItem.value.owners = []; } } else { if (owners.includes('全家')) { owners = owners.filter(o => o !== '全家'); } if (owners.includes(name)) { owners = owners.filter(o => o !== name); } else { owners.push(name); } if (owners.length === 0) { owners = ['全家']; } newItem.value.owners = owners; } };
-            const formatOwners = (owners) => { if (!owners || owners.length === 0) return '全家'; return owners.join('、'); };
-
-            // --- 新增的批次處理輔助函式 ---
-            
-            // 將舊格式資料或單一批次資料轉換為標準批次陣列
-            const normalizeBatches = (itemData) => {
-                if (itemData.batches && Array.isArray(itemData.batches) && itemData.batches.length > 0) {
-                    return itemData.batches;
-                }
-                // 如果沒有 batches 欄位，則將主欄位視為第一個批次
-                return [{
-                    count: parseInt(itemData.quantity) || 1,
-                    storedDate: itemData.storedDate,
-                    expiryDate: itemData.expiryDate,
-                    noExpiry: itemData.noExpiry
-                }];
+            const startEditFamilyName = () => {
+                editFamilyNameTemp.value = familySettings.value.familyName;
+                isEditingFamilyName.value = true;
             };
 
-            // 根據批次重新計算主卡片顯示的「最早到期日」與「最早存入日」
-            const recalcItemDates = (batches) => {
-                if (!batches || batches.length === 0) return { storedDate: '', expiryDate: '', noExpiry: false };
+            const saveFamilyName = async () => {
+                if (!editFamilyNameTemp.value.trim()) return;
+                try {
+                    await updateDoc(doc(db, "family_metadata", "general"), {
+                        familyName: editFamilyNameTemp.value.trim()
+                    });
+                    isEditingFamilyName.value = false;
+                } catch (e) {
+                    alert("更新失敗");
+                }
+            };
+
+            const startEditUserName = (name) => {
+                editUserNameTemp.value = name;
+                nameEditError.value = "";
+                const el = new bootstrap.Modal(document.getElementById('editNameModal'));
+                el.show();
+            };
+            
+            const confirmEditUserName = async () => {
+                const newName = editUserNameTemp.value.trim();
+                const oldName = currentUserName.value;
+                if (!newName) { nameEditError.value = "名稱不能為空"; return; }
+                if (newName === oldName) { bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide(); return; }
                 
-                // 找出最快過期的 (過期的優先，有日期的優先，無期限的最後)
-                const sorted = [...batches].sort((a, b) => {
-                    const da = a.noExpiry ? "9999-12-31" : (a.expiryDate || "9999-12-31");
-                    const db = b.noExpiry ? "9999-12-31" : (b.expiryDate || "9999-12-31");
-                    return da.localeCompare(db);
+                try {
+                    const updatedMembers = familySettings.value.members.filter(m => m !== oldName);
+                    updatedMembers.push(newName);
+                    await updateDoc(doc(db, "family_metadata", "general"), {
+                         members: updatedMembers,
+                         latest_rename: { from: oldName, to: newName, at: Date.now() }
+                    });
+                    currentUserName.value = newName;
+                    localStorage.setItem("fridge_user_name", newName);
+                    bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide();
+                } catch (e) { nameEditError.value = "更新失敗"; }
+            };
+
+            const resetApp = () => {
+                if(confirm("確定要重設嗎？這將會清除此裝置的登入資訊（冰箱資料會保留在雲端）。")) {
+                    localStorage.removeItem("fridge_firebase_config");
+                    localStorage.removeItem("fridge_user_name");
+                    location.reload();
+                }
+            };
+            
+            const loadSettings = () => {
+                const saved = localStorage.getItem("fridge_settings_v1");
+                if (saved) {
+                    try {
+                        const obj = JSON.parse(saved);
+                        settings.value = { ...settings.value, ...obj };
+                    } catch (e) {}
+                }
+            };
+
+            const saveSettings = () => {
+                localStorage.setItem("fridge_settings_v1", JSON.stringify(settings.value));
+            };
+
+            const showUpdateModal = (force = false) => {
+                if (force) {
+                    previousPage.value = currentPage.value;
+                    currentPage.value = 'update-info';
+                    return;
+                }
+                
+                if (!settings.value.updateNotifyEnabled) return;
+                
+                const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
+                
+                if (lastSeen === null) {
+                    localStorage.setItem("lastSeenUpdateVersion", APP_VERSION);
+                    return;
+                }
+
+                if (lastSeen === APP_VERSION) return; 
+
+                previousPage.value = currentPage.value;
+                currentPage.value = 'update-info';
+            };
+
+            const closeUpdatePage = () => {
+                localStorage.setItem("lastSeenUpdateVersion", latestVersion.value);
+                if (previousPage.value === 'settings') {
+                    currentPage.value = 'settings';
+                } else {
+                    currentPage.value = 'home';
+                }
+            };
+
+            const isNoExpiry = (item) => {
+                if (item?.noExpiry) return true;
+                if (!item?.expiryDate) return true;
+                return false;
+            };
+
+            onMounted(() => {
+                loadSettings();
+                checkConfig();
+            });
+            
+            watch(() => settings.value.updateNotifyEnabled, () => {
+                saveSettings();
+            });
+
+            const processImage = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                isCompressing.value = true;
+                try {
+                    const compressed = await compressFile(file);
+                    newItem.value.image = compressed;
+                } catch (e) {
+                    alert("圖片處理失敗");
+                } finally {
+                    isCompressing.value = false;
+                }
+            };
+
+            const compressFile = (file) => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.src = e.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement("canvas");
+                            const MAX_WIDTH = 800;
+                            const scale = MAX_WIDTH / img.width;
+                            const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                            const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
+
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext("2d");
+                            ctx.drawImage(img, 0, 0, w, h);
+
+                            resolve(canvas.toDataURL("image/jpeg", 0.6));
+                        };
+                    };
+                });
+            };
+
+            const toggleOwner = (name) => {
+                let owners = newItem.value.owners || [];
+                if (name === '全家') {
+                    if (!owners.includes('全家')) { newItem.value.owners = ['全家']; } 
+                    else { newItem.value.owners = []; }
+                } else {
+                    if (owners.includes('全家')) { owners = owners.filter(o => o !== '全家'); }
+                    if (owners.includes(name)) { owners = owners.filter(o => o !== name); } 
+                    else { owners.push(name); }
+                    if (owners.length === 0) { owners = ['全家']; }
+                    newItem.value.owners = owners;
+                }
+            };
+
+            const formatOwners = (owners) => {
+                if (!owners || owners.length === 0) return '全家';
+                return owners.join('、');
+            };
+
+            /**
+             * 輔助函式：根據所有批次重新計算物品的總狀態
+             * 規則：
+             * 1. 總數量 = 所有批次數量總和
+             * 2. 顯示日期 = 最早到期的批次的日期
+             * 3. 排序 = 依據到期日由近到遠排序，無期限排最後
+             */
+            const recalculateItemFromBatches = (batches, owners) => {
+                // 1. 排序批次 (優先過期的排前面)
+                batches.sort((a, b) => {
+                    // 若無期限，視為無限遠
+                    const dateA = a.noExpiry ? "9999-12-31" : (a.expiryDate || "9999-12-31");
+                    const dateB = b.noExpiry ? "9999-12-31" : (b.expiryDate || "9999-12-31");
+                    
+                    if (dateA < dateB) return -1;
+                    if (dateA > dateB) return 1;
+                    // 若到期日相同，看存入日期(先進先出)
+                    const storeA = a.storedDate || "9999-12-31";
+                    const storeB = b.storedDate || "9999-12-31";
+                    if (storeA < storeB) return -1;
+                    if (storeA > storeB) return 1;
+                    return 0;
                 });
 
-                const earliestBatch = sorted[0];
+                // 2. 計算總數
+                const totalQty = batches.reduce((sum, b) => sum + parseInt(b.quantity || 0), 0);
+
+                // 3. 取出第一筆作為顯示依據 (最緊急的一批)
+                const firstBatch = batches[0] || {};
+
                 return {
-                    storedDate: earliestBatch.storedDate,
-                    expiryDate: earliestBatch.expiryDate,
-                    noExpiry: earliestBatch.noExpiry
+                    quantity: totalQty,
+                    storedDate: firstBatch.storedDate || "",
+                    expiryDate: firstBatch.expiryDate || "",
+                    noExpiry: firstBatch.noExpiry || false,
+                    owners: owners,
+                    batches: batches // 儲存排序後的批次
                 };
             };
 
@@ -851,98 +1066,92 @@
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
                 const ownersFinal = (newItem.value.owners && newItem.value.owners.length > 0) ? newItem.value.owners : ['全家'];
-                const zoneFinal = newItem.value.zone || 'cold';
-                const nameFinal = newItem.value.name.trim();
-                const qtyFinal = parseInt(newItem.value.quantity) || 1;
+                
+                // 本次新增的批次資料
+                const newBatch = {
+                    storedDate: newItem.value.storedDate,
+                    expiryDate: expiryDateClean,
+                    noExpiry: noExpiryFinal,
+                    quantity: parseInt(newItem.value.quantity),
+                    addedAt: Date.now() // 用於追蹤
+                };
 
                 isUploading.value = true;
                 try {
-                    // 如果是新增模式，檢查是否已有同名同區物品 (自動合併功能)
-                    if (!newItem.value.id) {
-                        const q = query(collection(db, "fridge_items"), 
-                                        where("name", "==", nameFinal), 
-                                        where("zone", "==", zoneFinal));
-                        const querySnapshot = await getDocs(q);
-
-                        if (!querySnapshot.empty) {
-                            // 找到重複物品，進行合併
-                            const existDoc = querySnapshot.docs[0];
-                            const existData = existDoc.data();
-                            const existBatches = normalizeBatches(existData);
-
-                            // 新增此批次
-                            existBatches.push({
-                                count: qtyFinal,
-                                storedDate: newItem.value.storedDate,
-                                expiryDate: expiryDateClean,
-                                noExpiry: noExpiryFinal
-                            });
-
-                            // 計算新總數
-                            const newTotalQty = parseInt(existData.quantity || 0) + qtyFinal;
-
-                            // 重新計算顯示日期 (確保顯示最快過期的)
-                            const dateInfo = recalcItemDates(existBatches);
-
-                            // 更新資料庫
-                            await updateDoc(doc(db, "fridge_items", existDoc.id), {
-                                quantity: newTotalQty,
-                                batches: existBatches,
-                                image: newItem.value.image, // 更新為最新照片
-                                owners: ownersFinal, // 更新擁有者
-                                updatedAt: new Date(),
-                                ...dateInfo // 更新顯示日期
-                            });
-
-                            goHome();
-                            isUploading.value = false;
-                            return;
+                    if (newItem.value.id) {
+                        // === 編輯模式 ===
+                        // 為了簡化，編輯時我們假設使用者是修改當前顯示的這批，或者統一修正屬性
+                        // 若已有批次，我們取出第一批進行更新，然後重算
+                        // 但若使用者修改了名稱或區域，這其實變成新物品，不過這裡先維持原邏輯，只更新欄位
+                        
+                        // 取得原資料以保留舊批次(如果有的話)
+                        const oldItemRef = items.value.find(i => i.id === newItem.value.id);
+                        let batches = oldItemRef && oldItemRef.batches ? [...oldItemRef.batches] : [];
+                        
+                        if (batches.length === 0) {
+                             // 若無批次紀錄，則當作單一批次
+                             batches = [newBatch];
+                        } else {
+                             // 更新第一批 (最緊急的那批) 的數值，或是單純覆寫屬性
+                             // 這裡選擇簡單策略：若是編輯，我們更新第一批次的日期與數量，若數量變更，則以輸入為準
+                             batches[0] = { ...batches[0], ...newBatch };
                         }
-                    }
 
-                    // 正常新增或編輯流程
-                    const newBatch = {
-                        count: qtyFinal,
-                        storedDate: newItem.value.storedDate,
-                        expiryDate: expiryDateClean,
-                        noExpiry: noExpiryFinal
-                    };
+                        const result = recalculateItemFromBatches(batches, ownersFinal);
 
-                    // 如果是編輯模式，這裡簡單處理：若使用者在編輯頁面修改，視為修改"主要批次"或重置
-                    // 但為了符合需求，若為新物件，我們初始化 batches
-                    let finalBatches = [newBatch];
-                    
-                    if (newItem.value.id) {
-                        // 如果是編輯舊物品，我們保留原本的 batches 結構嗎？
-                        // 簡單起見，編輯功能視為「修正當前顯示的資訊」，若有複雜批次建議用取出功能
-                        // 這裡為了不破壞批次邏輯，若 id 存在，我們讀取舊資料並嘗試更新對應批次比較複雜
-                        // 因此：編輯模式下，我們暫時將其視為「更新整個物品為單一批次」或「僅更新屬性」
-                        // 考慮到 UX，若只是改名字，不該遺失批次。
-                        // 但現在只改 `confirmTakeOutAction` 和 `Add`，編輯先維持原樣覆蓋(重置為單一批次)，避免邏輯過於複雜。
-                    }
-
-                    const itemData = {
-                        name: nameFinal,
-                        quantity: qtyFinal,
-                        storedDate: newItem.value.storedDate,
-                        expiryDate: expiryDateClean,
-                        noExpiry: noExpiryFinal,
-                        image: newItem.value.image,
-                        zone: zoneFinal,
-                        owners: ownersFinal,
-                        batches: finalBatches // 寫入批次結構
-                    };
-
-                    if (newItem.value.id) {
                         await updateDoc(doc(db, "fridge_items", newItem.value.id), {
-                            ...itemData,
+                            name: newItem.value.name,
+                            image: newItem.value.image,
+                            zone: newItem.value.zone || 'cold',
+                            ...result,
                             updatedAt: new Date()
                         });
+
                     } else {
-                        await addDoc(collection(db, "fridge_items"), {
-                            ...itemData,
-                            createdAt: new Date()
-                        });
+                        // === 新增模式 ===
+                        // 檢查是否有同名且同區域的物品存在
+                        const targetItem = items.value.find(i => 
+                            i.name === newItem.value.name && 
+                            i.zone === (newItem.value.zone || 'cold')
+                        );
+
+                        if (targetItem) {
+                            // !!! 合併邏輯 !!!
+                            // 1. 取出舊批次，若舊資料無批次欄位，則用舊的 root 欄位建立一個初始批次
+                            let batches = targetItem.batches ? [...targetItem.batches] : [{
+                                storedDate: targetItem.storedDate,
+                                expiryDate: targetItem.expiryDate,
+                                noExpiry: targetItem.noExpiry,
+                                quantity: parseInt(targetItem.quantity),
+                                addedAt: 0 // 舊資料
+                            }];
+
+                            // 2. 加入新批次
+                            batches.push(newBatch);
+
+                            // 3. 重新計算並排序
+                            const result = recalculateItemFromBatches(batches, targetItem.owners); // 擁有者通常維持原樣或合併，這裡暫時維持原樣
+
+                            // 4. 更新舊文件
+                            // 注意：我們保留原有的圖片 (targetItem.image)，若想更新圖片可改用 newItem.value.image
+                            await updateDoc(doc(db, "fridge_items", targetItem.id), {
+                                ...result,
+                                updatedAt: new Date()
+                            });
+
+                        } else {
+                            // !!! 建立新物品 !!!
+                            const initialBatches = [newBatch];
+                            const result = recalculateItemFromBatches(initialBatches, ownersFinal);
+
+                            await addDoc(collection(db, "fridge_items"), {
+                                name: newItem.value.name,
+                                image: newItem.value.image, // 新照片
+                                zone: newItem.value.zone || 'cold',
+                                ...result,
+                                createdAt: new Date()
+                            });
+                        }
                     }
                     goHome();
                 } catch (e) {
@@ -970,64 +1179,76 @@
                 currentPage.value = "takeout";
             };
 
-            // --- 修改後的取出邏輯 (支援批次自動扣除) ---
             const confirmTakeOutAction = async () => {
                 if (!db || !itemToDelete.value) return;
-                
-                const currentItem = itemToDelete.value;
-                const removeQty = parseInt(takeOutAmount.value);
-                const currentTotalQty = parseInt(currentItem.quantity);
 
-                // 如果全部取出，直接刪除
-                if (removeQty >= currentTotalQty) {
-                    try { await deleteDoc(doc(db, "fridge_items", currentItem.id)); goHome(); } catch(e) { alert("刪除失敗"); }
+                const takeQty = parseInt(takeOutAmount.value);
+                const currentQty = parseInt(itemToDelete.value.quantity);
+
+                // 如果全部取出，直接刪除文件
+                if (takeQty >= currentQty) {
+                    try { await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id)); goHome(); } catch(e) { alert("刪除失敗"); }
                     return;
                 }
 
                 try {
-                    // 1. 取得並標準化批次
-                    let batches = normalizeBatches(currentItem);
+                    // === 部分取出：先進先出/先過期先出 邏輯 ===
+                    
+                    // 1. 準備批次資料 (相容舊資料)
+                    let batches = itemToDelete.value.batches ? [...itemToDelete.value.batches] : [{
+                        storedDate: itemToDelete.value.storedDate,
+                        expiryDate: itemToDelete.value.expiryDate,
+                        noExpiry: itemToDelete.value.noExpiry,
+                        quantity: currentQty
+                    }];
 
-                    // 2. 排序批次：優先扣「快過期的」
-                    // 排序邏輯：有期限且日期小的在前 > 有期限日期大的 > 無期限
+                    // 2. 確保批次是排序好的 (最早過期的在前面)
+                    // 雖然存入時有排序，但防呆再排一次
                     batches.sort((a, b) => {
                         const dateA = a.noExpiry ? "9999-12-31" : (a.expiryDate || "9999-12-31");
                         const dateB = b.noExpiry ? "9999-12-31" : (b.expiryDate || "9999-12-31");
-                        return dateA.localeCompare(dateB);
+                        if (dateA < dateB) return -1;
+                        if (dateA > dateB) return 1;
+                        const storeA = a.storedDate || "9999-12-31";
+                        const storeB = b.storedDate || "9999-12-31";
+                        if (storeA < storeB) return -1;
+                        if (storeA > storeB) return 1;
+                        return 0;
                     });
 
-                    // 3. 執行扣除邏輯 (FIFO)
-                    let remainingToRemove = removeQty;
-                    let newBatches = [];
+                    // 3. 開始扣除數量
+                    let remainingToTake = takeQty;
+                    const newBatches = [];
 
                     for (let batch of batches) {
-                        if (remainingToRemove <= 0) {
-                            newBatches.push(batch); // 不需要扣了，保留
+                        if (remainingToTake <= 0) {
+                            // 已經扣完了，剩下的批次直接保留
+                            newBatches.push(batch);
                             continue;
                         }
 
-                        if (batch.count > remainingToRemove) {
-                            // 這批夠扣，扣完還有剩
-                            batch.count -= remainingToRemove;
-                            remainingToRemove = 0;
+                        let batchQty = parseInt(batch.quantity);
+                        
+                        if (batchQty > remainingToTake) {
+                            // 這一批夠扣，扣完後還有剩
+                            batch.quantity = batchQty - remainingToTake;
+                            remainingToTake = 0;
                             newBatches.push(batch);
                         } else {
-                            // 這批不夠或剛好，整批扣掉
-                            remainingToRemove -= batch.count;
-                            // batch.count 變 0，不加入 newBatches (即刪除該批次)
+                            // 這一批不夠扣或剛好扣完
+                            remainingToTake -= batchQty;
+                            // 這一批被消耗殆盡，不加入 newBatches
                         }
                     }
 
-                    // 4. 計算剩餘總數與更新顯示日期
-                    const newTotalQty = currentTotalQty - removeQty;
-                    const dateInfo = recalcItemDates(newBatches);
-
-                    // 5. 更新資料庫
-                    await updateDoc(doc(db, "fridge_items", currentItem.id), { 
-                        quantity: newTotalQty,
-                        batches: newBatches,
-                        ...dateInfo // 自動更新卡片上的日期為下一批的日期
-                    });
+                    // 4. 重新計算物品屬性 (剩餘總量與新的最緊急日期)
+                    // 注意：如果 newBatches 為空但前面沒刪除 doc，理論上不應發生 (因已檢查 takeQty >= currentQty)
+                    if (newBatches.length === 0) {
+                         await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
+                    } else {
+                         const result = recalculateItemFromBatches(newBatches, itemToDelete.value.owners);
+                         await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { ...result });
+                    }
                     
                     goHome();
                 } catch(e) { 
