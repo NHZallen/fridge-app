@@ -119,6 +119,15 @@
         .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active {
             color: #fff; background-color: #002266; border-color: #002266;
         }
+        
+        /* 購物清單樣式 */
+        .shopping-item-row {
+            display: flex; align-items: center; padding: 12px;
+            border-bottom: 1px solid #f0f0f0; background: white;
+            transition: 0.2s;
+        }
+        .shopping-item-row:last-child { border-bottom: none; }
+        .shopping-item-row:active { background-color: #f8f9fa; }
     </style>
 </head>
 <body>
@@ -223,6 +232,12 @@
                                 </small>
                             </div>
 
+                            <!-- 購物狀態標籤 -->
+                            <div class="mb-2" v-if="item.shoppingStatus">
+                                <span v-if="item.shoppingStatus === 'toBuy'" class="badge bg-info text-dark w-100"><i class="bi bi-cart-plus me-1"></i>待購買</span>
+                                <span v-if="item.shoppingStatus === 'inCart'" class="badge bg-success w-100"><i class="bi bi-cart-check me-1"></i>購物車中</span>
+                            </div>
+
                             <div class="mb-2">
                                 <small class="text-muted" v-if="item.storedDate">存入: {{ item.storedDate }}</small>
                                 <small class="text-muted" v-else>存入: 未填</small>
@@ -252,6 +267,98 @@
             <button class="fab-btn" @click="goToAddPage">
                 <i class="bi bi-plus-lg"></i>
             </button>
+        </div>
+
+        <!-- SHOPPING MANAGER PAGE -->
+        <div v-if="!isLoading && currentPage==='shopping'" class="page-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button class="btn btn-light border rounded-pill" @click="goHome">
+                    <i class="bi bi-arrow-left"></i> 返回
+                </button>
+                <h5 class="fw-bold m-0">購物清單</h5>
+                <div style="width: 74px;"></div>
+            </div>
+
+            <!-- 分頁切換 -->
+            <div class="card section-card mb-3 sticky-top" style="top: 10px; z-index: 900;">
+                <div class="card-body p-2">
+                    <ul class="nav nav-pills nav-fill">
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: shoppingTab==='toBuy' }" @click="shoppingTab='toBuy'" href="#">
+                                <i class="bi bi-list-task me-1"></i>待購買 ({{ toBuyList.length }})
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ active: shoppingTab==='inCart' }" @click="shoppingTab='inCart'" href="#">
+                                <i class="bi bi-cart3 me-1"></i>購物車 ({{ inCartList.length }})
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 待購買清單 -->
+            <div v-if="shoppingTab==='toBuy'">
+                <div class="card section-card mb-3" v-if="toBuyList.length > 0">
+                    <div class="card-body p-0">
+                        <div v-for="item in toBuyList" :key="item.id" class="shopping-item-row" @click="toggleSelection(item.id)">
+                            <div class="form-check m-0">
+                                <input class="form-check-input fs-4" type="checkbox" :checked="shoppingSelection.includes(item.id)">
+                            </div>
+                            <div class="ms-3 flex-grow-1">
+                                <div class="fw-bold">{{ item.name }}</div>
+                                <div class="small text-muted">
+                                    <span class="badge bg-light text-dark border me-1">{{ formatZone(item.zone) }}</span>
+                                    剩餘: {{ item.quantity }}
+                                </div>
+                            </div>
+                            <div class="ms-2">
+                                <img v-if="item.image" :src="item.image" class="rounded" style="width: 40px; height: 40px; object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-else class="text-center text-muted mt-5">
+                    <i class="bi bi-check2-circle display-1 opacity-25"></i>
+                    <p class="mt-3">太棒了！目前沒有待購買的物品</p>
+                    <small>在編輯物品時勾選「加入待買清單」即可顯示於此</small>
+                </div>
+
+                <div class="fixed-bottom p-3 bg-white border-top" v-if="toBuyList.length > 0 && shoppingSelection.length > 0">
+                    <button class="btn btn-warning w-100 rounded-pill py-2 fw-bold text-dark shadow-sm" @click="moveSelectedToCart">
+                        <i class="bi bi-cart-plus me-1"></i>將 {{ shoppingSelection.length }} 項移入購物車
+                    </button>
+                </div>
+            </div>
+
+            <!-- 購物車清單 -->
+            <div v-if="shoppingTab==='inCart'">
+                <div class="alert alert-info small py-2 mb-2">
+                    <i class="bi bi-info-circle me-1"></i>點擊「存入」即可快速將採購完的物品放入冰箱
+                </div>
+                
+                <div class="card section-card mb-3" v-if="inCartList.length > 0">
+                    <div class="card-body p-0">
+                        <div v-for="item in inCartList" :key="item.id" class="shopping-item-row">
+                             <div class="ms-1 me-3">
+                                <img v-if="item.image" :src="item.image" class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                                <div v-else class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-image"></i></div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold fs-5">{{ item.name }}</div>
+                                <div class="small text-muted">{{ formatZone(item.zone) }}</div>
+                            </div>
+                            <button class="btn btn-primary rounded-pill btn-sm px-3 ms-2" @click="depositFromCart(item)">
+                                <i class="bi bi-box-arrow-in-down me-1"></i>存入
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                 <div v-else class="text-center text-muted mt-5">
+                    <i class="bi bi-cart3 display-1 opacity-25"></i>
+                    <p class="mt-3">購物車是空的</p>
+                </div>
+            </div>
         </div>
 
         <!-- ADD / EDIT PAGE -->
@@ -290,28 +397,27 @@
 
                         <!-- 偵測重複提示 -->
                         <div v-if="matchedExistingItem" class="alert alert-warning d-flex align-items-start mb-3" role="alert">
-    <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
-    <div>
-        <div class="fw-bold">發現相同物品</div>
-        <div class="small">冰箱已有「{{ matchedExistingItem.name }}」，此操作將會把新買的加入庫存（自動建立新批次）。</div>
-    </div>
-</div>
+                            <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+                            <div>
+                                <div class="fw-bold">發現相同物品</div>
+                                <div class="small">冰箱已有「{{ matchedExistingItem.name }}」，此操作將會把新買的加入庫存（自動建立新批次）。</div>
+                            </div>
+                        </div>
 
-<!-- 修正後的開關區塊 -->
-<div class="mb-4">
-    <label class="form-label fw-bold fs-5">3. 物品照片</label>
-    
-    <!-- 沿用照片勾選 (修正版) -->
-    <div v-if="matchedExistingItem" class="mb-2 bg-light p-3 rounded border">
-        <!-- 修正重點：多包一層 div class="form-check form-switch" -->
-        <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="useExistingImg" v-model="newItem.useExistingImage" style="cursor: pointer;">
-            <label class="form-check-label fw-bold" for="useExistingImg" style="cursor: pointer;">
-                沿用舊照片 (免上傳)
-                <div class="text-muted small fw-normal">本次購買將不會更新照片，直到舊的吃完才會切換。</div>
-            </label>
-        </div>
-    </div>
+                        <!-- 修正後的開關區塊 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold fs-5">3. 物品照片</label>
+                            
+                            <!-- 沿用照片勾選 (修正版) -->
+                            <div v-if="matchedExistingItem" class="mb-2 bg-light p-3 rounded border">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="useExistingImg" v-model="newItem.useExistingImage" style="cursor: pointer;">
+                                    <label class="form-check-label fw-bold" for="useExistingImg" style="cursor: pointer;">
+                                        沿用舊照片 (免上傳)
+                                        <div class="text-muted small fw-normal">本次購買將不會更新照片，直到舊的吃完才會切換。</div>
+                                    </label>
+                                </div>
+                            </div>
 
                             <div v-if="!newItem.useExistingImage" class="d-flex flex-column align-items-center justify-content-center border rounded bg-light p-3" style="min-height: 200px;" @click="$refs.fileInput.click()">
                                 <img v-if="newItem.image" :src="newItem.image" class="w-100 rounded" style="max-height: 300px; object-fit: contain;">
@@ -384,6 +490,21 @@
                                 </ul>
                             </div>
                             <div class="form-text">您可以選擇「全家」或是指定多位成員</div>
+                        </div>
+                        
+                        <!-- 待購買開關 (只在編輯模式或尚未在購物車時顯示) -->
+                        <div class="mb-4 bg-light p-3 rounded border" v-if="currentPage==='edit' && newItem.shoppingStatus !== 'inCart'">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="toBuySwitch" 
+                                       v-model="newItem.shoppingStatus" 
+                                       true-value="toBuy" 
+                                       false-value="null"
+                                       style="cursor: pointer;">
+                                <label class="form-check-label fw-bold" for="toBuySwitch" style="cursor: pointer;">
+                                    加入待買清單
+                                    <div class="text-muted small fw-normal">物品快用完時，勾選此項加入採購清單</div>
+                                </label>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm" :disabled="isUploading || isCompressing">
@@ -647,6 +768,18 @@
                             <span class="badge bg-danger zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
                         </div>
                     </button>
+                    
+                    <hr class="my-1">
+
+                    <button class="btn btn-outline-info text-dark text-start d-flex justify-content-between align-items-center" @click="goToShoppingPage('toBuy')">
+                        <span><i class="bi bi-list-task me-2"></i>待購買</span>
+                        <span class="badge bg-danger rounded-pill" v-if="toBuyList.length">{{ toBuyList.length }}</span>
+                    </button>
+                    
+                    <button class="btn btn-outline-warning text-dark text-start d-flex justify-content-between align-items-center" @click="goToShoppingPage('inCart')">
+                        <span><i class="bi bi-cart3 me-2"></i>購物車</span>
+                        <span class="badge bg-danger rounded-pill" v-if="inCartList.length">{{ inCartList.length }}</span>
+                    </button>
                 </div>
                 
                 <div class="mt-auto">
@@ -692,7 +825,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.4.0";
+    const APP_VERSION = "1.5.0";
 
     const { createApp, ref, computed, onMounted, watch } = Vue;
 
@@ -717,6 +850,11 @@
             const itemToDelete = ref(null);
             const takeOutAmount = ref(1);
             const maxTakeOut = ref(1);
+            
+            // 購物相關變數
+            const shoppingTab = ref('toBuy'); // 'toBuy' or 'inCart'
+            const shoppingSelection = ref([]); // 用於待購買的多選
+            const pendingShoppingId = ref(null); // 用於存入購物車項目時，記錄原物品 ID
 
             const familySettings = ref({
                 familyName: "我的家庭",
@@ -750,7 +888,8 @@
                 image: null,
                 zone: "cold",
                 owners: ['全家'],
-                useExistingImage: false
+                useExistingImage: false,
+                shoppingStatus: null // 'toBuy' or 'inCart' or null
             });
 
             // --- 偵測重複物品 ---
@@ -776,6 +915,10 @@
                     }
                 }
             });
+
+            // --- 購物清單相關 Computed ---
+            const toBuyList = computed(() => items.value.filter(i => i.shoppingStatus === 'toBuy'));
+            const inCartList = computed(() => items.value.filter(i => i.shoppingStatus === 'inCart'));
 
             // --- 方法 ---
 
@@ -1075,16 +1218,74 @@
                 if (!owners || owners.length === 0) return '全家';
                 return owners.join('、');
             };
+            
+            const formatZone = (zone) => {
+                const map = { cold: '冷藏區', frozen: '冷凍區', veggie: '蔬果區' };
+                return map[zone] || zone;
+            };
+
+            // 購物頁面跳轉
+            const goToShoppingPage = (tab) => {
+                shoppingTab.value = tab;
+                currentPage.value = 'shopping';
+                // 關閉側邊欄
+                const el = document.getElementById("sidebar");
+                const inst = bootstrap.Offcanvas.getInstance(el);
+                if (inst) inst.hide();
+            };
+
+            // 待購買選取切換
+            const toggleSelection = (id) => {
+                const idx = shoppingSelection.value.indexOf(id);
+                if (idx > -1) {
+                    shoppingSelection.value.splice(idx, 1);
+                } else {
+                    shoppingSelection.value.push(id);
+                }
+            };
+
+            // 移入購物車
+            const moveSelectedToCart = async () => {
+                if (shoppingSelection.value.length === 0) return;
+                try {
+                    const batch = [];
+                    shoppingSelection.value.forEach(id => {
+                        batch.push(updateDoc(doc(db, "fridge_items", id), { shoppingStatus: 'inCart' }));
+                    });
+                    await Promise.all(batch);
+                    shoppingSelection.value = [];
+                    shoppingTab.value = 'inCart';
+                } catch(e) {
+                    alert("操作失敗，請稍後再試");
+                }
+            };
+
+            // 從購物車存入 -> 跳轉新增頁面
+            const depositFromCart = (item) => {
+                newItem.value = {
+                    id: null,
+                    name: item.name,
+                    quantity: "1", // 購買通常預設為 1，不一定跟庫存一樣
+                    storedDate: getTodayStr(),
+                    expiryDate: "",
+                    noExpiry: false,
+                    image: null,
+                    zone: item.zone || 'cold',
+                    owners: ['全家'],
+                    useExistingImage: false, // 這裡讓使用者重新決定，但 matchedItem 會偵測到原物
+                    shoppingStatus: null
+                };
+                
+                // 紀錄原 ID，以便存入成功後清除狀態
+                pendingShoppingId.value = item.id;
+                
+                currentPage.value = "add";
+            };
 
             /**
              * 輔助函式：根據所有批次重新計算物品的總狀態 (包含照片邏輯)
-             * 規則：
-             * 1. 總數量 = 所有批次數量總和
-             * 2. 顯示日期 = 最早到期的批次的日期
-             * 3. 顯示照片 = 最早到期的批次的照片
              */
             const recalculateItemFromBatches = (batches, owners) => {
-                // 1. 排序批次 (優先過期的排前面)
                 batches.sort((a, b) => {
                     const dateA = a.noExpiry ? "9999-12-31" : (a.expiryDate || "9999-12-31");
                     const dateB = b.noExpiry ? "9999-12-31" : (b.expiryDate || "9999-12-31");
@@ -1097,10 +1298,7 @@
                     return 0;
                 });
 
-                // 2. 計算總數
                 const totalQty = batches.reduce((sum, b) => sum + parseInt(b.quantity || 0), 0);
-
-                // 3. 取出第一筆作為顯示依據 (最緊急的一批)
                 const firstBatch = batches[0] || {};
 
                 return {
@@ -1108,14 +1306,13 @@
                     storedDate: firstBatch.storedDate || "",
                     expiryDate: firstBatch.expiryDate || "",
                     noExpiry: firstBatch.noExpiry || false,
-                    image: firstBatch.image || "", // 照片跟隨最優先批次
+                    image: firstBatch.image || "", 
                     owners: owners,
                     batches: batches
                 };
             };
 
             const submitItem = async () => {
-                // 檢查是否為「沿用照片」
                 if (!newItem.value.useExistingImage && !newItem.value.image) { 
                     alert("請記得拍照喔！"); return; 
                 }
@@ -1126,10 +1323,6 @@
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
                 const ownersFinal = (newItem.value.owners && newItem.value.owners.length > 0) ? newItem.value.owners : ['全家'];
                 
-                // 決定新批次的照片
-                // 若勾選沿用，暫時放空字串或標記，等合併時再處理，但這裡因為是 submitItem，
-                // 如果是編輯模式，useExistingImage 應該不會出現(因為 matchedItem 只在 add 模式)
-                // 如果是新增模式且 matched，我們會在下方合併邏輯處理
                 let imageToSave = newItem.value.image;
 
                 const newBatch = {
@@ -1137,79 +1330,70 @@
                     expiryDate: expiryDateClean,
                     noExpiry: noExpiryFinal,
                     quantity: parseInt(newItem.value.quantity),
-                    image: imageToSave, // 可能為 null (若沿用)
+                    image: imageToSave, 
                     addedAt: Date.now()
                 };
 
                 isUploading.value = true;
                 try {
+                    let docRefId = null;
+
                     if (newItem.value.id) {
-                        // === 編輯模式 (通常不涉及合併) ===
+                        // === 編輯模式 ===
+                        docRefId = newItem.value.id;
                         const oldItemRef = items.value.find(i => i.id === newItem.value.id);
                         let batches = oldItemRef && oldItemRef.batches ? [...oldItemRef.batches] : [];
                         
-                        // 若舊資料無批次，轉移為批次
                         if (batches.length === 0 && oldItemRef) {
                              batches = [{
                                 storedDate: oldItemRef.storedDate,
                                 expiryDate: oldItemRef.expiryDate,
                                 noExpiry: oldItemRef.noExpiry,
                                 quantity: parseInt(oldItemRef.quantity),
-                                image: oldItemRef.image, // 舊照片存入批次
+                                image: oldItemRef.image, 
                                 addedAt: 0
                              }];
                         }
 
-                        // 更新第一批 (最緊急) 的資料
-                        // 編輯模式下，我們讓使用者更新第一批的照片 (若有上傳)
-                        // 若編輯時也沒上傳照片，則維持原樣
                         const finalImage = newItem.value.image || batches[0].image;
-                        
-                        batches[0] = { 
-                            ...batches[0], 
-                            ...newBatch, 
-                            image: finalImage 
-                        };
+                        batches[0] = { ...batches[0], ...newBatch, image: finalImage };
 
                         const result = recalculateItemFromBatches(batches, ownersFinal);
+                        
+                        // 編輯模式也更新 shoppingStatus
+                        const statusToUpdate = newItem.value.shoppingStatus;
 
                         await updateDoc(doc(db, "fridge_items", newItem.value.id), {
                             name: newItem.value.name,
                             zone: newItem.value.zone || 'cold',
                             ...result,
+                            shoppingStatus: statusToUpdate,
                             updatedAt: new Date()
                         });
 
                     } else {
-                        // === 新增模式 ===
-                        // 檢查是否有同名且同區域的物品存在 (matchedExistingItem)
+                        // === 新增模式 (包含從購物車存入) ===
                         const targetItem = matchedExistingItem.value;
 
                         if (targetItem) {
-                            // !!! 合併邏輯 !!!
-                            
-                            // 1. 處理舊資料轉批次
+                            // 合併至現有
+                            docRefId = targetItem.id;
                             let batches = targetItem.batches ? [...targetItem.batches] : [{
                                 storedDate: targetItem.storedDate,
                                 expiryDate: targetItem.expiryDate,
                                 noExpiry: targetItem.noExpiry,
                                 quantity: parseInt(targetItem.quantity),
-                                image: targetItem.image, // 重要：舊照片歸檔
+                                image: targetItem.image,
                                 addedAt: 0
                             }];
 
-                            // 2. 處理新批次照片
-                            // 若勾選「沿用」，我們就用舊資料最新的那張 (通常是 batches[0].image 或 targetItem.image)
                             if (newItem.value.useExistingImage) {
-                                newBatch.image = targetItem.image; // 沿用目前顯示的照片
+                                newBatch.image = targetItem.image;
                             } else {
-                                newBatch.image = newItem.value.image; // 用新拍的
+                                newBatch.image = newItem.value.image;
                             }
 
-                            // 3. 加入新批次
                             batches.push(newBatch);
-
-                            // 4. 重新計算 (照片跟隨批次)
                             const result = recalculateItemFromBatches(batches, targetItem.owners); 
 
                             await updateDoc(doc(db, "fridge_items", targetItem.id), {
@@ -1218,19 +1402,41 @@
                             });
 
                         } else {
-                            // !!! 建立全新物品 !!!
-                            // 確保第一批有照片
+                            // 建立全新
                             const initialBatches = [newBatch];
                             const result = recalculateItemFromBatches(initialBatches, ownersFinal);
 
-                            await addDoc(collection(db, "fridge_items"), {
+                            const added = await addDoc(collection(db, "fridge_items"), {
                                 name: newItem.value.name,
                                 zone: newItem.value.zone || 'cold',
                                 ...result,
+                                shoppingStatus: null, // 新買的當然不用買
                                 createdAt: new Date()
                             });
+                            docRefId = added.id;
                         }
                     }
+
+                    // --- 處理購物車狀態清除邏輯 ---
+                    if (pendingShoppingId.value) {
+                        // 如果是從購物車「存入」的，需要把原物品的狀態清空
+                        // 注意：如果原物品就是 matchedItem (合併)，狀態其實已經不需要特別清，因為它還是在那
+                        // 但依據需求「物品卡片上...購物相關狀態也一併清除」
+                        
+                        // 情況1: 原物品 A (inCart) -> 存入 -> 合併到 A。 A 的狀態改為 null。
+                        // 情況2: 原物品 B (inCart) -> 存入 -> 變成新物品 C。 B 的狀態改為 null (表示已買過)。
+                        
+                        if (docRefId === pendingShoppingId.value) {
+                            // 合併情況，順便清狀態
+                             await updateDoc(doc(db, "fridge_items", docRefId), { shoppingStatus: null });
+                        } else {
+                            // 獨立情況，更新原 ID
+                             await updateDoc(doc(db, "fridge_items", pendingShoppingId.value), { shoppingStatus: null });
+                        }
+                        
+                        pendingShoppingId.value = null;
+                    }
+
                     goHome();
                 } catch (e) {
                     console.error(e);
@@ -1411,7 +1617,8 @@
                     image: null,
                     zone: "cold",
                     owners: ['全家'],
-                    useExistingImage: false
+                    useExistingImage: false,
+                    shoppingStatus: null
                 };
                 currentPage.value = "add";
             };
@@ -1428,7 +1635,8 @@
                     image: item.image,
                     zone: item.zone || 'cold',
                     owners: item.owners || ['全家'],
-                    useExistingImage: false
+                    useExistingImage: false,
+                    shoppingStatus: item.shoppingStatus || null
                 };
                 currentPage.value = "edit";
             };
@@ -1484,7 +1692,9 @@
                 appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
                 settings, saveSettings, showUpdateModal, closeUpdatePage,
                 goHome, goToAddPage, goSettingsFromSidebar,
-                toggleOwner, formatOwners
+                toggleOwner, formatOwners,
+                shoppingTab, shoppingSelection, toBuyList, inCartList, goToShoppingPage, 
+                toggleSelection, moveSelectedToCart, depositFromCart, formatZone
             };
         }
     }).mount("#app");
