@@ -290,25 +290,28 @@
 
                         <!-- 偵測重複提示 -->
                         <div v-if="matchedExistingItem" class="alert alert-warning d-flex align-items-start mb-3" role="alert">
-                            <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
-                            <div>
-                                <div class="fw-bold">發現相同物品</div>
-                                <div class="small">冰箱已有「{{ matchedExistingItem.name }}」，此操作將會把新買的加入庫存（自動建立新批次）。</div>
-                            </div>
-                        </div>
+    <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
+    <div>
+        <div class="fw-bold">發現相同物品</div>
+        <div class="small">冰箱已有「{{ matchedExistingItem.name }}」，此操作將會把新買的加入庫存（自動建立新批次）。</div>
+    </div>
+</div>
 
-                        <!-- 圖片區 -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold fs-5">3. 物品照片</label>
-                            
-                            <!-- 沿用照片勾選 -->
-                            <div v-if="matchedExistingItem" class="form-check form-switch mb-2 bg-light p-2 rounded border">
-                                <input class="form-check-input" type="checkbox" id="useExistingImg" v-model="newItem.useExistingImage">
-                                <label class="form-check-label fw-bold ms-2" for="useExistingImg">
-                                    沿用舊照片 (免上傳)
-                                    <div class="text-muted small fw-normal">本次購買將不會更新照片，直到舊的吃完才會切換。</div>
-                                </label>
-                            </div>
+<!-- 修正後的開關區塊 -->
+<div class="mb-4">
+    <label class="form-label fw-bold fs-5">3. 物品照片</label>
+    
+    <!-- 沿用照片勾選 (修正版) -->
+    <div v-if="matchedExistingItem" class="mb-2 bg-light p-3 rounded border">
+        <!-- 修正重點：多包一層 div class="form-check form-switch" -->
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="useExistingImg" v-model="newItem.useExistingImage" style="cursor: pointer;">
+            <label class="form-check-label fw-bold" for="useExistingImg" style="cursor: pointer;">
+                沿用舊照片 (免上傳)
+                <div class="text-muted small fw-normal">本次購買將不會更新照片，直到舊的吃完才會切換。</div>
+            </label>
+        </div>
+    </div>
 
                             <div v-if="!newItem.useExistingImage" class="d-flex flex-column align-items-center justify-content-center border rounded bg-light p-3" style="min-height: 200px;" @click="$refs.fileInput.click()">
                                 <img v-if="newItem.image" :src="newItem.image" class="w-100 rounded" style="max-height: 300px; object-fit: contain;">
