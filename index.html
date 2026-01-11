@@ -205,7 +205,7 @@
                         <h4 class="fw-bold m-0">
                             <i class="bi bi-snow2 text-primary" v-if="filterZone !== 'nostock'"></i>
                             <i class="bi bi-archive text-secondary" v-else></i>
-                            {{ filterZone === 'nostock' ? '無庫存區' : '冰箱庫存' }}
+                            {{ getZoneName(filterZone) }}
                         </h4>
                         <small class="text-muted" style="font-size: 0.8rem;">{{ familySettings.familyName }}</small>
                     </div>
@@ -431,30 +431,33 @@
                             <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">4. 數量</label>
-                            <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">5. 存入日期</label>
-                            <input type="date" class="form-control form-control-lg" v-model="newItem.storedDate" required>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">6. 到期日（可不填）</label>
-                            <input type="date" class="form-control form-control-lg" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
-
-                            <div class="form-check form-switch mt-3">
-                                <input class="form-check-input" type="checkbox" id="noExpirySwitch" v-model="newItem.noExpiry">
-                                <label class="form-check-label fw-bold" for="noExpirySwitch">此物品無期限</label>
+                        <!-- !重點修改: 如果數量 > 0 才顯示以下欄位 -->
+                        <div v-if="newItem.quantity > 0">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">4. 數量</label>
+                                <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
                             </div>
 
-                            <div class="mt-3 d-flex gap-2 overflow-auto" v-if="!newItem.noExpiry">
-                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(3)">+3天</button>
-                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(7)">+1週</button>
-                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(14)">+2週</button>
-                                <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(30)">+1月</button>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">5. 存入日期</label>
+                                <input type="date" class="form-control form-control-lg" v-model="newItem.storedDate" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">6. 到期日（可不填）</label>
+                                <input type="date" class="form-control form-control-lg" v-model="newItem.expiryDate" :disabled="newItem.noExpiry">
+
+                                <div class="form-check form-switch mt-3">
+                                    <input class="form-check-input" type="checkbox" id="noExpirySwitch" v-model="newItem.noExpiry">
+                                    <label class="form-check-label fw-bold" for="noExpirySwitch">此物品無期限</label>
+                                </div>
+
+                                <div class="mt-3 d-flex gap-2 overflow-auto" v-if="!newItem.noExpiry">
+                                    <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(3)">+3天</button>
+                                    <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(7)">+1週</button>
+                                    <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(14)">+2週</button>
+                                    <button type="button" class="btn btn-outline-primary rounded-pill" @click="addDays(30)">+1月</button>
+                                </div>
                             </div>
                         </div>
                         
@@ -506,7 +509,8 @@
         <!-- TO BUY LIST PAGE (待購買清單) -->
         <div v-if="!isLoading && currentPage==='to-buy-list'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <button class="btn btn-light border rounded-pill" @click="goHome">
+                <!-- 返回按鈕修改為回到側邊欄 -->
+                <button class="btn btn-light border rounded-pill" @click="goBackToSidebar">
                     <i class="bi bi-arrow-left"></i> 返回
                 </button>
                 <h5 class="fw-bold m-0"><i class="bi bi-clipboard-check text-info me-1"></i> 待購買清單</h5>
@@ -540,19 +544,28 @@
                 </div>
             </div>
 
+            <!-- 待購買清單底部操作列 -->
             <div class="fixed-bottom p-3 bg-white border-top shadow-lg" v-if="toBuyList.length > 0">
-                <button class="btn btn-info text-white w-100 rounded-pill py-2 fw-bold" 
-                        :disabled="selectedToBuyIds.length === 0"
-                        @click="moveSelectedToCart">
-                    <i class="bi bi-cart-plus me-1"></i> 放入購物車 ({{ selectedToBuyIds.length }})
-                </button>
+                 <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary w-50 rounded-pill py-2" 
+                            :disabled="selectedToBuyIds.length === 0"
+                            @click="removeSelectedFromToBuy">
+                        <i class="bi bi-x-circle me-1"></i> 移出清單
+                    </button>
+                    <button class="btn btn-info text-white w-50 rounded-pill py-2 fw-bold" 
+                            :disabled="selectedToBuyIds.length === 0"
+                            @click="moveSelectedToCart">
+                        <i class="bi bi-cart-plus me-1"></i> 放入購物車 ({{ selectedToBuyIds.length }})
+                    </button>
+                 </div>
             </div>
         </div>
 
         <!-- SHOPPING CART PAGE (購物車) -->
         <div v-if="!isLoading && currentPage==='shopping-cart'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <button class="btn btn-light border rounded-pill" @click="goHome">
+                <!-- 返回按鈕修改為回到側邊欄 -->
+                <button class="btn btn-light border rounded-pill" @click="goBackToSidebar">
                     <i class="bi bi-arrow-left"></i> 返回
                 </button>
                 <h5 class="fw-bold m-0"><i class="bi bi-cart text-warning me-1"></i> 購物車</h5>
@@ -854,6 +867,14 @@
                 <hr class="sidebar-divider">
 
                 <div class="d-grid gap-2 mb-4">
+                    <!-- 新增全區按鈕 -->
+                    <button class="btn btn-outline-dark text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('all')">
+                        <span><i class="bi bi-grid me-2"></i>全區</span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.allActive.total }}</span>
+                        </div>
+                    </button>
+
                     <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
                         <span><i class="bi bi-snow me-2"></i>冷藏區</span>
                         <div class="d-flex gap-1">
@@ -878,7 +899,7 @@
                             <span class="badge bg-danger zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
                         </div>
                     </button>
-                    <!-- 新增無庫存區 -->
+                    <!-- 無庫存區 -->
                     <button class="btn btn-outline-secondary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('nostock')">
                         <span><i class="bi bi-archive me-2"></i>無庫存區</span>
                         <div class="d-flex gap-1">
@@ -930,9 +951,9 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.4.0";
+    const APP_VERSION = "1.4.1";
 
-    const { createApp, ref, computed, onMounted, watch } = Vue;
+    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
     createApp({
         setup() {
@@ -1358,7 +1379,8 @@
                 if (!newItem.value.useExistingImage && !newItem.value.image) { 
                     alert("請記得拍照喔！"); return; 
                 }
-                if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
+                // 只有在庫存大於 0 時才檢查日期
+                if (newItem.value.quantity > 0 && !newItem.value.storedDate) { alert("請填存入日期"); return; }
                 if (!db) return;
 
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
@@ -1497,12 +1519,10 @@
                 const takeQty = parseInt(takeOutAmount.value);
                 const currentQty = parseInt(itemToDelete.value.quantity);
 
-                // !重點修改: 若全取，不刪除 doc，而是設 quantity = 0
                 if (takeQty >= currentQty) {
                     try { 
                         await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { 
                             quantity: 0 
-                            // 這裡可以選擇是否保留 shoppingStatus，目前保留
                         }); 
                         goHome(); 
                     } catch(e) { alert("更新失敗"); }
@@ -1550,7 +1570,6 @@
                         }
                     }
 
-                    // 若批次算完總數為 0，也更新為 0 而非刪除
                     const result = recalculateItemFromBatches(newBatches, itemToDelete.value.owners);
                     await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { ...result });
                     
@@ -1561,7 +1580,6 @@
                 }
             };
 
-            // 永久刪除 (單一)
             const deleteItemPermanently = async (id) => {
                 if(confirm("確定要永久刪除此物品嗎？此操作無法復原。")) {
                     await deleteDoc(doc(db, "fridge_items", id));
@@ -1569,7 +1587,6 @@
                 }
             };
 
-            // 永久刪除 (多選)
             const deleteSelectedNoStock = async () => {
                 if(confirm(`確定要永久刪除選取的 ${selectedNoStockIds.value.length} 項物品嗎？`)) {
                     const promises = selectedNoStockIds.value.map(id => deleteDoc(doc(db, "fridge_items", id)));
@@ -1579,7 +1596,6 @@
                 }
             };
 
-            // 批次加入待買
             const addSelectedNoStockToBuy = async () => {
                  const promises = selectedNoStockIds.value.map(id => 
                     updateDoc(doc(db, "fridge_items", id), { shoppingStatus: 'toBuy' })
@@ -1634,12 +1650,24 @@
                 }
             };
 
+            const getZoneName = (zone) => {
+                switch(zone) {
+                    case 'all': return '全部區域';
+                    case 'cold': return '冷藏區';
+                    case 'frozen': return '冷凍區';
+                    case 'veggie': return '蔬果區';
+                    case 'nostock': return '無庫存區';
+                    default: return '冰箱庫存';
+                }
+            };
+
             const zoneStats = computed(() => {
                 const stats = {
+                    allActive: { total: 0 },
                     cold: { total: 0, warning: 0, expired: 0 },
                     frozen: { total: 0, warning: 0, expired: 0 },
                     veggie: { total: 0, warning: 0, expired: 0 },
-                    nostock: { total: 0 } // 新增無庫存統計
+                    nostock: { total: 0 }
                 };
 
                 items.value.forEach(item => {
@@ -1647,8 +1675,11 @@
                     
                     if (parseInt(item.quantity) === 0) {
                         stats.nostock.total++;
-                        return; // 無庫存不計入各區統計
+                        return;
                     }
+
+                    // 庫存 > 0 的計入全區
+                    stats.allActive.total++;
 
                     if (!stats[z]) return;
 
@@ -1673,7 +1704,6 @@
                 const el = document.getElementById("sidebar");
                 const inst = bootstrap.Offcanvas.getInstance(el);
                 if (inst) inst.hide();
-                // 切換時重置多選模式
                 isSelectionMode.value = false;
                 selectedNoStockIds.value = [];
                 goHome();
@@ -1740,20 +1770,27 @@
                 currentPage.value = "home";
                 previewImageUrl.value = null; 
             };
+            
+            // 新增：從購物相關頁面返回時，直接打開側邊欄
+            const goBackToSidebar = async () => {
+                currentPage.value = "home";
+                previewImageUrl.value = null;
+                // 等待 DOM 更新後打開側邊欄
+                await nextTick();
+                const el = document.getElementById("sidebar");
+                const bsOffcanvas = new bootstrap.Offcanvas(el);
+                bsOffcanvas.show();
+            };
 
             const filteredItems = computed(() => {
                 const keyword = searchText.value?.trim() || "";
                 let list = items.value;
                 
-                // 搜尋過濾
                 if (keyword) list = list.filter(i => String(i.name || "").includes(keyword));
                 
-                // 區域與庫存過濾邏輯
                 if (filterZone.value === 'nostock') {
-                    // 無庫存區：只顯示數量為 0
                     list = list.filter(i => parseInt(i.quantity) === 0);
                 } else {
-                    // 其他區：只顯示數量 > 0
                     list = list.filter(i => parseInt(i.quantity) > 0);
                     
                     if (filterZone.value !== 'all') {
@@ -1761,7 +1798,6 @@
                     }
                 }
                 
-                // 排序
                 const toSortKey = (it) => {
                     const noExp = isNoExpiry(it);
                     const exp = (!noExp && it.expiryDate) ? it.expiryDate : "9999-12-31";
@@ -1795,7 +1831,16 @@
                 );
                 await Promise.all(promises);
                 selectedToBuyIds.value = [];
-                goPageFromSidebar('shopping-cart'); // 跳轉到購物車
+                goPageFromSidebar('shopping-cart'); 
+            };
+
+            // 新增：移出待買清單
+            const removeSelectedFromToBuy = async () => {
+                const promises = selectedToBuyIds.value.map(id => 
+                    updateDoc(doc(db, "fridge_items", id), { shoppingStatus: null })
+                );
+                await Promise.all(promises);
+                selectedToBuyIds.value = [];
             };
 
             const removeSelectedFromCart = async () => {
@@ -1842,16 +1887,16 @@
                 editUserNameTemp, nameEditError, startEditUserName, confirmEditUserName,
                 itemToDelete, takeOutAmount, maxTakeOut, goToTakeOutPage, confirmTakeOutAction,
                 openPreview, closePreview, handleTouchStart, handleTouchEnd, handleTouchMove, goToEditPage,
-                getZoneColor, zoneStats, selectZoneFromSidebar,
+                getZoneColor, getZoneName, zoneStats, selectZoneFromSidebar,
                 newItem, processImage, submitItem, matchedExistingItem,
                 getDays, addDays, getAlertClass, filteredItems, isNoExpiry,
                 appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
                 settings, saveSettings, showUpdateModal, closeUpdatePage,
-                goHome, goToAddPage, goSettingsFromSidebar,
+                goHome, goBackToSidebar, goToAddPage, goSettingsFromSidebar,
                 toggleOwner, formatOwners,
                 // Shopping related
                 toBuyList, cartList, goPageFromSidebar,
-                selectedToBuyIds, selectedCartIds, moveSelectedToCart, removeSelectedFromCart, moveSelectedBackToBuy,
+                selectedToBuyIds, selectedCartIds, moveSelectedToCart, removeSelectedFromToBuy, removeSelectedFromCart, moveSelectedBackToBuy,
                 toggleToBuyStatus, startPurchase, getBorderClass,
                 // No Stock Mode
                 isSelectionMode, toggleSelectionMode, selectedNoStockIds, handleCardClick, 
