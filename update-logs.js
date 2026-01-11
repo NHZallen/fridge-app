@@ -1,7 +1,19 @@
 // update-logs.js
-export const LATEST_VERSION = "1.4.0";
+export const LATEST_VERSION = "1.5.0";
 
 export const UPDATE_LOGS = [
+  {
+    version: "1.5.0",
+    date: "2026-01-11",
+    title: "採買流程與無庫存管理",
+    changes: [
+      "新增完整採買流程：待買清單 → 購物車 → 一鍵存入補貨",
+      "新增「無庫存區」：物品用完自動保留紀錄，方便快速回購",
+      "新增批次管理模式：無庫存區可多選加入待買或永久刪除",
+      "側邊欄升級：新增「全區」檢視，並整合購物清單入口",
+      "體驗優化：修正零庫存補貨的照片繼承，重複提示增加庫存顯示"
+    ]
+  },
   {
     version: "1.4.0",
     date: "2026-01-11",
