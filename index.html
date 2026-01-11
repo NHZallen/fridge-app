@@ -119,20 +119,6 @@
         .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active {
             color: #fff; background-color: #002266; border-color: #002266;
         }
-        
-        /* 新增樣式: 重複物品提示框 */
-        .duplicate-alert {
-            background-color: #e7f1ff;
-            border: 1px solid #b6d4fe;
-            color: #084298;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 15px;
-            font-size: 0.9rem;
-        }
-        .duplicate-alert .form-check-input {
-            margin-top: 0.2em;
-        }
     </style>
 </head>
 <body>
@@ -281,10 +267,36 @@
             <div class="card section-card">
                 <div class="card-body">
                     <form @submit.prevent="submitItem">
-                        
-                        <!-- 區域選擇 -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold fs-5">1. 物品照片</label>
+                            
+                            <!-- 相片上傳區 (當勾選沿用舊照片時隱藏或變灰) -->
+                            <div v-if="!newItem.useExistingImage">
+                                <div class="d-flex flex-column align-items-center justify-content-center border rounded bg-light p-3" style="min-height: 200px;" @click="$refs.fileInput.click()">
+                                    <img v-if="newItem.image" :src="newItem.image" class="w-100 rounded" style="max-height: 300px; object-fit: contain;">
+                                    <div v-else class="text-center text-muted">
+                                        <i class="bi bi-camera fs-1"></i>
+                                        <div class="mt-2">點擊選擇相機或相簿</div>
+                                    </div>
+                                </div>
+                                <input ref="fileInput" type="file" class="d-none" accept="image/*" @change="processImage">
+                                <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
+                            </div>
+
+                            <!-- 只有在新增模式下才顯示此選項 -->
+                            <div v-if="currentPage === 'add'" class="form-check mt-3 bg-light p-2 rounded">
+                                <input class="form-check-input" type="checkbox" id="useExistingImageCheck" v-model="newItem.useExistingImage">
+                                <label class="form-check-label fw-bold" for="useExistingImageCheck">
+                                    這是補貨（沿用同名稱現有照片）
+                                </label>
+                                <div class="form-text small mt-1">
+                                    若勾選，系統會自動使用庫存中「同名且同區域」物品的照片，您無需再次拍照。若找不到舊物品則會提示錯誤。
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mb-3">
-                            <label class="form-label fw-bold">1. 存放區域</label>
+                            <label class="form-label fw-bold">2. 存放區域</label>
                             <div class="btn-group w-100" role="group">
                                 <input type="radio" class="btn-check" name="zone" id="zone-cold" value="cold" v-model="newItem.zone" checked>
                                 <label class="btn btn-outline-primary" for="zone-cold">冷藏區</label>
@@ -297,57 +309,14 @@
                             </div>
                         </div>
 
-                         <!-- 名稱與數量 -->
-                         <div class="row g-3 mb-4">
+                        <div class="row g-3 mb-3">
                             <div class="col-7">
-                                <label class="form-label fw-bold">2. 名稱</label>
+                                <label class="form-label fw-bold">3. 名稱</label>
                                 <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
                             </div>
                             <div class="col-5">
-                                <label class="form-label fw-bold">3. 數量</label>
+                                <label class="form-label fw-bold">4. 數量</label>
                                 <input type="number" inputmode="numeric" class="form-control form-control-lg" v-model="newItem.quantity" placeholder="1" required>
-                            </div>
-                        </div>
-
-                        <!-- 智慧偵測與照片區 -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold fs-5">4. 物品照片</label>
-                            
-                            <!-- 重複物品提示 -->
-                            <div v-if="existingMatch && currentPage === 'add'" class="duplicate-alert fade show">
-                                <div class="d-flex align-items-start gap-2">
-                                    <i class="bi bi-info-circle-fill fs-5 mt-1"></i>
-                                    <div>
-                                        <strong>發現冰箱已有同類物品！</strong>
-                                        <div class="small mt-1 text-muted">
-                                            系統將會自動合併此批次。您可以選擇沿用舊照片，或是拍一張新包裝的照片。
-                                        </div>
-                                        <div class="form-check mt-2">
-                                            <input class="form-check-input" type="checkbox" id="useExistingPhotoCheck" v-model="useExistingPhoto">
-                                            <label class="form-check-label fw-bold" for="useExistingPhotoCheck">
-                                                📸 沿用目前冰箱內的照片 (不重新拍攝)
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 照片上傳區 (當勾選沿用時隱藏) -->
-                            <div v-if="!useExistingPhoto">
-                                <div class="d-flex flex-column align-items-center justify-content-center border rounded bg-light p-3" style="min-height: 200px;" @click="$refs.fileInput.click()">
-                                    <img v-if="newItem.image" :src="newItem.image" class="w-100 rounded" style="max-height: 300px; object-fit: contain;">
-                                    <div v-else class="text-center text-muted">
-                                        <i class="bi bi-camera fs-1"></i>
-                                        <div class="mt-2">點擊選擇相機或相簿</div>
-                                    </div>
-                                </div>
-                                <input ref="fileInput" type="file" class="d-none" accept="image/*" @change="processImage">
-                                <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
-                            </div>
-                            <!-- 預覽現有照片 (當勾選沿用時顯示) -->
-                            <div v-else class="text-center p-3 border rounded bg-light">
-                                <div class="text-muted mb-2">將使用目前卡片顯示的照片：</div>
-                                <img :src="existingMatch.image" class="rounded shadow-sm" style="max-height: 150px; opacity: 0.8;">
                             </div>
                         </div>
 
@@ -708,7 +677,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.3.3";
+    const APP_VERSION = "1.3.2";
 
     const { createApp, ref, computed, onMounted, watch } = Vue;
 
@@ -747,9 +716,6 @@
             const currentPage = ref("home");
             const previousPage = ref("home"); 
 
-            // 處理重複物品邏輯
-            const useExistingPhoto = ref(false);
-            
             let longPressTimer = null;
             const LONG_PRESS_DURATION = 600;
 
@@ -768,33 +734,8 @@
                 noExpiry: false,
                 image: null,
                 zone: "cold",
-                owners: ['全家']
-            });
-
-            // --- 計算屬性 ---
-
-            // 自動偵測已存在的物品
-            const existingMatch = computed(() => {
-                if (!newItem.value.name) return null;
-                const nameClean = newItem.value.name.trim();
-                const zone = newItem.value.zone || 'cold';
-                
-                // 排除自己 (編輯模式時)
-                return items.value.find(i => 
-                    i.name === nameClean && 
-                    i.zone === zone &&
-                    i.id !== newItem.value.id
-                );
-            });
-
-            // 監聽 existingMatch，如果有抓到重複，且不在編輯模式(編輯模式不強制)，可以預設勾選
-            watch(existingMatch, (newVal) => {
-                if (newVal && !newItem.value.id) {
-                    // 新增模式下偵測到重複，預設開啟「沿用照片」
-                    useExistingPhoto.value = true;
-                } else {
-                    useExistingPhoto.value = false;
-                }
+                owners: ['全家'],
+                useExistingImage: false // 新增：是否沿用舊照片
             });
 
             // --- 方法 ---
@@ -1038,6 +979,9 @@
                 const file = event.target.files[0];
                 if (!file) return;
 
+                // 如果使用者選擇了照片，自動取消「沿用舊照片」的勾選
+                newItem.value.useExistingImage = false;
+
                 isCompressing.value = true;
                 try {
                     const compressed = await compressFile(file);
@@ -1094,22 +1038,21 @@
             };
 
             /**
-             * 輔助函式：根據所有批次重新計算物品的總狀態 (Photo Follows Batch Logic)
+             * 輔助函式：根據所有批次重新計算物品的總狀態
              * 規則：
              * 1. 總數量 = 所有批次數量總和
              * 2. 顯示日期 = 最早到期的批次的日期
-             * 3. 顯示圖片 = 最早到期的批次的圖片
+             * 3. 排序 = 依據到期日由近到遠排序，無期限排最後
+             * 4. 顯示圖片 = 最早到期的批次的圖片 (Photo follows Batch)
              */
             const recalculateItemFromBatches = (batches, owners, fallbackImage) => {
                 // 1. 排序批次 (優先過期的排前面)
                 batches.sort((a, b) => {
-                    // 若無期限，視為無限遠
                     const dateA = a.noExpiry ? "9999-12-31" : (a.expiryDate || "9999-12-31");
                     const dateB = b.noExpiry ? "9999-12-31" : (b.expiryDate || "9999-12-31");
                     
                     if (dateA < dateB) return -1;
                     if (dateA > dateB) return 1;
-                    // 若到期日相同，看存入日期(先進先出)
                     const storeA = a.storedDate || "9999-12-31";
                     const storeB = b.storedDate || "9999-12-31";
                     if (storeA < storeB) return -1;
@@ -1122,10 +1065,9 @@
 
                 // 3. 取出第一筆作為顯示依據 (最緊急的一批)
                 const firstBatch = batches[0] || {};
-
-                // 4. 決定照片 (若該批次有存照片則用該批次，否則用傳入的 fallback/舊照片)
-                // 這樣做到了「照片跟隨批次」，當第一批沒了，換第二批，若第二批有照片，卡片圖就會變
-                const displayImage = firstBatch.image || fallbackImage || null;
+                
+                // 4. 決定圖片：如果該批次有圖片就用，沒有就用 fallbackImage (舊版或卡片根目錄圖片)
+                const displayImage = firstBatch.image || fallbackImage;
 
                 return {
                     quantity: totalQty,
@@ -1133,14 +1075,17 @@
                     expiryDate: firstBatch.expiryDate || "",
                     noExpiry: firstBatch.noExpiry || false,
                     owners: owners,
-                    image: displayImage, // 核心：卡片外層的圖片由最早那批決定
-                    batches: batches // 儲存排序後的批次
+                    image: displayImage, // 確保卡片顯示正確的照片
+                    batches: batches 
                 };
             };
 
             const submitItem = async () => {
-                // 如果沒有選沿用舊照片，且沒有新照片，跳警告
-                if (!useExistingPhoto.value && !newItem.value.image) { alert("請記得拍照喔！"); return; }
+                // 如果沒有勾選沿用照片，且沒有新照片，則擋下
+                if (!newItem.value.useExistingImage && !newItem.value.image) { 
+                    alert("請記得拍照喔！(或勾選沿用舊照片)"); 
+                    return; 
+                }
                 if (!newItem.value.storedDate) { alert("請填存入日期"); return; }
                 if (!db) return;
 
@@ -1148,46 +1093,64 @@
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
                 const ownersFinal = (newItem.value.owners && newItem.value.owners.length > 0) ? newItem.value.owners : ['全家'];
                 
-                // 本次新增的批次資料
-                // 如果勾選沿用舊照片 (useExistingPhoto)，我們不存 image 進去 batch (或存舊的圖字串，看要不要省空間)
-                // 為了邏輯統一，若沿用舊圖，我們把舊圖拷貝進這個 batch，確保日後它變成第一批時有圖可顯示
-                // 注意：如果舊物品也沒有圖(極少見)，則該欄位為空
-                let batchImage = null;
-
-                if (useExistingPhoto.value && existingMatch.value) {
-                    batchImage = existingMatch.value.image; // 沿用
-                } else {
-                    batchImage = newItem.value.image; // 新拍
-                }
-
-                const newBatch = {
-                    storedDate: newItem.value.storedDate,
-                    expiryDate: expiryDateClean,
-                    noExpiry: noExpiryFinal,
-                    quantity: parseInt(newItem.value.quantity),
-                    image: batchImage, // 每個批次現在都有自己的照片
-                    addedAt: Date.now()
-                };
-
                 isUploading.value = true;
+                
                 try {
-                    // 1. 編輯模式 (id 存在)
+                    // 先檢查是否已有同名同區域物品 (用於決定照片與合併)
+                    // 只有在新增模式(或無ID)時才去自動匹配，編輯模式下通常是直接對該ID操作
+                    let targetItem = null;
                     if (newItem.value.id) {
-                        const oldItemRef = items.value.find(i => i.id === newItem.value.id);
-                        let batches = oldItemRef && oldItemRef.batches ? [...oldItemRef.batches] : [];
-                        
-                        if (batches.length === 0) {
-                             batches = [newBatch]; // 若無批次紀錄，視為單一
+                         targetItem = items.value.find(i => i.id === newItem.value.id);
+                    } else {
+                         targetItem = items.value.find(i => 
+                            i.name === newItem.value.name && 
+                            i.zone === (newItem.value.zone || 'cold')
+                        );
+                    }
+
+                    // 處理圖片來源
+                    let imageToUse = newItem.value.image;
+                    if (newItem.value.useExistingImage) {
+                        if (targetItem) {
+                            // 沿用：使用該物品目前顯示的照片，或第一批次的照片
+                            // 為了保險，先抓 root image，若無則抓 batches[0].image
+                            imageToUse = targetItem.image || (targetItem.batches && targetItem.batches[0]?.image);
+                            if (!imageToUse) {
+                                alert("該舊物品似乎沒有照片可沿用，請重新拍照。");
+                                isUploading.value = false;
+                                return;
+                            }
                         } else {
-                             // 更新第一批 (最緊急的那批)，或單純更新屬性
-                             // 在編輯模式下，我們通常更新顯示的那一批，保留照片
-                             // 若使用者有拍新照，newBatch.image 就會有值，覆蓋掉
+                            alert("找不到同名且同區域的舊物品，無法沿用照片，請拍照！");
+                            isUploading.value = false;
+                            return;
+                        }
+                    }
+
+                    // 準備這次的批次資料
+                    const newBatch = {
+                        storedDate: newItem.value.storedDate,
+                        expiryDate: expiryDateClean,
+                        noExpiry: noExpiryFinal,
+                        quantity: parseInt(newItem.value.quantity),
+                        image: imageToUse, // 照片存入批次中 (Photo follows Batch)
+                        addedAt: Date.now()
+                    };
+
+                    if (newItem.value.id) {
+                        // === 編輯模式 ===
+                        // 邏輯：更新第一批次(最緊急)，或覆寫屬性
+                        let batches = targetItem && targetItem.batches ? [...targetItem.batches] : [];
+                        if (batches.length === 0) {
+                             batches = [newBatch];
+                        } else {
+                             // 編輯時，我們更新第一批次的數值
                              batches[0] = { ...batches[0], ...newBatch };
                         }
-
-                        // 保留舊有的 fallback image (萬一批次裡都沒圖)
-                        const fallback = oldItemRef ? oldItemRef.image : null;
-                        const result = recalculateItemFromBatches(batches, ownersFinal, fallback);
+                        
+                        // 確保 fallback image 存在
+                        const fallbackImg = targetItem.image; 
+                        const result = recalculateItemFromBatches(batches, ownersFinal, fallbackImg);
 
                         await updateDoc(doc(db, "fridge_items", newItem.value.id), {
                             name: newItem.value.name,
@@ -1196,45 +1159,52 @@
                             updatedAt: new Date()
                         });
 
-                    } 
-                    // 2. 新增模式 (合併重複物品)
-                    else if (existingMatch.value) {
-                        const targetItem = existingMatch.value;
-                        
-                        // 準備舊批次資料 (相容舊版資料結構)
-                        let batches = targetItem.batches ? [...targetItem.batches] : [{
-                            storedDate: targetItem.storedDate,
-                            expiryDate: targetItem.expiryDate,
-                            noExpiry: targetItem.noExpiry,
-                            quantity: parseInt(targetItem.quantity),
-                            image: targetItem.image, // 舊版資料把圖當作第一批的圖
-                            addedAt: 0 
-                        }];
+                    } else {
+                        // === 新增模式 ===
+                        if (targetItem) {
+                            // !!! 合併 !!!
+                            
+                            // 1. 取出舊批次，若舊資料無批次欄位，則建立初始批次
+                            // 重要：舊資料若無 batch.image，需補上 targetItem.image，以免合併後舊照片遺失
+                            let batches = targetItem.batches ? [...targetItem.batches] : [{
+                                storedDate: targetItem.storedDate,
+                                expiryDate: targetItem.expiryDate,
+                                noExpiry: targetItem.noExpiry,
+                                quantity: parseInt(targetItem.quantity),
+                                image: targetItem.image, // 補上照片
+                                addedAt: 0 
+                            }];
+                            
+                            // 檢查舊批次是否都有照片，若無則補上 root image
+                            batches = batches.map(b => ({
+                                ...b,
+                                image: b.image || targetItem.image
+                            }));
 
-                        // 加入新批次
-                        batches.push(newBatch);
+                            // 2. 加入新批次
+                            batches.push(newBatch);
 
-                        // 重新計算，傳入舊圖當作 fallback
-                        const result = recalculateItemFromBatches(batches, targetItem.owners, targetItem.image);
+                            // 3. 重新計算
+                            // 若 targetItem.image 也不存在(極端狀況)，至少 newBatch.image 是有的
+                            const result = recalculateItemFromBatches(batches, targetItem.owners, imageToUse);
 
-                        await updateDoc(doc(db, "fridge_items", targetItem.id), {
-                            ...result,
-                            updatedAt: new Date()
-                        });
+                            await updateDoc(doc(db, "fridge_items", targetItem.id), {
+                                ...result,
+                                updatedAt: new Date()
+                            });
 
-                    } 
-                    // 3. 純新增
-                    else {
-                        const initialBatches = [newBatch];
-                        // 因為是全新的，fallback 就是目前這張圖
-                        const result = recalculateItemFromBatches(initialBatches, ownersFinal, newBatch.image);
+                        } else {
+                            // !!! 全新物品 !!!
+                            const initialBatches = [newBatch];
+                            const result = recalculateItemFromBatches(initialBatches, ownersFinal, imageToUse);
 
-                        await addDoc(collection(db, "fridge_items"), {
-                            name: newItem.value.name,
-                            zone: newItem.value.zone || 'cold',
-                            ...result,
-                            createdAt: new Date()
-                        });
+                            await addDoc(collection(db, "fridge_items"), {
+                                name: newItem.value.name,
+                                zone: newItem.value.zone || 'cold',
+                                ...result,
+                                createdAt: new Date()
+                            });
+                        }
                     }
                     goHome();
                 } catch (e) {
@@ -1268,25 +1238,23 @@
                 const takeQty = parseInt(takeOutAmount.value);
                 const currentQty = parseInt(itemToDelete.value.quantity);
 
-                // 如果全部取出，直接刪除文件
                 if (takeQty >= currentQty) {
                     try { await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id)); goHome(); } catch(e) { alert("刪除失敗"); }
                     return;
                 }
 
                 try {
-                    // === 部分取出：先進先出/先過期先出 邏輯 ===
+                    // === 部分取出：先進先出 + 照片更新邏輯 ===
                     
-                    // 1. 準備批次資料 (相容舊資料)
                     let batches = itemToDelete.value.batches ? [...itemToDelete.value.batches] : [{
                         storedDate: itemToDelete.value.storedDate,
                         expiryDate: itemToDelete.value.expiryDate,
                         noExpiry: itemToDelete.value.noExpiry,
                         quantity: currentQty,
-                        image: itemToDelete.value.image // 舊資料只有一張圖
+                        image: itemToDelete.value.image // 確保舊資料有圖
                     }];
 
-                    // 2. 確保批次是排序好的 (最早過期的在前面)
+                    // 排序
                     batches.sort((a, b) => {
                         const dateA = a.noExpiry ? "9999-12-31" : (a.expiryDate || "9999-12-31");
                         const dateB = b.noExpiry ? "9999-12-31" : (b.expiryDate || "9999-12-31");
@@ -1299,7 +1267,6 @@
                         return 0;
                     });
 
-                    // 3. 開始扣除數量
                     let remainingToTake = takeQty;
                     const newBatches = [];
 
@@ -1317,15 +1284,14 @@
                             newBatches.push(batch);
                         } else {
                             remainingToTake -= batchQty;
-                            // 這一批被消耗殆盡 (包含它的照片)，不加入 newBatches
+                            // 該批次耗盡，移除之 (照片也隨之移除)
                         }
                     }
 
-                    // 4. 重新計算物品屬性 (會自動切換成下一批的照片)
                     if (newBatches.length === 0) {
                          await deleteDoc(doc(db, "fridge_items", itemToDelete.value.id));
                     } else {
-                         // Fallback 仍傳目前的 image，以防萬一所有 batch 都沒圖
+                         // 這裡 fallback 用目前的 image，以免瞬間閃爍
                          const result = recalculateItemFromBatches(newBatches, itemToDelete.value.owners, itemToDelete.value.image);
                          await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { ...result });
                     }
@@ -1417,9 +1383,9 @@
                     noExpiry: false,
                     image: null,
                     zone: "cold",
-                    owners: ['全家']
+                    owners: ['全家'],
+                    useExistingImage: false
                 };
-                useExistingPhoto.value = false;
                 currentPage.value = "add";
             };
 
@@ -1434,9 +1400,9 @@
                     noExpiry: item.noExpiry,
                     image: item.image,
                     zone: item.zone || 'cold',
-                    owners: item.owners || ['全家']
+                    owners: item.owners || ['全家'],
+                    useExistingImage: false
                 };
-                useExistingPhoto.value = false;
                 currentPage.value = "edit";
             };
 
@@ -1491,8 +1457,7 @@
                 appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
                 settings, saveSettings, showUpdateModal, closeUpdatePage,
                 goHome, goToAddPage, goSettingsFromSidebar,
-                toggleOwner, formatOwners,
-                existingMatch, useExistingPhoto // 新增: 暴露給 template
+                toggleOwner, formatOwners
             };
         }
     }).mount("#app");
