@@ -211,11 +211,10 @@
                     </div>
                 </div>
                 
-                <!-- 無庫存區的多選按鈕 -->
-                <button v-if="filterZone === 'nostock'" class="btn btn-outline-dark btn-sm rounded-pill px-3" @click="toggleSelectionMode">
+                <!-- 管理按鈕 (現在全區開放) -->
+                <button class="btn btn-outline-dark btn-sm rounded-pill px-3" @click="toggleSelectionMode">
                     {{ isSelectionMode ? '取消' : '管理' }}
                 </button>
-                <span v-else class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
             </div>
 
             <!-- 搜尋與篩選 (非無庫存區顯示) -->
@@ -230,9 +229,13 @@
                 </select>
                 <button v-if="searchText" class="btn btn-light border" @click="searchText=''">清除</button>
             </div>
+            
+            <!-- 資訊提示 -->
+             <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span v-if="!isSelectionMode" class="badge bg-primary rounded-pill">{{ filteredItems.length }} 項物品</span>
+                <span v-else class="badge bg-dark rounded-pill">已選擇 {{ selectedNoStockIds.length }} 項</span>
 
-            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-                <small class="text-muted" v-if="filterZone !== 'nostock'"><i class="bi bi-info-circle me-1"></i>長按物品可編輯</small>
+                <small class="text-muted" v-if="filterZone !== 'nostock'"><i class="bi bi-info-circle me-1"></i>長按可編輯</small>
                 <small class="text-muted" v-else><i class="bi bi-info-circle me-1"></i>顯示已用完的物品</small>
             </div>
 
@@ -315,7 +318,7 @@
                 <i class="bi bi-plus-lg"></i>
             </button>
             
-            <!-- 無庫存區多選模式的底部操作列 -->
+            <!-- 多選模式的底部操作列 -->
             <div v-if="isSelectionMode" class="fixed-bottom p-3 bg-white border-top shadow-lg">
                  <div class="d-flex gap-2">
                     <button class="btn btn-outline-danger w-50 rounded-pill py-2" 
@@ -386,9 +389,13 @@
                             </div>
                         </div>
 
+                        <!-- 物品名稱輸入 (新增 datalist 支援自動完成) -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">2. 名稱</label>
-                            <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
+                            <input type="text" list="name-suggestions" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" required>
+                            <datalist id="name-suggestions">
+                                <option v-for="name in uniqueItemNames" :key="name" :value="name"></option>
+                            </datalist>
                         </div>
 
                         <!-- 偵測重複提示 -->
@@ -431,7 +438,7 @@
                             <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
 
-                        <!-- 如果物品有庫存，顯示數量與日期欄位；無庫存則隱藏 -->
+                        <!-- 如果物品有庫存，顯示數量與日期欄位 -->
                         <div v-if="newItem.quantity != 0">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">4. 數量</label>
@@ -948,9 +955,9 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.5.0";
+    const APP_VERSION = "1.5.1";
 
-    const { createApp, ref, computed, onMounted, watch } = Vue;
+    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
     createApp({
         setup() {
@@ -986,15 +993,16 @@
             const fileInput = ref(null);
             const currentPage = ref("home");
             const previousPage = ref("home"); 
+            const savedScrollPosition = ref(0); // 記錄滑動位置
 
             // 購物相關狀態
             const selectedToBuyIds = ref([]);
             const selectedCartIds = ref([]);
             const pendingPurchaseOriginalId = ref(null);
             
-            // 無庫存區管理模式
+            // 多選管理模式
             const isSelectionMode = ref(false);
-            const selectedNoStockIds = ref([]);
+            const selectedNoStockIds = ref([]); // 雖然名稱是 NoStock，但為了相容現有程式碼，我們將其通用化
 
             let longPressTimer = null;
             const LONG_PRESS_DURATION = 600;
@@ -1027,8 +1035,13 @@
                 return items.value.find(i => 
                     i.name.trim() === newItem.value.name.trim() && 
                     (i.zone || 'cold') === newItem.value.zone 
-                    // 移除 quantity > 0 檢查，允許合併至無庫存物品
                 ) || null;
+            });
+
+            // 產生不重複的物品名稱清單供 datalist 使用
+            const uniqueItemNames = computed(() => {
+                const names = items.value.map(i => i.name).filter(n => n);
+                return [...new Set(names)];
             });
 
             // 監聽 matchedExistingItem
@@ -1377,8 +1390,15 @@
                     alert("請記得拍照喔！"); return; 
                 }
                 
+                // --- 修正編輯物品數量如果是空字串會導致閃退的問題 ---
+                // 防呆處理：如果是空值或非數字，預設為 0
+                let quantityToSave = 0;
+                if (newItem.value.quantity !== "" && !isNaN(newItem.value.quantity)) {
+                    quantityToSave = parseInt(newItem.value.quantity);
+                }
+
                 // 無庫存物品編輯時不檢查日期
-                if (newItem.value.quantity != 0 && !newItem.value.storedDate) { 
+                if (quantityToSave != 0 && !newItem.value.storedDate) { 
                     alert("請填存入日期"); return; 
                 }
                 
@@ -1394,7 +1414,7 @@
                     storedDate: newItem.value.storedDate,
                     expiryDate: expiryDateClean,
                     noExpiry: noExpiryFinal,
-                    quantity: parseInt(newItem.value.quantity),
+                    quantity: quantityToSave, // 使用處理過的 quantity
                     image: imageToSave, 
                     addedAt: Date.now()
                 };
@@ -1507,11 +1527,17 @@
             };
 
             const goToTakeOutPage = (item) => {
+                // 記錄目前位置
+                savedScrollPosition.value = window.scrollY;
+
                 itemToDelete.value = item;
                 const qty = parseInt(item.quantity);
                 maxTakeOut.value = (!isNaN(qty) && qty > 0) ? qty : 1;
                 takeOutAmount.value = 1;
                 currentPage.value = "takeout";
+
+                // 捲動至最上方
+                nextTick(() => window.scrollTo(0, 0));
             };
 
             const confirmTakeOutAction = async () => {
@@ -1520,12 +1546,10 @@
                 const takeQty = parseInt(takeOutAmount.value);
                 const currentQty = parseInt(itemToDelete.value.quantity);
 
-                // !重點修改: 若全取，不刪除 doc，而是設 quantity = 0
                 if (takeQty >= currentQty) {
                     try { 
                         await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { 
                             quantity: 0 
-                            // 這裡可以選擇是否保留 shoppingStatus，目前保留
                         }); 
                         goHome(); 
                     } catch(e) { alert("更新失敗"); }
@@ -1573,7 +1597,6 @@
                         }
                     }
 
-                    // 若批次算完總數為 0，也更新為 0 而非刪除
                     const result = recalculateItemFromBatches(newBatches, itemToDelete.value.owners);
                     await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { ...result });
                     
@@ -1592,7 +1615,7 @@
                 }
             };
 
-            // 永久刪除 (多選)
+            // 永久刪除 (多選) - 適用於無庫存或其他
             const deleteSelectedNoStock = async () => {
                 if(confirm(`確定要永久刪除選取的 ${selectedNoStockIds.value.length} 項物品嗎？`)) {
                     const promises = selectedNoStockIds.value.map(id => deleteDoc(doc(db, "fridge_items", id)));
@@ -1611,7 +1634,7 @@
                 selectedToBuyIds.value = [];
             };
 
-            // 批次加入待買
+            // 批次加入待買 (全區通用)
             const addSelectedNoStockToBuy = async () => {
                  const promises = selectedNoStockIds.value.map(id => 
                     updateDoc(doc(db, "fridge_items", id), { shoppingStatus: 'toBuy' })
@@ -1721,9 +1744,13 @@
                 isSelectionMode.value = false;
                 selectedNoStockIds.value = [];
                 goHome();
+                // 側邊欄切換區域時，Home 也視為重置，回到頂端
+                window.scrollTo(0, 0);
             };
 
             const goToAddPage = () => {
+                savedScrollPosition.value = window.scrollY; // 紀錄位置
+
                 newItem.value = {
                     id: null,
                     name: "",
@@ -1739,10 +1766,15 @@
                 };
                 pendingPurchaseOriginalId.value = null; 
                 currentPage.value = "add";
+
+                // 捲動至最上方
+                nextTick(() => window.scrollTo(0, 0));
             };
 
             const goToEditPage = (item) => {
                 if(longPressTimer) clearTimeout(longPressTimer);
+                savedScrollPosition.value = window.scrollY; // 紀錄位置
+
                 newItem.value = {
                     id: item.id,
                     name: item.name,
@@ -1757,6 +1789,9 @@
                     shoppingStatus: item.shoppingStatus || null
                 };
                 currentPage.value = "edit";
+
+                // 捲動至最上方
+                nextTick(() => window.scrollTo(0, 0));
             };
 
             const goSettingsFromSidebar = () => {
@@ -1778,7 +1813,6 @@
             // 返回側邊欄邏輯
             const returnToSidebar = () => {
                 currentPage.value = 'home';
-                // 使用 nextTick 或 setTimeout 確保 DOM 更新後再打開側邊欄
                 setTimeout(() => {
                     const el = document.getElementById("sidebar");
                     const inst = new bootstrap.Offcanvas(el);
@@ -1794,6 +1828,11 @@
             const goHome = () => {
                 currentPage.value = "home";
                 previewImageUrl.value = null; 
+                
+                // 返回時，恢復原先的捲動位置
+                nextTick(() => {
+                    window.scrollTo(0, savedScrollPosition.value);
+                });
             };
 
             const filteredItems = computed(() => {
@@ -1898,7 +1937,7 @@
                 itemToDelete, takeOutAmount, maxTakeOut, goToTakeOutPage, confirmTakeOutAction,
                 openPreview, closePreview, handleTouchStart, handleTouchEnd, handleTouchMove, goToEditPage,
                 getZoneColor, getZoneName, zoneStats, selectZoneFromSidebar,
-                newItem, processImage, submitItem, matchedExistingItem,
+                newItem, processImage, submitItem, matchedExistingItem, uniqueItemNames,
                 getDays, addDays, getAlertClass, filteredItems, isNoExpiry,
                 appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
                 settings, saveSettings, showUpdateModal, closeUpdatePage,
@@ -1908,7 +1947,7 @@
                 toBuyList, cartList, goPageFromSidebar, returnToSidebar,
                 selectedToBuyIds, selectedCartIds, moveSelectedToCart, removeSelectedFromCart, moveSelectedBackToBuy, removeFromToBuyList,
                 toggleToBuyStatus, startPurchase, getBorderClass,
-                // No Stock Mode
+                // No Stock / Generic Selection Mode
                 isSelectionMode, toggleSelectionMode, selectedNoStockIds, handleCardClick, 
                 deleteSelectedNoStock, addSelectedNoStockToBuy, deleteItemPermanently
             };
