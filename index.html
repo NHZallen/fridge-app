@@ -51,6 +51,7 @@
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
         .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
         
+        /* 列表小圖的效期框線 */
         .border-red { border: 3px solid #ff6b6b; }
         .border-yellow { border: 3px solid #ffcc00; }
 
@@ -132,6 +133,7 @@
             color: #fff; background-color: #002266; border-color: #002266;
         }
         
+        /* 購物清單樣式 */
         .shopping-item-row {
             display: flex; align-items: center; padding: 12px 0;
             border-bottom: 1px solid #f0f0f0;
@@ -139,6 +141,7 @@
         .shopping-item-row:last-child { border-bottom: none; }
         .shopping-checkbox { transform: scale(1.3); margin-right: 15px; }
 
+        /* 多選模式遮罩 */
         .selection-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.7);
@@ -147,29 +150,6 @@
         }
         .selection-check {
             font-size: 3rem; color: #0d6efd;
-        }
-        
-        /* 自訂建議選單樣式 */
-        .suggestions-list {
-            position: absolute;
-            top: 100%; left: 0; right: 0;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            z-index: 1050;
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 5px;
-        }
-        .suggestion-item {
-            padding: 10px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .suggestion-item:last-child { border-bottom: none; }
-        .suggestion-item:hover, .suggestion-item:active {
-            background-color: #e9ecef;
         }
     </style>
 </head>
@@ -231,6 +211,7 @@
                     </div>
                 </div>
                 
+                <!-- 管理模式按鈕 (已改為全區皆可使用) -->
                 <button class="btn btn-outline-dark btn-sm rounded-pill px-3" @click="toggleSelectionMode">
                     {{ isSelectionMode ? '取消' : '管理' }}
                 </button>
@@ -265,6 +246,7 @@
                          @click="handleCardClick(item)"
                          @contextmenu.prevent="goToEditPage(item)">
                         
+                        <!-- 多選模式勾選遮罩 -->
                         <div v-if="isSelectionMode" class="selection-overlay">
                             <i class="bi bi-check-circle-fill selection-check" v-if="selectedHomeIds.includes(item.id)"></i>
                             <i class="bi bi-circle text-muted fs-1" v-else></i>
@@ -289,6 +271,7 @@
                                 </small>
                             </div>
 
+                            <!-- 購物狀態顯示 -->
                             <div class="mb-2" v-if="item.shoppingStatus === 'toBuy'">
                                 <span class="badge bg-info text-dark w-100"><i class="bi bi-cart-plus me-1"></i>待購買</span>
                             </div>
@@ -326,11 +309,14 @@
                 <p class="mt-3">該區域是空的</p>
             </div>
 
+            <!-- 一般模式的 FAB -->
             <button v-if="!isSelectionMode && filterZone !== 'nostock'" class="fab-btn" @click="goToAddPage">
                 <i class="bi bi-plus-lg"></i>
             </button>
             
+            <!-- 多選模式的底部操作列 -->
             <div v-if="isSelectionMode" class="fixed-bottom p-3 bg-white border-top shadow-lg">
+                 <!-- 無庫存區專用：永久刪除 -->
                  <div v-if="filterZone === 'nostock'" class="d-flex gap-2">
                     <button class="btn btn-outline-danger w-50 rounded-pill py-2" 
                             :disabled="selectedHomeIds.length === 0"
@@ -343,6 +329,7 @@
                         <i class="bi bi-cart-plus me-1"></i> 加入待買
                     </button>
                  </div>
+                 <!-- 一般區域專用：批次加入待買 -->
                  <div v-else class="d-flex gap-2">
                      <button class="btn btn-info text-white w-100 rounded-pill py-2 fw-bold" 
                             :disabled="selectedHomeIds.length === 0"
@@ -367,6 +354,7 @@
                 <div class="card-body">
                     <form @submit.prevent="submitItem">
                         
+                        <!-- 編輯模式下顯示的待購買開關 -->
                         <div v-if="currentPage==='edit'" class="mb-4 bg-light p-3 rounded border">
                             <div v-if="newItem.shoppingStatus === 'inCart'" class="d-flex align-items-center text-warning">
                                 <i class="bi bi-cart-check fs-3 me-3"></i>
@@ -389,6 +377,7 @@
                             </div>
                         </div>
 
+                        <!-- 物品名稱與區域 -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">1. 存放區域</label>
                             <div class="btn-group w-100" role="group">
@@ -403,30 +392,16 @@
                             </div>
                         </div>
 
-                        <div class="mb-3 position-relative">
+                        <div class="mb-3">
                             <label class="form-label fw-bold">2. 名稱</label>
-                            <!-- 自訂建議選單：取代 datalist -->
-                            <input type="text" 
-                                   class="form-control form-control-lg" 
-                                   v-model="newItem.name" 
-                                   placeholder="例如：鮮奶" 
-                                   @focus="showNameSuggestions = true"
-                                   @blur="hideSuggestionsDelay"
-                                   required>
-                            
-                            <!-- 建議選單列表 -->
-                            <div v-if="showNameSuggestions && suggestionList.length > 0" class="suggestions-list">
-                                <div v-for="(suggestion, index) in suggestionList" 
-                                     :key="index" 
-                                     class="suggestion-item d-flex justify-content-between align-items-center"
-                                     @mousedown="selectSuggestion(suggestion)">
-                                     <span>{{ suggestion.text }}</span>
-                                     <span v-if="suggestion.isExisting" class="badge bg-light text-secondary border">已有</span>
-                                     <span v-else class="badge bg-primary">新物品</span>
-                                </div>
-                            </div>
+                            <!-- 優化：新增 Datalist 提供名稱建議 -->
+                            <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" list="nameSuggestions" required>
+                            <datalist id="nameSuggestions">
+                                <option v-for="name in uniqueItemNames" :key="name" :value="name"></option>
+                            </datalist>
                         </div>
 
+                        <!-- 偵測重複提示 -->
                         <div v-if="matchedExistingItem" class="alert alert-warning d-flex align-items-start mb-3" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2 mt-1"></i>
                             <div>
@@ -435,6 +410,7 @@
                             </div>
                         </div>
 
+                        <!-- 圖片區 -->
                         <div class="mb-4">
                             <label class="form-label fw-bold fs-5">3. 物品照片</label>
                             
@@ -464,6 +440,7 @@
                             <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
 
+                        <!-- 修正：當數量被刪除成空字串時，仍保持顯示，避免跳動 -->
                         <div v-if="newItem.quantity != 0 || newItem.quantity === ''">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">4. 數量</label>
@@ -526,6 +503,7 @@
                             {{ (isUploading || isCompressing) ? '處理中...' : (currentPage==='edit' ? '儲存變更' : '確認放入冰箱') }}
                         </button>
 
+                        <!-- 0庫存物品的永久刪除按鈕 -->
                         <button v-if="currentPage==='edit' && newItem.quantity == 0 && newItem.quantity !== ''" 
                                 type="button" 
                                 class="btn btn-outline-danger w-100 mt-3 rounded-pill"
@@ -558,6 +536,7 @@
                          <div v-for="item in toBuyList" :key="item.id" class="shopping-item-row">
                             <input type="checkbox" class="form-check-input shopping-checkbox" 
                                    :value="item.id" v-model="selectedToBuyIds">
+                            <!-- 新增圖片 -->
                             <div class="list-thumb-box" :class="getBorderClass(item)">
                                 <img v-if="item.image" :src="item.image" class="list-thumb-img">
                                 <div v-else class="d-flex justify-content-center align-items-center h-100 text-muted"><i class="bi bi-image"></i></div>
@@ -613,6 +592,7 @@
                          <div v-for="item in cartList" :key="item.id" class="shopping-item-row">
                             <input type="checkbox" class="form-check-input shopping-checkbox" 
                                    :value="item.id" v-model="selectedCartIds">
+                            <!-- 新增圖片 -->
                             <div class="list-thumb-box" :class="getBorderClass(item)">
                                 <img v-if="item.image" :src="item.image" class="list-thumb-img">
                                 <div v-else class="d-flex justify-content-center align-items-center h-100 text-muted"><i class="bi bi-image"></i></div>
@@ -893,6 +873,7 @@
                 <hr class="sidebar-divider">
 
                 <div class="d-grid gap-2 mb-4">
+                     <!-- 新增全區 -->
                     <button class="btn btn-outline-dark text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('all')">
                         <span><i class="bi bi-grid-fill me-2"></i>全區</span>
                         <div class="d-flex gap-1">
@@ -924,6 +905,7 @@
                             <span class="badge bg-danger zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
                         </div>
                     </button>
+                    <!-- 新增無庫存區 -->
                     <button class="btn btn-outline-secondary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('nostock')">
                         <span><i class="bi bi-archive me-2"></i>無庫存區</span>
                         <div class="d-flex gap-1">
@@ -975,7 +957,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.5.0";
+    const APP_VERSION = "1.5.1"; // 微幅更新版號
 
     const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
@@ -1014,6 +996,7 @@
             const currentPage = ref("home");
             const previousPage = ref("home");
             
+            // 優化：記錄滑動位置
             const savedScrollY = ref(0);
 
             // 購物相關狀態
@@ -1021,12 +1004,9 @@
             const selectedCartIds = ref([]);
             const pendingPurchaseOriginalId = ref(null);
             
-            // 多選管理模式
+            // 多選管理模式 (改名為通用 Ids)
             const isSelectionMode = ref(false);
             const selectedHomeIds = ref([]);
-
-            // 名稱建議相關
-            const showNameSuggestions = ref(false);
 
             let longPressTimer = null;
             const LONG_PRESS_DURATION = 600;
@@ -1048,7 +1028,7 @@
                 zone: "cold",
                 owners: ['全家'],
                 useExistingImage: false,
-                shoppingStatus: null 
+                shoppingStatus: null // null, 'toBuy', 'inCart'
             });
 
             // --- 偵測重複物品 ---
@@ -1062,44 +1042,10 @@
                 ) || null;
             });
 
-            // 優化：自訂名稱建議邏輯
+            // 優化：自動完成名稱 (Datalist)
             const uniqueItemNames = computed(() => {
                 const names = items.value.map(i => i.name).filter(n => n);
                 return [...new Set(names)].sort();
-            });
-
-            const suggestionList = computed(() => {
-                const input = newItem.value.name?.trim() || "";
-                if (!input) return [];
-
-                // 1. 找出所有包含輸入內容的既有名稱
-                const matches = uniqueItemNames.value.filter(n => n.includes(input));
-                
-                // 2. 判斷是否有完全相符的名稱
-                const exactMatch = uniqueItemNames.value.includes(input);
-                
-                let results = [];
-                
-                if (exactMatch) {
-                    // 情況 A：已經有完全一樣的名稱 -> 該名稱排第一
-                    // 先把完全相符的移到最前面，其他的在後面
-                    results = matches.sort((a, b) => a === input ? -1 : b === input ? 1 : 0);
-                    
-                    // 轉換格式
-                    return results.slice(0, 5).map(name => ({ text: name, isExisting: true }));
-                } else {
-                    // 情況 B：沒有完全相符的名稱 -> 用戶輸入的內容排第一 (New)，其他建議排後面
-                    // 第一個選項是用戶自己打的
-                    const newOption = { text: input, isExisting: false };
-                    
-                    // 其他選項是資料庫建議
-                    const otherOptions = matches
-                        .filter(n => n !== input)
-                        .slice(0, 4)
-                        .map(name => ({ text: name, isExisting: true }));
-                        
-                    return [newOption, ...otherOptions];
-                }
             });
 
             // 監聽 matchedExistingItem
@@ -1594,8 +1540,8 @@
                 takeOutAmount.value = 1;
                 currentPage.value = "takeout";
                 
-                // 優化：瞬間滾動到頂部 (無動畫)
-                nextTick(() => window.scrollTo({ top: 0, behavior: "instant" }));
+                // 優化：強制瞬間移動到頂部 (無動畫)
+                nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
             };
 
             const confirmTakeOutAction = async () => {
@@ -1805,6 +1751,7 @@
             };
 
             const goToAddPage = () => {
+                // 優化：記錄位置並重置到頂端 (無動畫)
                 savedScrollY.value = window.scrollY;
 
                 newItem.value = {
@@ -1822,14 +1769,14 @@
                 };
                 pendingPurchaseOriginalId.value = null; 
                 currentPage.value = "add";
-                
-                // 優化：瞬間滾動到頂部 (無動畫)
-                nextTick(() => window.scrollTo({ top: 0, behavior: "instant" }));
+
+                nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
             };
 
             const goToEditPage = (item) => {
                 if(longPressTimer) clearTimeout(longPressTimer);
                 
+                // 優化：記錄位置並重置到頂端 (無動畫)
                 savedScrollY.value = window.scrollY;
 
                 newItem.value = {
@@ -1847,8 +1794,7 @@
                 };
                 currentPage.value = "edit";
                 
-                // 優化：瞬間滾動到頂部 (無動畫)
-                nextTick(() => window.scrollTo({ top: 0, behavior: "instant" }));
+                nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
             };
 
             const goSettingsFromSidebar = () => {
@@ -1884,22 +1830,10 @@
             const goHome = () => {
                 currentPage.value = "home";
                 previewImageUrl.value = null;
-                // 優化：瞬間恢復滾動位置 (無動畫)
+                // 優化：返回時恢復滾動位置 (強制無動畫)
                 nextTick(() => {
-                    window.scrollTo({ top: savedScrollY.value, behavior: "instant" });
+                    window.scrollTo({ top: savedScrollY.value, behavior: 'instant' });
                 });
-            };
-
-            // 名稱選單控制方法
-            const selectSuggestion = (suggestion) => {
-                newItem.value.name = suggestion.text;
-                showNameSuggestions.value = false;
-            };
-
-            const hideSuggestionsDelay = () => {
-                setTimeout(() => {
-                    showNameSuggestions.value = false;
-                }, 200);
             };
 
             const filteredItems = computed(() => {
@@ -1978,6 +1912,7 @@
             const startPurchase = (item) => {
                 pendingPurchaseOriginalId.value = item.id;
                 
+                // 優化：記錄位置並重置到頂端 (無動畫)
                 savedScrollY.value = window.scrollY;
 
                 newItem.value = {
@@ -1995,8 +1930,7 @@
                 };
                 currentPage.value = "add";
 
-                // 優化：瞬間滾動到頂部 (無動畫)
-                nextTick(() => window.scrollTo({ top: 0, behavior: "instant" }));
+                nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
             };
 
             return {
@@ -2021,9 +1955,7 @@
                 toggleToBuyStatus, startPurchase, getBorderClass,
                 // No Stock Mode
                 isSelectionMode, toggleSelectionMode, selectedHomeIds, handleCardClick, 
-                deleteSelectedNoStock, addBatchToBuy, deleteItemPermanently,
-                // Name Suggestions
-                showNameSuggestions, suggestionList, selectSuggestion, hideSuggestionsDelay
+                deleteSelectedNoStock, addBatchToBuy, deleteItemPermanently
             };
         }
     }).mount("#app");
