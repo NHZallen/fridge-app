@@ -877,7 +877,9 @@
                     <button class="btn btn-outline-dark text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('all')">
                         <span><i class="bi bi-grid-fill me-2"></i>全區</span>
                         <div class="d-flex gap-1">
-                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.all.total }}</span>
+                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.all.total }}</span>
+                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日警告">{{ zoneStats.all.warning }}</span>
+                            <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.all.expired }}</span>
                         </div>
                     </button>
                     
@@ -1706,7 +1708,8 @@
 
             const zoneStats = computed(() => {
                 const stats = {
-                    all: { total: 0 },
+                    // 修改這裡：全區也要有 warning 和 expired
+                    all: { total: 0, warning: 0, expired: 0 },
                     cold: { total: 0, warning: 0, expired: 0 },
                     frozen: { total: 0, warning: 0, expired: 0 },
                     veggie: { total: 0, warning: 0, expired: 0 },
@@ -1714,25 +1717,32 @@
                 };
 
                 items.value.forEach(item => {
-                    const z = item.zone || 'cold';
-                    
+                    // 無庫存不計入統計
                     if (parseInt(item.quantity) === 0) {
                         stats.nostock.total++;
-                        return; // 無庫存不計入各區統計
+                        return; 
                     }
 
-                    stats.all.total++; // 計入全區
-                    if (!stats[z]) return;
-
-                    stats[z].total++;
+                    // 1. 全區總數 +1
+                    stats.all.total++;
                     
+                    const z = item.zone || 'cold';
+                    
+                    // 2. 該分區總數 +1
+                    if (stats[z]) stats[z].total++;
+                    
+                    // 3. 計算過期與警告狀態
                     if (!isNoExpiry(item)) {
                         const days = getDays(item.expiryDate);
                         if (days !== null) {
                             if (days < 0) {
-                                stats[z].expired++; 
+                                // 過期：全區+1，該區+1
+                                stats.all.expired++;
+                                if (stats[z]) stats[z].expired++;
                             } else if (days <= 7) {
-                                stats[z].warning++;
+                                // 警告：全區+1，該區+1
+                                stats.all.warning++;
+                                if (stats[z]) stats[z].warning++;
                             }
                         }
                     }
