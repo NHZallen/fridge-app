@@ -151,11 +151,45 @@
         .selection-check {
             font-size: 3rem; color: #0d6efd;
         }
+
+        /* --- 新增：開場動畫樣式 --- */
+        .splash-video-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000; /* 影片載入前顯示黑色 */
+            z-index: 10000; /* 確保在最上層，蓋過 loading-mask (9999) */
+            display: flex; justify-content: center; align-items: center;
+        }
+        .splash-video {
+            width: 100%; height: 100%;
+            object-fit: cover; /* 確保影片填滿螢幕不留黑邊 */
+        }
+        /* 當影片播放結束隱藏時的過場動畫 */
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
 <div id="app" class="container py-3" v-cloak>
+
+    <!-- === 新增：開場動畫層 === -->
+    <!-- 只有當 isVideoPlaying 為 true 時顯示 -->
+    <div v-if="isVideoPlaying" class="splash-video-container" :class="{ 'fade-out': isFadingOut }">
+        <!-- muted: 靜音(必要) / autoplay: 自動播放 / playsinline: iOS必要屬性 -->
+        <video class="splash-video" autoplay muted playsinline @ended="onVideoEnded">
+            <source src="intro.mp4" type="video/mp4">
+            <!-- 您的影片檔案需命名為 intro.mp4 並放在同目錄下 -->
+        </video>
+        <!-- 跳過按鈕 -->
+        <button class="btn btn-sm btn-dark position-absolute top-0 end-0 m-4 rounded-pill opacity-75" 
+                style="z-index: 10001;" 
+                @click="onVideoEnded">
+            跳過
+        </button>
+    </div>
 
     <!-- 圖片預覽層 -->
     <div v-if="previewImageUrl" class="image-preview-overlay" @click="closePreview">
@@ -761,7 +795,7 @@
                 </div>
             </div>
 
-            <!-- 更新歷史 (修改優化版) -->
+            <!-- 更新歷史 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
@@ -974,7 +1008,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.6.1"; // 微幅更新版號
+    const APP_VERSION = "1.7.0";
 
     const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
@@ -994,6 +1028,10 @@
             const isUploading = ref(false);
             const isCompressing = ref(false);
             const isLoading = ref(false);
+
+            // --- 新增：影片播放控制狀態 ---
+            const isVideoPlaying = ref(true); // 預設開啟 APP 時播放
+            const isFadingOut = ref(false);   // 控制淡出動畫用
 
             const previewImageUrl = ref(null);
             const itemToDelete = ref(null);
@@ -1033,7 +1071,7 @@
             const latestVersion = ref(LATEST_VERSION);
             const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
 
-            // --- 新增：設定頁面歷史紀錄顯示控制 ---
+            // --- 設定頁面歷史紀錄顯示控制 ---
             const showAllUpdates = ref(false);
             const visibleUpdateLogs = computed(() => {
                 if (showAllUpdates.value) return updateLogs.value;
@@ -1084,6 +1122,17 @@
             });
 
             // --- 方法 ---
+
+            // --- 新增：處理影片播放結束 ---
+            const onVideoEnded = () => {
+                // 1. 設定淡出 class (CSS控制透明度)
+                isFadingOut.value = true;
+                
+                // 2. 等待 0.5 秒動畫結束後，將 DOM 移除
+                setTimeout(() => {
+                    isVideoPlaying.value = false;
+                }, 500); 
+            };
 
             const checkConfig = async () => {
                 const storedConfig = localStorage.getItem("fridge_firebase_config");
@@ -1413,7 +1462,6 @@
                 }
             };
 
-            // --- 修正後的 submitItem 函式 (修復 undefined 錯誤) ---
             const submitItem = async () => {
                 if (!newItem.value.useExistingImage && !newItem.value.image) { 
                     alert("請記得拍照喔！"); return; 
@@ -2000,7 +2048,9 @@
                 isSelectionMode, toggleSelectionMode, selectedHomeIds, handleCardClick, 
                 deleteSelectedNoStock, addBatchToBuy, deleteItemPermanently,
                 // New Update Logs Control
-                showAllUpdates, visibleUpdateLogs
+                showAllUpdates, visibleUpdateLogs,
+                // New Video Controls
+                isVideoPlaying, isFadingOut, onVideoEnded
             };
         }
     }).mount("#app");
