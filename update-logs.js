@@ -1,6 +1,14 @@
-export const LATEST_VERSION = "1.6.1";
+export const LATEST_VERSION = "1.6.2";
 
 export const UPDATE_LOGS = [
+  {
+    version: "1.6.2",
+    date: "2026-01-12",
+    title: "視覺體驗優化",
+    changes: [
+      "優化過期警示邏輯：無庫存區物品、待購買清單與購物車內的物品（庫存為 0），不再顯示過期紅框與警告背景，避免視覺混淆"
+    ]
+  },
   {
     version: "1.6.1",
     date: "2026-01-12",
