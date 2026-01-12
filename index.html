@@ -1701,6 +1701,7 @@
             };
 
             const getAlertClass = (item) => {
+                if (parseInt(item.quantity) === 0) return ""; // 無庫存不顯示警示
                 if (isNoExpiry(item)) return "";
                 const d = getDays(item.expiryDate);
                 if (d === null) return "";
@@ -1710,6 +1711,7 @@
             };
 
             const getBorderClass = (item) => {
+                if (parseInt(item.quantity) === 0) return ""; // 無庫存不顯示框線警示
                 if (isNoExpiry(item)) return "";
                 const d = getDays(item.expiryDate);
                 if (d === null) return "";
