@@ -211,7 +211,7 @@
                     </div>
                 </div>
                 
-                <!-- 管理模式按鈕 (已改為全區皆可使用) -->
+                <!-- 管理模式按鈕 -->
                 <button class="btn btn-outline-dark btn-sm rounded-pill px-3" @click="toggleSelectionMode">
                     {{ isSelectionMode ? '取消' : '管理' }}
                 </button>
@@ -394,7 +394,6 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold">2. 名稱</label>
-                            <!-- 優化：新增 Datalist 提供名稱建議 -->
                             <input type="text" class="form-control form-control-lg" v-model="newItem.name" placeholder="例如：鮮奶" list="nameSuggestions" required>
                             <datalist id="nameSuggestions">
                                 <option v-for="name in uniqueItemNames" :key="name" :value="name"></option>
@@ -440,7 +439,6 @@
                             <small class="text-muted d-block mt-2 text-center" v-if="isCompressing">正在處理圖片...</small>
                         </div>
 
-                        <!-- 修正：當數量被刪除成空字串時，仍保持顯示，避免跳動 -->
                         <div v-if="newItem.quantity != 0 || newItem.quantity === ''">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">4. 數量</label>
@@ -763,12 +761,14 @@
                 </div>
             </div>
 
-            <!-- 更新歷史 -->
+            <!-- 更新歷史 (修改優化版) -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
+                    
+                    <!-- 列表區塊：改為跑 visibleUpdateLogs -->
                     <div class="accordion" id="updateAccordion">
-                        <div class="accordion-item" v-for="log in updateLogs" :key="log.version">
+                        <div class="accordion-item" v-for="log in visibleUpdateLogs" :key="log.version">
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                         :data-bs-target="'#v'+log.version.replaceAll('.','_')">
@@ -787,6 +787,21 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- 顯示更多按鈕 -->
+                    <div v-if="!showAllUpdates && updateLogs.length > 3" class="text-center mt-2">
+                        <button class="btn btn-link text-decoration-none text-muted" @click="showAllUpdates = true">
+                            <i class="bi bi-chevron-down me-1"></i>顯示更多歷史紀錄 ({{ updateLogs.length - 3 }})
+                        </button>
+                    </div>
+                    
+                    <!-- 收起按鈕 -->
+                    <div v-if="showAllUpdates && updateLogs.length > 3" class="text-center mt-2">
+                        <button class="btn btn-link text-decoration-none text-muted" @click="showAllUpdates = false">
+                            <i class="bi bi-chevron-up me-1"></i>收起歷史紀錄
+                        </button>
+                    </div>
+
                 </div>
             </div>
 
@@ -1017,6 +1032,13 @@
             const updateLogs = ref(UPDATE_LOGS);
             const latestVersion = ref(LATEST_VERSION);
             const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
+
+            // --- 新增：設定頁面歷史紀錄顯示控制 ---
+            const showAllUpdates = ref(false);
+            const visibleUpdateLogs = computed(() => {
+                if (showAllUpdates.value) return updateLogs.value;
+                return updateLogs.value.slice(0, 3);
+            });
 
             const getTodayStr = () => new Date().toISOString().split("T")[0];
             const newItem = ref({
@@ -1391,6 +1413,7 @@
                 }
             };
 
+            // --- 修正後的 submitItem 函式 (修復 undefined 錯誤) ---
             const submitItem = async () => {
                 if (!newItem.value.useExistingImage && !newItem.value.image) { 
                     alert("請記得拍照喔！"); return; 
@@ -1464,18 +1487,17 @@
                         const targetItem = matchedExistingItem.value;
 
                         if (targetItem) {
-                            // --- 修正處：合併到現有物品 (偵測到重複) ---
+                            // --- 合併到現有物品 (偵測到重複) ---
                             let batches = targetItem.batches ? [...targetItem.batches] : [{
                                 storedDate: targetItem.storedDate,
                                 expiryDate: targetItem.expiryDate,
                                 noExpiry: targetItem.noExpiry,
                                 quantity: parseInt(targetItem.quantity),
-                                image: targetItem.image || null, // 修正：防止舊資料圖片為 undefined
+                                image: targetItem.image || null, // 防止舊資料圖片為 undefined
                                 addedAt: 0
                             }];
 
                             if (newItem.value.useExistingImage) {
-                                // 修正：防止舊資料圖片為 undefined
                                 newBatch.image = targetItem.image || null;
                             } else {
                                 newBatch.image = newItem.value.image || null; 
@@ -1483,7 +1505,7 @@
 
                             batches.push(newBatch);
                             
-                            // 修正：如果舊資料沒有 owners 欄位，給予預設值，避免傳送 undefined 給 Firebase
+                            // 如果舊資料沒有 owners 欄位，給予預設值
                             const targetOwners = targetItem.owners || ['全家'];
                             const result = recalculateItemFromBatches(batches, targetOwners); 
 
@@ -1516,7 +1538,7 @@
 
                     goHome();
                 } catch (e) {
-                    console.error("Firebase Error:", e); // 加入詳細錯誤日誌以便除錯
+                    console.error("Firebase Error:", e);
                     alert("上傳/更新失敗，請檢查網路");
                 } finally {
                     isUploading.value = false;
@@ -1976,7 +1998,9 @@
                 toggleToBuyStatus, startPurchase, getBorderClass,
                 // No Stock Mode
                 isSelectionMode, toggleSelectionMode, selectedHomeIds, handleCardClick, 
-                deleteSelectedNoStock, addBatchToBuy, deleteItemPermanently
+                deleteSelectedNoStock, addBatchToBuy, deleteItemPermanently,
+                // New Update Logs Control
+                showAllUpdates, visibleUpdateLogs
             };
         }
     }).mount("#app");
