@@ -1,7 +1,15 @@
-// update-logs.js
-export const LATEST_VERSION = "1.6.0";
+export const LATEST_VERSION = "1.6.1";
 
 export const UPDATE_LOGS = [
+  {
+    version: "1.6.1",
+    date: "2026-01-12",
+    title: "舊資料相容性修正與設定頁優化",
+    changes: [
+      "修正補貨合併問題：解決將新物品合併至早期建立的舊資料時，因缺少部份欄位導致「更新失敗」的錯誤",
+      "優化設定頁面體驗：版本更新紀錄預設僅顯示最近三筆，點擊「顯示更多」即可查看完整歷史，保持版面簡潔"
+    ]
+  },
   {
     version: "1.6.0",
     date: "2026-01-12",
