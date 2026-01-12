@@ -468,33 +468,24 @@
                             </div>
                         </div>
                         
+                        <!-- 修改為 Datalist 選擇 -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">{{ (newItem.quantity != 0 || newItem.quantity === '') ? '7.' : '4.' }} 物品所有人</label>
-                            <div class="dropdown w-100">
-                                <button class="btn btn-outline-dark dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <span class="text-truncate">{{ formatOwners(newItem.owners) }}</span>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-custom shadow border-0">
-                                    <li>
-                                        <label class="dropdown-item-custom">
-                                            <input type="checkbox" class="form-check-input" 
-                                                   :checked="newItem.owners.includes('全家')"
-                                                   @change="toggleOwner('全家')">
-                                            <span class="fw-bold">全家 (預設)</span>
-                                        </label>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li v-for="member in familySettings.members" :key="member">
-                                        <label class="dropdown-item-custom">
-                                            <input type="checkbox" class="form-check-input"
-                                                   :checked="newItem.owners.includes(member)"
-                                                   @change="toggleOwner(member)">
-                                            {{ member }}
-                                        </label>
-                                    </li>
-                                </ul>
+                            
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   v-model="ownerInputText" 
+                                   list="ownerOptions" 
+                                   placeholder="輸入名稱或從清單選擇">
+
+                            <datalist id="ownerOptions">
+                                <option value="全家"></option>
+                                <option v-for="member in familySettings.members" :key="member" :value="member"></option>
+                            </datalist>
+
+                            <div class="form-text">
+                                預設為「全家」。若有多人，請用逗號分隔
                             </div>
-                            <div class="form-text">您可以選擇「全家」或是指定多位成員</div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-5 shadow-sm" :disabled="isUploading || isCompressing">
@@ -974,7 +965,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.6.1"; // 微幅更新版號
+    const APP_VERSION = "1.6.2"; // 更新版號
 
     const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
@@ -1024,6 +1015,9 @@
             // 多選管理模式 (改名為通用 Ids)
             const isSelectionMode = ref(false);
             const selectedHomeIds = ref([]);
+
+            // 所有人輸入文字暫存
+            const ownerInputText = ref("全家");
 
             let longPressTimer = null;
             const LONG_PRESS_DURATION = 600;
@@ -1359,20 +1353,6 @@
                 });
             };
 
-            const toggleOwner = (name) => {
-                let owners = newItem.value.owners || [];
-                if (name === '全家') {
-                    if (!owners.includes('全家')) { newItem.value.owners = ['全家']; } 
-                    else { newItem.value.owners = []; }
-                } else {
-                    if (owners.includes('全家')) { owners = owners.filter(o => o !== '全家'); }
-                    if (owners.includes(name)) { owners = owners.filter(o => o !== name); } 
-                    else { owners.push(name); }
-                    if (owners.length === 0) { owners = ['全家']; }
-                    newItem.value.owners = owners;
-                }
-            };
-
             const formatOwners = (owners) => {
                 if (!owners || owners.length === 0) return '全家';
                 return owners.join('、');
@@ -1415,6 +1395,20 @@
 
             // --- 修正後的 submitItem 函式 (修復 undefined 錯誤) ---
             const submitItem = async () => {
+                // 將輸入框文字轉回陣列
+                const rawInput = ownerInputText.value.trim();
+                let finalOwners = [];
+
+                if (!rawInput) {
+                    finalOwners = ['全家'];
+                } else {
+                    // 支援逗號、頓號、空白分隔
+                    finalOwners = rawInput.split(/[,、\s]+/).filter(s => s);
+                }
+                
+                if (finalOwners.length === 0) finalOwners = ['全家'];
+                newItem.value.owners = finalOwners;
+
                 if (!newItem.value.useExistingImage && !newItem.value.image) { 
                     alert("請記得拍照喔！"); return; 
                 }
@@ -1812,6 +1806,9 @@
                     useExistingImage: false,
                     shoppingStatus: null
                 };
+                // 初始化所有人文字框
+                ownerInputText.value = "全家";
+
                 pendingPurchaseOriginalId.value = null; 
                 currentPage.value = "add";
 
@@ -1837,6 +1834,12 @@
                     useExistingImage: false,
                     shoppingStatus: item.shoppingStatus || null
                 };
+                
+                // 將陣列轉為字串顯示
+                ownerInputText.value = (item.owners && item.owners.length > 0) 
+                    ? item.owners.join('、') 
+                    : "全家";
+
                 currentPage.value = "edit";
                 
                 nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
@@ -1973,6 +1976,11 @@
                     useExistingImage: false, 
                     shoppingStatus: null
                 };
+                
+                ownerInputText.value = (item.owners && item.owners.length > 0) 
+                    ? item.owners.join('、') 
+                    : "全家";
+
                 currentPage.value = "add";
 
                 nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
@@ -1993,7 +2001,7 @@
                 appVersion: APP_VERSION, latestVersion, updateLogs, latestLog,
                 settings, saveSettings, showUpdateModal, closeUpdatePage,
                 goHome, goToAddPage, goSettingsFromSidebar,
-                toggleOwner, formatOwners,
+                formatOwners, ownerInputText, // 回傳 ownerInputText
                 // Shopping related
                 toBuyList, cartList, goPageFromSidebar, returnToSidebar,
                 selectedToBuyIds, selectedCartIds, moveSelectedToCart, removeSelectedFromCart, moveSelectedBackToBuy, removeFromToBuyList,
