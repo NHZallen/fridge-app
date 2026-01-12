@@ -1,6 +1,16 @@
-export const LATEST_VERSION = "1.6.1";
+export const LATEST_VERSION = "1.7.0";
 
 export const UPDATE_LOGS = [
+  {
+    version: "1.7.0",
+    date: "2026-01-12",
+    title: "品牌質感升級與開場動畫",
+    changes: [
+      "新增 APP 開場動畫：啟動時播放品牌形象影片，提升整體使用質感",
+      "智慧預載機制：影片播放同時於背景同步資料，播放完畢即刻使用，無需額外等待",
+      "彈性操作設計：新增右上角「跳過」按鈕，方便快速進入主畫面"
+    ]
+  },
   {
     version: "1.6.1",
     date: "2026-01-12",
