@@ -55,6 +55,7 @@
         .border-red { border: 3px solid #ff6b6b; }
         .border-yellow { border: 3px solid #ffcc00; }
 
+        /* 新增按鈕 FAB */
         .fab-btn {
             position: fixed; bottom: 30px; right: 25px;
             width: 65px; height: 65px; border-radius: 50%;
@@ -65,6 +66,18 @@
             z-index: 1000;
         }
         .fab-btn:active { transform: scale(0.95); }
+
+        /* 回到頂部按鈕 */
+        .scroll-top-btn {
+            position: fixed; bottom: 110px; right: 32px;
+            width: 50px; height: 50px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333; font-size: 24px; border: 1px solid #ddd;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 990; transition: opacity 0.3s;
+        }
+        .scroll-top-btn:active { background: #f0f0f0; }
 
         .loading-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -114,9 +127,11 @@
         .sidebar-user-block { margin-bottom: 5px; }
         .sidebar-divider { margin-top: 5px; margin-bottom: 20px; }
 
+        /* 統一統計標籤大小 */
         .zone-stat-badge {
             font-size: 0.75rem;
-            min-width: 24px;
+            min-width: 32px; /* 固定寬度 */
+            display: inline-block; /* 確保寬度生效 */
             text-align: center;
         }
         
@@ -309,6 +324,11 @@
                 <p class="mt-3">該區域是空的</p>
             </div>
 
+            <!-- 回到頂部按鈕 -->
+            <button v-if="showScrollTop" class="scroll-top-btn" @click="scrollToTop">
+                <i class="bi bi-arrow-up"></i>
+            </button>
+
             <!-- 一般模式的 FAB -->
             <button v-if="!isSelectionMode && filterZone !== 'nostock'" class="fab-btn" @click="goToAddPage">
                 <i class="bi bi-plus-lg"></i>
@@ -364,15 +384,24 @@
                                 </div>
                             </div>
                             
-                            <div v-else class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="toBuySwitch" 
-                                       :checked="newItem.shoppingStatus === 'toBuy'"
-                                       @change="toggleToBuyStatus"
-                                       style="cursor: pointer;">
-                                <label class="form-check-label fw-bold d-flex align-items-center" for="toBuySwitch" style="cursor: pointer;">
-                                    <i class="bi bi-cart-plus text-info me-2 fs-5"></i>
-                                    加入待購買清單
-                                </label>
+                            <div v-else>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="form-check form-switch flex-grow-1">
+                                        <input class="form-check-input" type="checkbox" id="toBuySwitch" 
+                                               :checked="newItem.shoppingStatus === 'toBuy'"
+                                               @change="toggleToBuyStatus"
+                                               style="cursor: pointer;">
+                                        <label class="form-check-label fw-bold d-flex align-items-center" for="toBuySwitch" style="cursor: pointer;">
+                                            <i class="bi bi-cart-plus text-info me-2 fs-5"></i>
+                                            加入待購買清單
+                                        </label>
+                                    </div>
+                                    <!-- 快速儲存按鈕 -->
+                                    <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 ms-2" 
+                                            @click="submitItem" :disabled="isUploading || isCompressing">
+                                        <i class="bi bi-check-lg me-1"></i>儲存
+                                    </button>
+                                </div>
                                 <div class="text-muted small mt-1">勾選後，此物品會出現在「待購買」列表，提醒您補貨。</div>
                             </div>
                         </div>
@@ -1015,6 +1044,9 @@
             
             // 優化：記錄滑動位置
             const savedScrollY = ref(0);
+            
+            // 回到頂部按鈕顯示狀態
+            const showScrollTop = ref(false);
 
             // 購物相關狀態
             const selectedToBuyIds = ref([]);
@@ -1311,9 +1343,18 @@
                 return false;
             };
 
+            // 回到頂部功能
+            const scrollToTop = () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
             onMounted(() => {
                 loadSettings();
                 checkConfig();
+                // 監聽滾動事件
+                window.addEventListener('scroll', () => {
+                    showScrollTop.value = window.scrollY > 300;
+                });
             });
             
             watch(() => settings.value.updateNotifyEnabled, () => {
@@ -2002,7 +2043,9 @@
                 isSelectionMode, toggleSelectionMode, selectedHomeIds, handleCardClick, 
                 deleteSelectedNoStock, addBatchToBuy, deleteItemPermanently,
                 // New Update Logs Control
-                showAllUpdates, visibleUpdateLogs
+                showAllUpdates, visibleUpdateLogs,
+                // New Features
+                showScrollTop, scrollToTop
             };
         }
     }).mount("#app");
