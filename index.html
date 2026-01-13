@@ -16,98 +16,22 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <style>
-        :root {
-            --bg-color: #f0f2f5;
-            --text-color: #212529;
-            --card-bg: #ffffff;
-            --card-border: rgba(0,0,0,0.05);
-            --input-bg: #ffffff;
-            --input-border: #ced4da;
-        }
+        body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; }
 
-        /* --- 深色模式 (全黑) --- */
-        [data-bs-theme="dark"] {
-            --bg-color: #000000; /* 全黑背景 */
-            --text-color: #e0e0e0;
-            --card-bg: #121212; /* 卡片極深灰，避免與背景融合 */
-            --card-border: #333333;
-            --input-bg: #1a1a1a;
-            --input-border: #444;
-        }
-        
-        /* 強制覆蓋 Bootstrap 變數以符合全黑需求 */
-        [data-bs-theme="dark"] body {
-            background-color: #000000 !important;
-            color: #e0e0e0 !important;
-        }
-        [data-bs-theme="dark"] .offcanvas, 
-        [data-bs-theme="dark"] .modal-content {
-            background-color: #121212 !important;
-            border: 1px solid #333;
-        }
-
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-color);
-            font-family: system-ui, -apple-system, sans-serif; 
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        /* --- 動畫效果 --- */
-        /* 頁面切換動畫 */
-        .page-enter-active,
-        .page-leave-active {
-            transition: opacity 0.25s ease, transform 0.25s ease;
-        }
-        .page-enter-from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        .page-leave-to {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        /* 列表增刪動畫 */
-        .list-move,
-        .list-enter-active,
-        .list-leave-active {
-            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-        .list-enter-from,
-        .list-leave-to {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-        .list-leave-active {
-            position: absolute; /* 讓刪除時後面的項目平滑補位 */
-        }
-
-        /* 按鈕點擊微互動優化 */
-        .btn, .item-card, .fab-btn, .scroll-top-btn {
-            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s, box-shadow 0.2s;
-        }
-        .btn:active, .fab-btn:active, .scroll-top-btn:active {
-            transform: scale(0.92) !important;
-        }
-
-        /* --- 介面元件 --- */
         .item-card {
-            border: 1px solid var(--card-border); 
-            border-radius: 15px; overflow: hidden;
-            background-color: var(--card-bg);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: none; border-radius: 15px; overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
+            user-select: none; -webkit-user-select: none;
             cursor: pointer;
             position: relative;
         }
-        
+        .item-card:active { transform: scale(0.98); }
+
         .item-img-box {
             width: 100%; height: 180px; background: #e9ecef;
             display: flex; align-items: center; justify-content: center; overflow: hidden;
             position: relative;
         }
-        [data-bs-theme="dark"] .item-img-box { background: #222; }
-
         .item-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
         .item-img-box:active .item-img { opacity: 0.8; }
 
@@ -116,45 +40,22 @@
             opacity: 0.85;
         }
 
-        .section-card {
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            background-color: var(--card-bg);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        }
-
         /* 列表小圖樣式 */
         .list-thumb-box {
             width: 60px; height: 60px; border-radius: 10px; overflow: hidden;
             margin-right: 15px; position: relative; flex-shrink: 0;
             background-color: #eee;
         }
-        [data-bs-theme="dark"] .list-thumb-box { background: #333; }
         .list-thumb-img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* 修正：邊框變細 */
-        .alert-red { border: 1.5px solid #ff6b6b; background-color: #fff5f5; }
-        .alert-yellow { border: 1.5px solid #ffcc00; background-color: #fffdf0; }
+        .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
+        .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
         
-        [data-bs-theme="dark"] .alert-red { background-color: rgba(255, 107, 107, 0.15); border-color: #ff6b6b; color: #ffcccc; }
-        [data-bs-theme="dark"] .alert-yellow { background-color: rgba(255, 204, 0, 0.15); border-color: #ffcc00; color: #ffeb99; }
+        /* 列表小圖的效期框線 */
+        .border-red { border: 3px solid #ff6b6b; }
+        .border-yellow { border: 3px solid #ffcc00; }
 
-        .border-red { border: 1.5px solid #ff6b6b; }
-        .border-yellow { border: 1.5px solid #ffcc00; }
-
-        /* 輸入框在深色模式的調整 */
-        [data-bs-theme="dark"] .form-control, 
-        [data-bs-theme="dark"] .form-select {
-            background-color: var(--input-bg);
-            border-color: var(--input-border);
-            color: var(--text-color);
-        }
-        /* 移除預設的藍色粗框，改為柔和陰影 */
-        .form-control:focus, .form-select:focus {
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-            border-color: #86b7fe;
-        }
-
+        /* 新增按鈕 FAB */
         .fab-btn {
             position: fixed; bottom: 30px; right: 25px;
             width: 65px; height: 65px; border-radius: 50%;
@@ -164,7 +65,9 @@
             display: flex; align-items: center; justify-content: center;
             z-index: 1000;
         }
+        .fab-btn:active { transform: scale(0.95); }
 
+        /* 回到頂部按鈕 */
         .scroll-top-btn {
             position: fixed; bottom: 110px; right: 32px;
             width: 50px; height: 50px; border-radius: 50%;
@@ -172,24 +75,21 @@
             color: #333; font-size: 24px; border: 1px solid #ddd;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             display: flex; align-items: center; justify-content: center;
-            z-index: 990; transition: opacity 0.3s, transform 0.2s;
+            z-index: 990; transition: opacity 0.3s;
         }
-        [data-bs-theme="dark"] .scroll-top-btn {
-            background: #333; color: #fff; border-color: #555;
-        }
+        .scroll-top-btn:active { background: #f0f0f0; }
 
         .loading-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.95); z-index: 9999;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
-        [data-bs-theme="dark"] .loading-mask { background: rgba(0,0,0,0.95); }
 
         .setup-screen {
             min-height: 100vh;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             padding: 20px;
-            background: var(--bg-color);
+            background: white;
         }
 
         [v-cloak] { display: none; }
@@ -199,40 +99,39 @@
             padding-bottom: 40px;
         }
 
+        .section-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
         .member-row {
             padding: 10px 0;
             border-bottom: 1px solid #eee;
         }
-        [data-bs-theme="dark"] .member-row { border-bottom-color: #333; }
         .member-row:last-child { border-bottom: none; }
         
         .image-preview-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 2000;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            animation: fadeIn 0.3s;
         }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
         .preview-img {
             max-width: 100%; max-height: 80vh; object-fit: contain;
-            animation: zoomIn 0.3s;
         }
-        @keyframes zoomIn { from { transform: scale(0.9); } to { transform: scale(1); } }
-        
         .preview-close {
             position: absolute; top: 20px; right: 20px;
             color: white; font-size: 2rem; background: none; border: none;
         }
 
         .sidebar-user-block { margin-bottom: 5px; }
-        .sidebar-divider { margin-top: 5px; margin-bottom: 20px; border-color: rgba(0,0,0,0.1); }
-        [data-bs-theme="dark"] .sidebar-divider { border-color: rgba(255,255,255,0.15); }
+        .sidebar-divider { margin-top: 5px; margin-bottom: 20px; }
 
+        /* 統一統計標籤大小 */
         .zone-stat-badge {
             font-size: 0.75rem;
-            min-width: 32px;
-            display: inline-block;
+            min-width: 32px; /* 固定寬度 */
+            display: inline-block; /* 確保寬度生效 */
             text-align: center;
         }
         
@@ -242,42 +141,31 @@
             cursor: pointer; border-radius: 6px;
         }
         .dropdown-item-custom:hover { background-color: #f8f9fa; }
-        [data-bs-theme="dark"] .dropdown-item-custom:hover { background-color: #333; }
         .dropdown-item-custom input { margin-right: 10px; transform: scale(1.2); }
 
         .btn-outline-frozen { color: #002266; border-color: #002266; }
-        [data-bs-theme="dark"] .btn-outline-frozen { color: #80aaff; border-color: #80aaff; }
         .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active {
             color: #fff; background-color: #002266; border-color: #002266;
         }
         
+        /* 購物清單樣式 */
         .shopping-item-row {
             display: flex; align-items: center; padding: 12px 0;
             border-bottom: 1px solid #f0f0f0;
         }
-        [data-bs-theme="dark"] .shopping-item-row { border-bottom-color: #333; }
         .shopping-item-row:last-child { border-bottom: none; }
         .shopping-checkbox { transform: scale(1.3); margin-right: 15px; }
 
+        /* 多選模式遮罩 */
         .selection-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.7);
             display: flex; justify-content: center; align-items: center;
             z-index: 10;
         }
-        [data-bs-theme="dark"] .selection-overlay { background: rgba(0,0,0,0.7); }
-        
         .selection-check {
             font-size: 3rem; color: #0d6efd;
-            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
-
-        /* Dark Mode Toggle */
-        .theme-switch-wrapper {
-            display: flex; align-items: center;
-        }
-        .theme-icon { font-size: 1.2rem; margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -320,9 +208,8 @@
 
     <!-- 主應用程式 -->
     <template v-else>
-        <Transition name="page" mode="out-in">
         <!-- HOME PAGE -->
-        <div v-if="!isLoading && currentPage==='home'" key="home">
+        <div v-if="!isLoading && currentPage==='home'">
             <!-- 頂部列 -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center gap-2">
@@ -363,8 +250,8 @@
                 <small class="text-muted" v-else><i class="bi bi-info-circle me-1"></i>顯示已用完的物品</small>
             </div>
 
-            <!-- 物品列表 (含動畫) -->
-            <TransitionGroup name="list" tag="div" class="row g-3 pb-5">
+            <!-- 物品列表 -->
+            <div class="row g-3 pb-5">
                 <div class="col-6 col-md-4 col-lg-3" v-for="item in filteredItems" :key="item.id">
                     <div class="card item-card h-100" 
                          :class="getAlertClass(item)"
@@ -430,7 +317,7 @@
                         </div>
                     </div>
                 </div>
-            </TransitionGroup>
+            </div>
 
             <div v-if="filteredItems.length === 0" class="text-center text-muted mt-5 pt-5">
                 <i class="bi bi-box2 display-1 opacity-25"></i>
@@ -438,11 +325,9 @@
             </div>
 
             <!-- 回到頂部按鈕 -->
-            <transition name="fade">
-                <button v-if="showScrollTop" class="scroll-top-btn" @click="scrollToTop">
-                    <i class="bi bi-arrow-up"></i>
-                </button>
-            </transition>
+            <button v-if="showScrollTop" class="scroll-top-btn" @click="scrollToTop">
+                <i class="bi bi-arrow-up"></i>
+            </button>
 
             <!-- 一般模式的 FAB -->
             <button v-if="!isSelectionMode && filterZone !== 'nostock'" class="fab-btn" @click="goToAddPage">
@@ -476,7 +361,7 @@
         </div>
 
         <!-- ADD / EDIT PAGE -->
-        <div v-else-if="!isLoading && (currentPage==='add' || currentPage==='edit')" key="add-edit" class="page-container">
+        <div v-if="!isLoading && (currentPage==='add' || currentPage==='edit')" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 取消
@@ -658,7 +543,7 @@
         </div>
         
         <!-- TO BUY LIST PAGE (待購買清單) -->
-        <div v-else-if="!isLoading && currentPage==='to-buy-list'" key="tobuy" class="page-container">
+        <div v-if="!isLoading && currentPage==='to-buy-list'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="returnToSidebar">
                     <i class="bi bi-arrow-left"></i> 返回
@@ -674,7 +559,7 @@
                         <p class="mt-3">目前沒有待購買的物品</p>
                     </div>
 
-                    <TransitionGroup name="list" tag="div" v-else>
+                    <div v-else>
                          <div v-for="item in toBuyList" :key="item.id" class="shopping-item-row">
                             <input type="checkbox" class="form-check-input shopping-checkbox" 
                                    :value="item.id" v-model="selectedToBuyIds">
@@ -690,7 +575,7 @@
                                 </small>
                             </div>
                         </div>
-                    </TransitionGroup>
+                    </div>
                 </div>
             </div>
 
@@ -711,7 +596,7 @@
         </div>
 
         <!-- SHOPPING CART PAGE (購物車) -->
-        <div v-else-if="!isLoading && currentPage==='shopping-cart'" key="cart" class="page-container">
+        <div v-if="!isLoading && currentPage==='shopping-cart'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="returnToSidebar">
                     <i class="bi bi-arrow-left"></i> 返回
@@ -731,26 +616,24 @@
                         <div class="alert alert-light border small text-muted mb-2">
                             <i class="bi bi-info-circle me-1"></i>點擊「存入」即可快速入庫
                         </div>
-                        <TransitionGroup name="list" tag="div">
-                             <div v-for="item in cartList" :key="item.id" class="shopping-item-row">
-                                <input type="checkbox" class="form-check-input shopping-checkbox" 
-                                       :value="item.id" v-model="selectedCartIds">
-                                <!-- 新增圖片 -->
-                                <div class="list-thumb-box" :class="getBorderClass(item)">
-                                    <img v-if="item.image" :src="item.image" class="list-thumb-img">
-                                    <div v-else class="d-flex justify-content-center align-items-center h-100 text-muted"><i class="bi bi-image"></i></div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold">{{ item.name }}</div>
-                                    <small class="text-muted d-block">
-                                        <i class="bi bi-box-seam me-1"></i>庫存: {{ item.quantity }}
-                                    </small>
-                                </div>
-                                <button class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" @click="startPurchase(item)">
-                                    存入
-                                </button>
+                         <div v-for="item in cartList" :key="item.id" class="shopping-item-row">
+                            <input type="checkbox" class="form-check-input shopping-checkbox" 
+                                   :value="item.id" v-model="selectedCartIds">
+                            <!-- 新增圖片 -->
+                            <div class="list-thumb-box" :class="getBorderClass(item)">
+                                <img v-if="item.image" :src="item.image" class="list-thumb-img">
+                                <div v-else class="d-flex justify-content-center align-items-center h-100 text-muted"><i class="bi bi-image"></i></div>
                             </div>
-                        </TransitionGroup>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">{{ item.name }}</div>
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-box-seam me-1"></i>庫存: {{ item.quantity }}
+                                </small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" @click="startPurchase(item)">
+                                存入
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -772,7 +655,7 @@
         </div>
 
         <!-- TAKE OUT PAGE -->
-        <div v-else-if="!isLoading && currentPage==='takeout'" key="takeout" class="page-container">
+        <div v-if="!isLoading && currentPage==='takeout'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 取消
@@ -813,7 +696,7 @@
         </div>
 
         <!-- SETTINGS -->
-        <div v-else-if="!isLoading && currentPage==='settings'" key="settings" class="settings-page page-container">
+        <div v-if="!isLoading && currentPage==='settings'" class="settings-page page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 返回
@@ -957,7 +840,7 @@
         </div>
 
         <!-- UPDATE INFO PAGE (全螢幕) -->
-        <div v-else-if="!isLoading && currentPage==='update-info'" key="update-info" class="page-container">
+        <div v-if="!isLoading && currentPage==='update-info'" class="page-container">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="closeUpdatePage">
                     <i class="bi bi-arrow-left"></i> 返回
@@ -998,7 +881,6 @@
                 我知道了
             </button>
         </div>
-        </Transition>
 
         <!-- 讀取中畫面 -->
         <div v-if="isLoading" class="loading-mask">
@@ -1018,19 +900,6 @@
                     <div class="text-muted small">目前使用者</div>
                     <div class="fw-bold fs-5">{{ currentUserName }}</div>
                 </div>
-                
-                <!-- 深色模式切換 -->
-                <div class="d-flex align-items-center justify-content-between my-2 p-2 rounded bg-light border theme-switch-wrapper" 
-                     :class="{'bg-dark border-secondary': isDarkMode}">
-                    <div class="d-flex align-items-center">
-                        <i class="bi theme-icon" :class="isDarkMode ? 'bi-moon-stars-fill text-warning' : 'bi-sun-fill text-warning'"></i>
-                        <span class="fw-bold">深色模式 (全黑)</span>
-                    </div>
-                    <div class="form-check form-switch m-0">
-                         <input class="form-check-input" type="checkbox" v-model="isDarkMode" @change="toggleDarkMode">
-                    </div>
-                </div>
-
                 <hr class="sidebar-divider">
 
                 <!-- 採買區塊 -->
@@ -1129,44 +998,12 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    
-    // 定義更新日誌 (直接內嵌以免外部引用問題)
-    const LATEST_VERSION = "1.8.0";
-    const UPDATE_LOGS = [
-      {
-        version: "1.8.0",
-        date: "2026-01-13",
-        title: "深色模式與流暢體驗",
-        changes: [
-          "新增「深色模式」：極致省電的全黑背景，保護眼睛同時提升質感",
-          "介面動態優化：頁面切換與列表增刪加入柔和動畫，操作不再生硬",
-          "視覺樣式微調：優化按鈕點擊回饋與警告框線粗細，畫面更精緻"
-        ]
-      },
-      {
-        version: "1.7.0",
-        date: "2026-01-13",
-        title: "操作效率提升與介面優化",
-        changes: [
-          "新增編輯頁面「快速儲存」按鈕",
-          "新增首頁「回到頂部」按鈕",
-          "優化側邊欄統計樣式"
-        ]
-      },
-      {
-        version: "1.6.2",
-        date: "2026-01-12",
-        title: "視覺體驗優化",
-        changes: [
-          "優化過期警示邏輯：無庫存區物品、待購買清單與購物車內的物品（庫存為 0），不再顯示過期紅框與警告背景"
-        ]
-      }
-    ];
+    import { LATEST_VERSION, UPDATE_LOGS } from "./update-logs.js";
 
     let appFirebase;
     let db;
 
-    const APP_VERSION = LATEST_VERSION; 
+    const APP_VERSION = "1.7.0"; 
 
     const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
@@ -1210,9 +1047,6 @@
             
             // 回到頂部按鈕顯示狀態
             const showScrollTop = ref(false);
-
-            // 深色模式
-            const isDarkMode = ref(false);
 
             // 購物相關狀態
             const selectedToBuyIds = ref([]);
@@ -1282,17 +1116,6 @@
             });
 
             // --- 方法 ---
-
-            const toggleDarkMode = () => {
-                const htmlEl = document.documentElement;
-                if (isDarkMode.value) {
-                    htmlEl.setAttribute('data-bs-theme', 'dark');
-                    localStorage.setItem('fridge_dark_mode', 'true');
-                } else {
-                    htmlEl.setAttribute('data-bs-theme', 'light');
-                    localStorage.setItem('fridge_dark_mode', 'false');
-                }
-            };
 
             const checkConfig = async () => {
                 const storedConfig = localStorage.getItem("fridge_firebase_config");
@@ -1470,7 +1293,6 @@
             };
             
             const loadSettings = () => {
-                // 1. 一般設定
                 const saved = localStorage.getItem("fridge_settings_v1");
                 if (saved) {
                     try {
@@ -1478,16 +1300,6 @@
                         settings.value = { ...settings.value, ...obj };
                     } catch (e) {}
                 }
-                
-                // 2. 深色模式
-                const savedDark = localStorage.getItem("fridge_dark_mode");
-                if (savedDark === 'true') {
-                    isDarkMode.value = true;
-                } else if (savedDark === null && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    // 預設跟隨系統
-                    isDarkMode.value = true;
-                }
-                toggleDarkMode(); // Apply initial state
             };
 
             const saveSettings = () => {
@@ -2233,7 +2045,7 @@
                 // New Update Logs Control
                 showAllUpdates, visibleUpdateLogs,
                 // New Features
-                showScrollTop, scrollToTop, isDarkMode, toggleDarkMode
+                showScrollTop, scrollToTop
             };
         }
     }).mount("#app");
