@@ -1,6 +1,16 @@
-export const LATEST_VERSION = "1.6.2";
+export const LATEST_VERSION = "1.7.0";
 
 export const UPDATE_LOGS = [
+  {
+    version: "1.7.0",
+    date: "2026-01-13",
+    title: "操作效率提升與介面優化",
+    changes: [
+      "新增編輯頁面「快速儲存」按鈕：無需滑動到底部，設定待買清單時可直接存檔",
+      "新增首頁「回到頂部」按鈕：瀏覽長列表時，向下滑動即可一鍵快速置頂",
+      "優化側邊欄統計樣式：統一數字標籤寬度，視覺排列更整齊舒適"
+    ]
+  },
   {
     version: "1.6.2",
     date: "2026-01-12",
