@@ -1727,10 +1727,17 @@
 
             const getDays = (dateStr) => {
                 if (!dateStr) return null;
+                
+                // 1. 取得今天的「本地」日期 (清除時間，設為 00:00:00)
                 const today = new Date();
-                today.setHours(0,0,0,0);
-                const target = new Date(dateStr);
-                if (isNaN(target.getTime())) return null;
+                today.setHours(0, 0, 0, 0);
+
+                // 2. 解析傳入的字串 (避免時區問題，直接拆解字串建立本地日期)
+                // 原本 new Date(dateStr) 會被視為 UTC，導致時區偏差
+                const parts = dateStr.split('-');
+                const target = new Date(parts[0], parts[1] - 1, parts[2]); 
+                
+                // 3. 計算相差天數 (目標 - 今天)
                 return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
             };
 
