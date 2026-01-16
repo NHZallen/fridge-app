@@ -301,9 +301,18 @@
                                 </div>
                                 <div v-if="isNoExpiry(item)" class="badge bg-light text-secondary border w-100 mb-2">無期限</div>
                                 <template v-else>
+                                    <!-- 小於 0 才是真正過期 (昨天以前) -->
                                     <div v-if="getDays(item.expiryDate) < 0" class="badge bg-danger w-100 mb-2">已過期 ({{ item.expiryDate }})</div>
-                                    <div v-else-if="getDays(item.expiryDate) <= 3" class="badge bg-danger w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天!</div>
+                                    
+                                    <!-- 等於 0 代表今天到期 (顯示橘黃色警告，而非紅色) -->
+                                    <div v-else-if="getDays(item.expiryDate) === 0" class="badge bg-warning text-dark w-100 mb-2 fw-bold">今天到期!</div>
+                                    
+                                    <!-- 剩下 1~3 天 (顯示紅色或橘色提醒) -->
+                                    <div v-else-if="getDays(item.expiryDate) <= 3" class="badge bg-danger w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
+                                    
+                                    <!-- 剩下 4~7 天 -->
                                     <div v-else-if="getDays(item.expiryDate) <= 7" class="badge bg-warning text-dark w-100 mb-2">剩 {{ getDays(item.expiryDate) }} 天</div>
+                                    
                                     <div v-else class="badge bg-light text-secondary border w-100 mb-2">{{ item.expiryDate }}</div>
                                 </template>
                             </div>
@@ -1003,7 +1012,7 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.7.0"; 
+    const APP_VERSION = "1.7.1"; 
 
     const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
@@ -1728,9 +1737,13 @@
             const getDays = (dateStr) => {
                 if (!dateStr) return null;
                 const today = new Date();
-                today.setHours(0,0,0,0);
-                const target = new Date(dateStr);
-                if (isNaN(target.getTime())) return null;
+                today.setHours(0,0,0,0); // 設定為今天凌晨 00:00:00
+
+                // 手動解析 YYYY-MM-DD 確保使用當地時區
+                const [y, m, d] = dateStr.split('-').map(Number);
+                const target = new Date(y, m - 1, d); // 建立當日凌晨 00:00:00
+
+                // 計算差異天數 (無條件進位，雖設為同時間通常不需要 ceil，但保留以防萬一)
                 return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
             };
 
