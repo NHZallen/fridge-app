@@ -1962,14 +1962,30 @@
                 isSelectionMode.value = false;
             };
 
-            const getDays = (dateStr) => {
-                if (!dateStr) return null;
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const target = new Date(dateStr);
-                if (isNaN(target.getTime())) return null;
-                return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-            };
+            const parseLocalDate = (ymd) => {
+  if (!ymd) return null;
+  const parts = String(ymd).split("-");
+  if (parts.length !== 3) return null;
+
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  if (!y || !m || !d) return null;
+
+  // 關鍵：用本地時區建立日期，避免 iOS UTC 問題
+  return new Date(y, m - 1, d);
+};
+
+const getDays = (dateStr) => {
+  const target = parseLocalDate(dateStr);
+  if (!target) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffMs = target.getTime() - today.getTime();
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+};
 
             const addDays = (days) => {
                 const base = newItem.value.expiryDate ? new Date(newItem.value.expiryDate) : new Date();
