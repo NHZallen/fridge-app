@@ -1309,7 +1309,15 @@
                 return updateLogs.value.slice(0, 3);
             });
 
-            const getTodayStr = () => new Date().toISOString().split("T")[0];
+            const pad2 = (n) => String(n).padStart(2, "0");
+
+const getTodayStr = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth() + 1);
+  const day = pad2(d.getDate());
+  return `${y}-${m}-${day}`;
+};
             const newItem = ref({
                 id: null,
                 name: "",
@@ -1988,11 +1996,20 @@ const getDays = (dateStr) => {
 };
 
             const addDays = (days) => {
-                const base = newItem.value.expiryDate ? new Date(newItem.value.expiryDate) : new Date();
-                base.setHours(0,0,0,0);
-                base.setDate(base.getDate() + days);
-                newItem.value.expiryDate = base.toISOString().split("T")[0];
-            };
+  const base = newItem.value.expiryDate
+    ? parseLocalDate(newItem.value.expiryDate)
+    : new Date();
+
+  if (!base) return;
+
+  base.setHours(0, 0, 0, 0);
+  base.setDate(base.getDate() + days);
+
+  const y = base.getFullYear();
+  const m = pad2(base.getMonth() + 1);
+  const d = pad2(base.getDate());
+  newItem.value.expiryDate = `${y}-${m}-${d}`;
+};
 
             const getAlertClass = (item) => {
                 if (parseInt(item.quantity) === 0) return ""; // 無庫存不顯示警示
