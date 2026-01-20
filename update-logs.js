@@ -1,6 +1,17 @@
-export const LATEST_VERSION = "1.8.0";
+export const LATEST_VERSION = "1.9.0";
 
 export const UPDATE_LOGS = [
+  {
+    version: "1.9.0",
+    date: "2026-01-21",
+    title: "Bento 介面與沉浸體驗",
+    changes: [
+      "介面煥新：購物車與待買清單採用 Bento 玻璃擬態風格",
+      "懸浮操作島：全新黑色底部選單，整合統計與管理功能",
+      "沉浸視野：頂部導航透明化，完美適配手機安全區域",
+      "效能升級：大幅優化列表滑動流暢度與顯示細節"
+    ]
+  },
   {
     version: "1.8.0",
     date: "2026-01-20",
