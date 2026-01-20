@@ -126,9 +126,16 @@
         .bento-container { padding: 20px; position: relative; z-index: 1; padding-bottom: 120px; }
         
         .bento-hero {
-            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 24px; padding: 24px; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 24px; position: relative; overflow: hidden;
+            background: rgba(255, 255, 255, 0.65); 
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5); 
+            border-radius: 24px; padding: 24px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 24px; 
+            position: relative; overflow: hidden;
+            will-change: transform;
+            
+            /* 新增修正：防止背景色溢出到邊框下 */
+            background-clip: padding-box; 
         }
         .hero-icon-box {
             width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #141414, #404040);
@@ -137,9 +144,16 @@
 
         .bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         .bento-card {
-            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4);
+            background: var(--card-bg);
+            /* 修改：稍微降低邊框不透明度，讓邊緣更柔和 */
+            border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 16px; padding: 12px; position: relative; overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            transition: transform 0.2s, box-shadow 0.2s; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            contain: content;
+
+            /* 新增修正：防止背景色溢出到邊框下，解決白邊問題 */
+            background-clip: padding-box;
         }
         .bento-card:active { transform: scale(0.98); }
         .bento-card.col-span-2 { grid-column: span 2; display: flex; align-items: center; gap: 16px; padding: 16px; }
@@ -192,6 +206,11 @@
             width: 90%; max-width: 420px;
             pointer-events: auto;
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: transform;
+
+            /* 新增修正：確保黑色背景邊緣銳利 */
+            background-clip: padding-box;
+            border: 1px solid rgba(255,255,255,0.1); /* 微弱邊框增加質感 */
         }
         
         .island-text {
@@ -611,7 +630,7 @@
         <button class="glass-icon-btn" @click="returnToSidebar">
             <span class="material-symbols-outlined">arrow_back</span>
         </button>
-        <h1 class="m-0 fs-5 fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">To Buy List</h1>
+        <h1 class="m-0 fs-5 fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.1)>待購買清單</h1>
         <div style="width: 40px;"></div>
     </header>
 
