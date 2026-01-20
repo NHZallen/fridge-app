@@ -2,12 +2,14 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 修改：加入 viewport-fit=cover 以實現全螢幕延伸 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>智慧冰箱管理</title>
 
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="manifest" href="manifest.json">
 
+    <!-- 修改：將 theme-color 改為透明或與背景一致，讓狀態列融合 -->
     <meta name="theme-color" content="#f7f7f7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -90,7 +92,7 @@
         .bento-mode {
             --bg-light: #f7f7f7;
             --text-primary: #141414;
-            --card-bg: rgba(255, 255, 255, 0.65);
+            --card-bg: rgba(255, 255, 255, 0.9);
             font-family: 'Noto Sans TC', 'Plus Jakarta Sans', sans-serif;
             color: var(--text-primary);
             position: relative;
@@ -98,37 +100,54 @@
             margin-left: -0.75rem; margin-right: -0.75rem; margin-top: -1rem;
             background-color: var(--bg-light);
             overflow-x: hidden;
+            transform: translateZ(0);
         }
 
         .bento-bg-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: hidden; }
-        .mesh-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6; animation: drift 10s ease-in-out infinite; }
+        .mesh-blob { 
+            position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6; 
+            animation: drift 10s ease-in-out infinite;
+            will-change: transform;
+        }
         .blob-1 { top: -10%; left: -10%; width: 60%; height: 60%; background: rgba(191, 219, 254, 0.5); }
         .blob-2 { bottom: 10%; right: -10%; width: 70%; height: 70%; background: rgba(233, 213, 255, 0.5); animation-delay: 2s; }
         .blob-3 { top: 40%; left: 30%; width: 50%; height: 50%; background: rgba(220, 252, 231, 0.5); animation-delay: 4s; }
         @keyframes drift { 0% { transform: translate(0, 0); } 50% { transform: translate(10px, 20px); } 100% { transform: translate(0, 0); } }
 
-        /* Header 改為透明 (Transparent Header) */
+        /* Header 透明 + 安全區域適配 */
         .bento-header {
-            position: sticky; top: 0; z-index: 1050; display: flex; align-items: center; justify-content: space-between;
-            padding: 15px 20px;
-            /* 修改部分：背景透明，無邊框 */
+            position: sticky; 
+            top: 0; 
+            z-index: 1050; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            
+            /* 修改重點：使用 env(safe-area-inset-top) 將按鈕擠下來，避免被狀態列遮擋 */
+            padding-top: calc(env(safe-area-inset-top) + 15px);
+            padding-bottom: 15px;
+            padding-left: 20px;
+            padding-right: 20px;
+
             background: transparent; 
             border-bottom: none;
             backdrop-filter: none; -webkit-backdrop-filter: none;
         }
         .glass-icon-btn {
-            width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.65);
-            display: flex; align-items: center; justify-content: center; transition: 0.2s; color: #333;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* 增加一點陰影讓按鈕在透明背景上更明顯 */
+            width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.85);
+            display: flex; align-items: center; justify-content: center; transition: transform 0.2s; color: #333;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            backdrop-filter: none;
         }
-        .glass-icon-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.9); }
+        .glass-icon-btn:active { transform: scale(0.95); background: rgba(255,255,255,1); }
 
         .bento-container { padding: 20px; position: relative; z-index: 1; padding-bottom: 120px; }
         
         .bento-hero {
-            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 24px; padding: 24px; text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 24px; position: relative; overflow: hidden;
+            will-change: transform;
         }
         .hero-icon-box {
             width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #141414, #404040);
@@ -136,10 +155,14 @@
         }
 
         .bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        
         .bento-card {
-            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4);
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             border-radius: 16px; padding: 12px; position: relative; overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            transition: transform 0.2s, box-shadow 0.2s; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            contain: content;
         }
         .bento-card:active { transform: scale(0.98); }
         .bento-card.col-span-2 { grid-column: span 2; display: flex; align-items: center; gap: 16px; padding: 16px; }
@@ -147,6 +170,7 @@
         .bento-img-box {
             background-color: #f3f4f6; background-size: cover; background-position: center;
             border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            transform: translateZ(0); 
         }
         .img-lg { width: 80px; height: 80px; flex-shrink: 0; }
         .img-md { width: 100%; aspect-ratio: 1/1; margin-bottom: 8px; }
@@ -176,13 +200,12 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 黑色懸浮島嶼底部操作列 (Action Island) */
+        /* 黑色懸浮島嶼底部操作列 */
         .action-island-container {
             position: fixed; bottom: 30px; left: 0; width: 100%;
             display: flex; justify-content: center; z-index: 1060;
             pointer-events: none;
         }
-        
         .action-island {
             background: #1a1a1a; color: white;
             padding: 6px 6px 6px 24px;
@@ -192,15 +215,13 @@
             width: 90%; max-width: 420px;
             pointer-events: auto;
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            will-change: transform;
         }
-        
         .island-text {
             font-size: 0.95rem; font-weight: 700; color: #e5e5e5;
             white-space: nowrap; display: flex; flex-direction: column; line-height: 1.1;
         }
-        
         .island-controls { display: flex; align-items: center; gap: 12px; }
-
         .island-trash-btn {
             width: 42px; height: 42px; border-radius: 50%;
             background: #333; border: none; color: #ff6b6b;
@@ -209,7 +230,6 @@
         }
         .island-trash-btn:active { background: #444; transform: scale(0.9); }
         .island-trash-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
         .island-action-btn {
             background: white; color: black;
             border-radius: 30px; padding: 10px 20px;
@@ -664,7 +684,7 @@
                 <button class="glass-icon-btn" @click="returnToSidebar">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </button>
-                <h1 class="m-0 fs-5 fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">購物車</h1>
+                <h1 class="m-0 fs-5 fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Shopping Cart</h1>
                 <div style="width: 40px;"></div> <!-- 佔位符保持標題置中 -->
             </header>
 
