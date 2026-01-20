@@ -222,6 +222,21 @@
         .island-action-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #999; }
         
         .chip-active { background-color: #141414 !important; color: white !important; border: 1px solid #141414 !important; }
+        .offcanvas {
+  background: #f0f2f5; /* 或你想要的側邊欄底色 */
+}
+
+.offcanvas-header {
+  background: #f0f2f5; /* 一定要不透明 */
+  padding-top: calc(1rem + env(safe-area-inset-top));
+  /* iOS 舊版寫法一起帶上 */
+  padding-top: calc(1rem + constant(safe-area-inset-top));
+}
+
+/* 讓 header 下方銜接更自然 */
+.offcanvas-body {
+  padding-top: 0.75rem;
+}
     </style>
 </head>
 <body>
