@@ -8,7 +8,7 @@
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="manifest" href="manifest.json">
 
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#f7f7f7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -16,146 +16,59 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
-    <!-- 新增設計所需的字體與圖標 -->
+    <!-- 字體與圖標 -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
     <style>
         body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; }
 
-        /* --- 原有通用樣式 --- */
-        .item-card {
-            border: none; border-radius: 15px; overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
-            user-select: none; -webkit-user-select: none;
-            cursor: pointer;
-            position: relative;
-        }
+        /* --- 原有通用樣式保持不變 --- */
+        .item-card { border: none; border-radius: 15px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; user-select: none; cursor: pointer; position: relative; }
         .item-card:active { transform: scale(0.98); }
-
-        .item-img-box {
-            width: 100%; height: 180px; background: #e9ecef;
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-            position: relative;
-        }
+        .item-img-box { width: 100%; height: 180px; background: #e9ecef; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
         .item-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
-        .item-img-box:active .item-img { opacity: 0.8; }
-
-        .zone-bar {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
-            opacity: 0.85;
-        }
-
-        .list-thumb-box {
-            width: 60px; height: 60px; border-radius: 10px; overflow: hidden;
-            margin-right: 15px; position: relative; flex-shrink: 0;
-            background-color: #eee;
-        }
+        .zone-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 8px; opacity: 0.85; }
+        .list-thumb-box { width: 60px; height: 60px; border-radius: 10px; overflow: hidden; margin-right: 15px; position: relative; flex-shrink: 0; background-color: #eee; }
         .list-thumb-img { width: 100%; height: 100%; object-fit: cover; }
-
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
         .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
         .border-red { border: 3px solid #ff6b6b; }
         .border-yellow { border: 3px solid #ffcc00; }
-
-        .fab-btn {
-            position: fixed; bottom: 30px; right: 25px;
-            width: 65px; height: 65px; border-radius: 50%;
-            background: linear-gradient(45deg, #007bff, #0056b3);
-            color: white; font-size: 30px; border: none;
-            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 1000;
-        }
+        .fab-btn { position: fixed; bottom: 30px; right: 25px; width: 65px; height: 65px; border-radius: 50%; background: linear-gradient(45deg, #007bff, #0056b3); color: white; font-size: 30px; border: none; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .fab-btn:active { transform: scale(0.95); }
-
-        .scroll-top-btn {
-            position: fixed; bottom: 110px; right: 32px;
-            width: 50px; height: 50px; border-radius: 50%;
-            background: rgba(255, 255, 255, 0.95);
-            color: #333; font-size: 24px; border: 1px solid #ddd;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 990; transition: opacity 0.3s;
-        }
-
-        .loading-mask {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.95); z-index: 9999;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-
-        .setup-screen {
-            min-height: 100vh;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            padding: 20px;
-            background: white;
-        }
-
+        .scroll-top-btn { position: fixed; bottom: 110px; right: 32px; width: 50px; height: 50px; border-radius: 50%; background: rgba(255, 255, 255, 0.95); color: #333; font-size: 24px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; z-index: 990; transition: opacity 0.3s; }
+        .loading-mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .setup-screen { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; background: white; }
         [v-cloak] { display: none; }
-
-        .page-container {
-            min-height: 100vh;
-            padding-bottom: 40px;
-        }
-
-        .section-card {
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        }
-
-        .image-preview-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 2000;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
+        .page-container { min-height: 100vh; padding-bottom: 40px; }
+        .section-card { border: none; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+        .image-preview-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .preview-img { max-width: 100%; max-height: 80vh; object-fit: contain; }
-        .preview-close {
-            position: absolute; top: 20px; right: 20px;
-            color: white; font-size: 2rem; background: none; border: none;
-        }
-
+        .preview-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 2rem; background: none; border: none; }
         .dropdown-menu-custom { width: 100%; padding: 0.5rem; }
-        .dropdown-item-custom {
-            display: flex; align-items: center; padding: 8px 12px;
-            cursor: pointer; border-radius: 6px;
-        }
+        .dropdown-item-custom { display: flex; align-items: center; padding: 8px 12px; cursor: pointer; border-radius: 6px; }
         .dropdown-item-custom:hover { background-color: #f8f9fa; }
         .dropdown-item-custom input { margin-right: 10px; transform: scale(1.2); }
-
         .btn-outline-frozen { color: #002266; border-color: #002266; }
-        .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active {
-            color: #fff; background-color: #002266; border-color: #002266;
-        }
-        
-        .shopping-item-row {
-            display: flex; align-items: center; padding: 12px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
+        .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active { color: #fff; background-color: #002266; border-color: #002266; }
+        .shopping-item-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
         .shopping-item-row:last-child { border-bottom: none; }
         .shopping-checkbox { transform: scale(1.3); margin-right: 15px; }
-
-        .selection-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.7);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 10;
-        }
+        .selection-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: flex; justify-content: center; align-items: center; z-index: 10; }
         .selection-check { font-size: 3rem; color: #0d6efd; }
         .zone-stat-badge { font-size: 0.75rem; min-width: 32px; display: inline-block; text-align: center; }
 
-        /* --- Bento Shopping Cart Styles (移植自您的新設計) --- */
+        /* --- Bento Shopping Cart Styles (新版樣式) --- */
         .bento-mode {
             --bg-light: #f7f7f7;
             --text-primary: #141414;
             --card-bg: rgba(255, 255, 255, 0.65);
-            --card-border: rgba(255, 255, 255, 0.5);
             font-family: 'Noto Sans TC', 'Plus Jakarta Sans', sans-serif;
             color: var(--text-primary);
             position: relative;
             min-height: 100vh;
-            /* 讓 Bento 模式覆蓋原本 container 的 padding */
+            /* 覆蓋 container padding 以實現全版面 */
             margin-left: -0.75rem;
             margin-right: -0.75rem;
             margin-top: -1rem;
@@ -164,86 +77,61 @@
         }
 
         /* 動態背景 */
-        .bento-bg-layer {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: hidden;
-        }
-        .mesh-blob {
-            position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6;
-            animation: drift 10s ease-in-out infinite;
-        }
+        .bento-bg-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: hidden; }
+        .mesh-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6; animation: drift 10s ease-in-out infinite; }
         .blob-1 { top: -10%; left: -10%; width: 60%; height: 60%; background: rgba(191, 219, 254, 0.5); }
         .blob-2 { bottom: 10%; right: -10%; width: 70%; height: 70%; background: rgba(233, 213, 255, 0.5); animation-delay: 2s; }
         .blob-3 { top: 40%; left: 30%; width: 50%; height: 50%; background: rgba(220, 252, 231, 0.5); animation-delay: 4s; }
+        @keyframes drift { 0% { transform: translate(0, 0); } 50% { transform: translate(10px, 20px); } 100% { transform: translate(0, 0); } }
 
-        @keyframes drift {
-            0% { transform: translate(0, 0); }
-            50% { transform: translate(10px, 20px); }
-            100% { transform: translate(0, 0); }
-        }
-
-        /* 玻璃擬態 Header */
+        /* 透明 Header (移除白色模塊與頂部安全區) */
         .bento-header {
             position: sticky; top: 0; z-index: 1050;
             display: flex; align-items: center; justify-content: space-between;
-            padding: 15px 20px;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255,255,255,0.3);
+            padding: 10px 20px; /* 減少上方 padding */
+            background: transparent; /* 透明背景 */
         }
         .glass-icon-btn {
             width: 40px; height: 40px; border-radius: 50%; border: none;
-            background: rgba(255, 255, 255, 0.5);
-            display: flex; align-items: center; justify-content: center;
-            transition: 0.2s; color: #333;
-        }
-        .glass-icon-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.8); }
-
-        /* Bento 網格 */
-        .bento-container {
-            padding: 20px; position: relative; z-index: 1; padding-bottom: 100px;
-        }
-        .bento-hero {
             background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 24px; padding: 24px; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            margin-bottom: 24px; position: relative; overflow: hidden;
-        }
-        .hero-icon-box {
-            width: 64px; height: 64px; border-radius: 16px;
-            background: linear-gradient(135deg, #141414, #404040);
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: 0.2s; color: #333; backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .glass-icon-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.9); }
+
+        /* Bento 網格容器 */
+        .bento-container {
+            padding: 10px 20px 120px 20px; /* 底部加高 padding 避免擋住操作欄 */
+            position: relative; z-index: 1;
+        }
+        
+        /* 標籤按鈕樣式 */
+        .tab-btn {
+            border: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.5);
+            color: #666; font-size: 0.85rem; padding: 6px 16px; border-radius: 50px;
+            font-weight: 700; transition: all 0.2s; backdrop-filter: blur(4px);
+        }
+        .tab-btn.active {
+            background: #141414; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-color: #141414;
         }
 
-        .bento-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
-        }
+        .bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         .bento-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 16px; padding: 12px;
-            position: relative; overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 20px; padding: 12px;
+            position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
         }
         .bento-card:active { transform: scale(0.98); }
         .bento-card.col-span-2 { grid-column: span 2; display: flex; align-items: center; gap: 16px; padding: 16px; }
 
-        /* 物品樣式 */
-        .bento-img-box {
-            background-color: #f3f4f6; background-size: cover; background-position: center;
-            border-radius: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-        }
+        /* 圖片與標籤 */
+        .bento-img-box { background-color: #f3f4f6; background-size: cover; background-position: center; border-radius: 14px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
         .img-lg { width: 80px; height: 80px; flex-shrink: 0; }
         .img-md { width: 100%; aspect-ratio: 1/1; margin-bottom: 8px; }
 
-        .zone-tag {
-            display: inline-flex; align-items: center; padding: 2px 8px;
-            border-radius: 6px; font-size: 11px; font-weight: 700; margin-bottom: 4px;
-        }
+        .zone-tag { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; margin-bottom: 4px; letter-spacing: 0.5px; }
         .zone-cold { background: #dbeafe; color: #1d4ed8; }
         .zone-frozen { background: #fee2e2; color: #b91c1c; }
         .zone-veggie { background: #dcfce7; color: #15803d; }
@@ -253,32 +141,61 @@
         .bg-dot-green { background: #22c55e; }
 
         .btn-bento-action {
-            background: #141414; color: white; border: none;
-            border-radius: 8px; font-size: 13px; font-weight: 700;
-            padding: 6px 12px; display: flex; align-items: center; justify-content: center; gap: 4px;
-            width: 100%; transition: 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: #141414; color: white; border: none; border-radius: 10px;
+            font-size: 13px; font-weight: 700; padding: 8px 12px; display: flex; align-items: center; justify-content: center; gap: 4px;
+            width: 100%; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         .btn-bento-action:active { transform: scale(0.95); background: #333; }
-        .col-span-2 .btn-bento-action { width: auto; }
+        .col-span-2 .btn-bento-action { width: auto; padding: 8px 20px; }
 
-        /* 選取框框 (整合在 Bento 卡片內) */
+        /* 選取框框 */
         .bento-check {
-            position: absolute; top: 10px; right: 10px; z-index: 10;
-            transform: scale(1.3); opacity: 0.6; accent-color: #141414;
+            position: absolute; top: 12px; right: 12px; z-index: 10;
+            width: 20px; height: 20px; accent-color: #141414; cursor: pointer;
         }
-        .bento-check:checked { opacity: 1; }
+
+        /* 底部懸浮操作欄 (全新設計) */
+        .float-action-container {
+            position: fixed; bottom: 30px; left: 0; width: 100%;
+            display: flex; justify-content: center; pointer-events: none; z-index: 1060;
+        }
+        .action-pill-bar {
+            pointer-events: auto;
+            background: #1a1a1a; color: white;
+            border-radius: 100px; padding: 6px 6px 6px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            width: 90%; max-width: 360px;
+            height: 64px;
+        }
+        .selected-info {
+            display: flex; flex-direction: column; line-height: 1.1; margin-right: auto;
+        }
+        .selected-label { font-size: 10px; color: #999; font-weight: 500; letter-spacing: 1px; }
+        .selected-count { font-size: 18px; font-weight: 700; color: #fff; }
+        
+        .action-btn-group { display: flex; align-items: center; gap: 8px; }
+
+        .btn-circle-delete {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: #333; border: none; color: #bbb;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; transition: 0.2s;
+        }
+        .btn-circle-delete:active { background: #444; color: #fff; transform: scale(0.95); }
+
+        .btn-pill-main {
+            background: #fff; color: #141414;
+            border-radius: 100px; border: none;
+            height: 52px; padding: 0 24px;
+            font-weight: 700; font-size: 15px;
+            display: flex; align-items: center; gap: 6px;
+            transition: 0.2s;
+        }
+        .btn-pill-main:active { transform: scale(0.95); background: #eee; }
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* 底部操作列 (配合新風格) */
-        .glass-bottom-bar {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.5);
-            padding: 15px 20px; z-index: 1050;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
-        }
     </style>
 </head>
 <body>
@@ -706,7 +623,7 @@
             </div>
         </div>
 
-        <!-- SHOPPING CART PAGE (購物車) - 新設計 Bento/Glassmorphism -->
+        <!-- SHOPPING CART PAGE (購物車) - Bento/Glassmorphism Updated -->
         <div v-if="!isLoading && currentPage==='shopping-cart'" class="bento-mode">
             
             <!-- 背景動畫層 -->
@@ -716,51 +633,37 @@
                 <div class="mesh-blob blob-3"></div>
             </div>
 
-            <!-- 頂部導航 -->
+            <!-- 頂部導航 (透明化 & 移除右側選單) -->
             <header class="bento-header">
                 <button class="glass-icon-btn" @click="returnToSidebar">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </button>
                 <h1 class="m-0 fs-5 fw-bold" style="font-family: 'Plus Jakarta Sans', sans-serif;">Shopping Cart</h1>
-                <button class="glass-icon-btn">
-                    <span class="material-symbols-outlined">more_horiz</span>
-                </button>
+                <div style="width: 40px;"></div> <!-- 佔位符保持標題置中 -->
             </header>
 
             <div class="bento-container">
                 <!-- 如果購物車是空的 -->
-                <div v-if="cartList.length === 0" class="bento-hero d-flex flex-column align-items-center justify-content-center py-5">
-                    <div class="hero-icon-box bg-secondary opacity-50">
-                        <span class="material-symbols-outlined text-white fs-2">shopping_basket</span>
+                <div v-if="cartList.length === 0" class="d-flex flex-column align-items-center justify-content-center py-5" style="min-height: 50vh;">
+                    <div class="hero-icon-box bg-secondary opacity-50" style="width: 80px; height: 80px; border-radius: 20px;">
+                        <span class="material-symbols-outlined text-white display-4">shopping_basket</span>
                     </div>
-                    <h2 class="fw-bold mb-1">購物車是空的</h2>
+                    <h2 class="fw-bold mb-1 mt-3">購物車是空的</h2>
                     <p class="text-muted small">去把東西加入清單吧！</p>
                 </div>
 
                 <div v-else>
-                    <!-- Hero 卡片 (總覽) -->
-                    <div class="bento-hero">
-                        <!-- 裝飾光暈 -->
-                        <div style="position: absolute; top: -30px; right: -30px; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(147,51,234,0.2)); filter: blur(40px); border-radius: 50%;"></div>
-                        
-                        <div class="hero-icon-box">
-                            <span class="material-symbols-outlined text-white fs-1">shopping_basket</span>
-                        </div>
-                        <h2 class="display-6 fw-bold mb-1" style="font-family: 'Plus Jakarta Sans', sans-serif;">{{ cartList.length }} 項商品</h2>
-                        <p class="text-muted fw-bold small">已購買，準備存入冰箱</p>
-                    </div>
-
-                    <!-- 分類標籤 (裝飾用，可擴充為功能) -->
+                    <!-- 分類標籤 (修復功能) -->
                     <div class="d-flex gap-2 overflow-auto no-scrollbar mb-4 pb-1">
-                        <button class="btn btn-dark rounded-pill px-3 py-1 fw-bold border-0 shadow-sm" style="font-size: 0.85rem;">全部</button>
-                        <button class="btn btn-light bg-white bg-opacity-50 border rounded-pill px-3 py-1 fw-bold text-secondary" style="font-size: 0.85rem;">冷藏</button>
-                        <button class="btn btn-light bg-white bg-opacity-50 border rounded-pill px-3 py-1 fw-bold text-secondary" style="font-size: 0.85rem;">冷凍</button>
-                        <button class="btn btn-light bg-white bg-opacity-50 border rounded-pill px-3 py-1 fw-bold text-secondary" style="font-size: 0.85rem;">蔬果</button>
+                        <button class="tab-btn" :class="{ active: cartFilterZone === 'all' }" @click="cartFilterZone = 'all'">全部</button>
+                        <button class="tab-btn" :class="{ active: cartFilterZone === 'cold' }" @click="cartFilterZone = 'cold'">冷藏</button>
+                        <button class="tab-btn" :class="{ active: cartFilterZone === 'frozen' }" @click="cartFilterZone = 'frozen'">冷凍</button>
+                        <button class="tab-btn" :class="{ active: cartFilterZone === 'veggie' }" @click="cartFilterZone = 'veggie'">蔬果</button>
                     </div>
 
                     <!-- Bento Grid 物品列表 -->
                     <div class="bento-grid">
-                        <div v-for="(item, index) in cartList" :key="item.id" 
+                        <div v-for="(item, index) in filteredCartList" :key="item.id" 
                              class="bento-card"
                              :class="{'col-span-2': index % 3 === 0, 'col-span-1': index % 3 !== 0}">
                             
@@ -839,19 +742,21 @@
                 </div>
             </div>
             
-            <!-- 底部操作列 (原本的功能保留，但樣式更新) -->
-            <div class="glass-bottom-bar" v-if="cartList.length > 0">
-                 <div class="d-flex gap-2">
-                    <button class="btn btn-light border w-50 rounded-lg py-2 fw-bold text-secondary" 
-                            :disabled="selectedCartIds.length === 0"
-                            @click="removeSelectedFromCart">
-                        <i class="bi bi-trash me-1"></i> 移除
-                    </button>
-                     <button class="btn btn-light border w-50 rounded-lg py-2 fw-bold text-primary" 
-                            :disabled="selectedCartIds.length === 0"
-                            @click="moveSelectedBackToBuy">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> 放回待買
-                    </button>
+            <!-- 底部懸浮操作欄 (全新黑色膠囊樣式) -->
+            <div class="float-action-container" v-if="cartList.length > 0">
+                 <div class="action-pill-bar">
+                     <div class="selected-info">
+                         <span class="selected-label">已選擇</span>
+                         <span class="selected-count">{{ selectedCartIds.length }} 項</span>
+                     </div>
+                     <div class="action-btn-group">
+                         <button class="btn-circle-delete" @click="removeSelectedFromCart" :disabled="selectedCartIds.length === 0">
+                             <i class="bi bi-trash3-fill"></i>
+                         </button>
+                         <button class="btn-pill-main" @click="moveSelectedBackToBuy" :disabled="selectedCartIds.length === 0">
+                             放回待買 <i class="bi bi-cart-x-fill"></i>
+                         </button>
+                     </div>
                  </div>
             </div>
         </div>
@@ -1252,6 +1157,9 @@
             const selectedCartIds = ref([]);
             const pendingPurchaseOriginalId = ref(null);
             
+            // 購物車頁面篩選用
+            const cartFilterZone = ref('all');
+
             // 多選管理模式 (改名為通用 Ids)
             const isSelectionMode = ref(false);
             const selectedHomeIds = ref([]);
@@ -2168,6 +2076,12 @@
             const cartList = computed(() => {
                 return items.value.filter(i => i.shoppingStatus === 'inCart');
             });
+            
+            // 新增：購物車頁面的過濾邏輯
+            const filteredCartList = computed(() => {
+                if (cartFilterZone.value === 'all') return cartList.value;
+                return cartList.value.filter(item => (item.zone || 'cold') === cartFilterZone.value);
+            });
 
             const moveSelectedToCart = async () => {
                 const promises = selectedToBuyIds.value.map(id => 
@@ -2235,7 +2149,8 @@
                 goHome, goToAddPage, goSettingsFromSidebar,
                 toggleOwner, formatOwners,
                 // Shopping related
-                toBuyList, cartList, goPageFromSidebar, returnToSidebar,
+                toBuyList, cartList, filteredCartList, cartFilterZone,
+                goPageFromSidebar, returnToSidebar,
                 selectedToBuyIds, selectedCartIds, moveSelectedToCart, removeSelectedFromCart, moveSelectedBackToBuy, removeFromToBuyList,
                 toggleToBuyStatus, startPurchase, getBorderClass,
                 // No Stock Mode
