@@ -1,6 +1,16 @@
-export const LATEST_VERSION = "1.7.0";
+export const LATEST_VERSION = "1.8.0";
 
 export const UPDATE_LOGS = [
+  {
+    version: "1.8.0",
+    date: "2026-01-20",
+    title: "購物車體驗大升級與效能優化",
+    changes: [
+      "全新購物車介面：採用現代化網格佈局與玻璃擬態設計，視覺質感大幅提升",
+      "全新懸浮操作島：底部操作列升級為黑色「動態島」風格，整合選取統計操作更直觀",
+      "極致效能優化：大幅改善購物車頁面滑動與切換區域時的流暢度，徹底解決卡頓問題"
+    ]
+  },
   {
     version: "1.7.0",
     date: "2026-01-13",
