@@ -1774,14 +1774,17 @@ const getTodayStr = () => {
 
                         if (targetItem) {
                             // --- 合併到現有物品 (偵測到重複) ---
-                            let batches = targetItem.batches ? [...targetItem.batches] : [{
-                                storedDate: targetItem.storedDate,
-                                expiryDate: targetItem.expiryDate,
-                                noExpiry: targetItem.noExpiry,
-                                quantity: parseInt(targetItem.quantity),
-                                image: targetItem.image || null, // 防止舊資料圖片為 undefined
-                                addedAt: 0
-                            }];
+                            let batches = [];
+if (parseInt(targetItem.quantity) > 0) {
+    batches = targetItem.batches ? [...targetItem.batches] : [{
+        storedDate: targetItem.storedDate,
+        expiryDate: targetItem.expiryDate,
+        noExpiry: targetItem.noExpiry,
+        quantity: parseInt(targetItem.quantity),
+        image: targetItem.image || null,
+        addedAt: 0
+    }];
+}
 
                             if (newItem.value.useExistingImage) {
                                 newBatch.image = targetItem.image || null;
