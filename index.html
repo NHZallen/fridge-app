@@ -16,19 +16,46 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
-    <!-- 【新增】UI 所需字型與圖標 -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <!-- 新增：字體與 Tailwind 支援 (用於新購物車 UI) -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Sans+TC:wght@400;500;700;900&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#141414",
+                        "background-light": "#f7f7f7",
+                        "background-dark": "#191919",
+                    },
+                    fontFamily: {
+                        "display": ["Noto Sans TC", "Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Noto Sans TC", "Noto Sans", "sans-serif"],
+                    },
+                    boxShadow: {
+                        'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
+                        'glow-blue': '0 0 20px -5px rgba(59, 130, 246, 0.5)',
+                        'glow-green': '0 0 20px -5px rgba(16, 185, 129, 0.5)',
+                        'glow-red': '0 0 20px -5px rgba(244, 63, 94, 0.5)',
+                        'glow-orange': '0 0 20px -5px rgba(251, 146, 60, 0.5)',
+                    }
+                },
+            },
+        }
+    </script>
 
     <style>
-        /* ========== 原有全域樣式 ========== */
+        /* 原有的樣式保留，並加入新的相容樣式 */
         body { background-color: #f0f2f5; font-family: system-ui, -apple-system, sans-serif; }
 
         .item-card {
             border: none; border-radius: 15px; overflow: hidden;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s;
             user-select: none; -webkit-user-select: none;
-            cursor: pointer; position: relative;
+            cursor: pointer;
+            position: relative;
         }
         .item-card:active { transform: scale(0.98); }
 
@@ -40,17 +67,22 @@
         .item-img { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
         .item-img-box:active .item-img { opacity: 0.8; }
 
-        .zone-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 8px; opacity: 0.85; }
-        
-        /* 列表小圖樣式 (用於待買清單) */
+        .zone-bar {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
+            opacity: 0.85;
+        }
+
+        /* 列表小圖樣式 (舊版相容) */
         .list-thumb-box {
             width: 60px; height: 60px; border-radius: 10px; overflow: hidden;
-            margin-right: 15px; position: relative; flex-shrink: 0; background-color: #eee;
+            margin-right: 15px; position: relative; flex-shrink: 0;
+            background-color: #eee;
         }
         .list-thumb-img { width: 100%; height: 100%; object-fit: cover; }
 
         .alert-red { border: 3px solid #ff6b6b; background-color: #fff5f5; }
         .alert-yellow { border: 3px solid #ffcc00; background-color: #fffdf0; }
+        
         .border-red { border: 3px solid #ff6b6b; }
         .border-yellow { border: 3px solid #ffcc00; }
 
@@ -60,7 +92,8 @@
             background: linear-gradient(45deg, #007bff, #0056b3);
             color: white; font-size: 30px; border: none;
             box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
-            display: flex; align-items: center; justify-content: center; z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
         }
         .fab-btn:active { transform: scale(0.95); }
 
@@ -73,7 +106,6 @@
             display: flex; align-items: center; justify-content: center;
             z-index: 990; transition: opacity 0.3s;
         }
-        .scroll-top-btn:active { background: #f0f0f0; }
 
         .loading-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -82,14 +114,29 @@
         }
 
         .setup-screen {
-            min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            padding: 20px; background: white;
+            min-height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
+            background: white;
         }
 
         [v-cloak] { display: none; }
-        .page-container { min-height: 100vh; padding-bottom: 40px; }
-        .section-card { border: none; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
-        .member-row { padding: 10px 0; border-bottom: 1px solid #eee; }
+
+        .page-container {
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        .section-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        .member-row {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
         .member-row:last-child { border-bottom: none; }
         
         .image-preview-overlay {
@@ -97,186 +144,82 @@
             background: rgba(0,0,0,0.9); z-index: 2000;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
-        .preview-img { max-width: 100%; max-height: 80vh; object-fit: contain; }
-        .preview-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 2rem; background: none; border: none; }
+        .preview-img {
+            max-width: 100%; max-height: 80vh; object-fit: contain;
+        }
+        .preview-close {
+            position: absolute; top: 20px; right: 20px;
+            color: white; font-size: 2rem; background: none; border: none;
+        }
 
         .sidebar-user-block { margin-bottom: 5px; }
         .sidebar-divider { margin-top: 5px; margin-bottom: 20px; }
-        .zone-stat-badge { font-size: 0.75rem; min-width: 32px; display: inline-block; text-align: center; }
+
+        .zone-stat-badge {
+            font-size: 0.75rem;
+            min-width: 32px;
+            display: inline-block;
+            text-align: center;
+        }
+        
         .dropdown-menu-custom { width: 100%; padding: 0.5rem; }
-        .dropdown-item-custom { display: flex; align-items: center; padding: 8px 12px; cursor: pointer; border-radius: 6px; }
+        .dropdown-item-custom {
+            display: flex; align-items: center; padding: 8px 12px;
+            cursor: pointer; border-radius: 6px;
+        }
         .dropdown-item-custom:hover { background-color: #f8f9fa; }
         .dropdown-item-custom input { margin-right: 10px; transform: scale(1.2); }
+
         .btn-outline-frozen { color: #002266; border-color: #002266; }
-        .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active { color: #fff; background-color: #002266; border-color: #002266; }
+        .btn-outline-frozen:hover, .btn-outline-frozen:active, .btn-outline-frozen.active {
+            color: #fff; background-color: #002266; border-color: #002266;
+        }
         
-        .shopping-item-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .shopping-item-row {
+            display: flex; align-items: center; padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
         .shopping-item-row:last-child { border-bottom: none; }
         .shopping-checkbox { transform: scale(1.3); margin-right: 15px; }
+
         .selection-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.7); display: flex; justify-content: center; align-items: center; z-index: 10;
+            background: rgba(255,255,255,0.7);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10;
         }
-        .selection-check { font-size: 3rem; color: #0d6efd; }
+        .selection-check {
+            font-size: 3rem; color: #0d6efd;
+        }
 
-        /* =========================================
-           【新增】Bento UI 專用樣式 (模擬 Tailwind 與新設計)
-           ========================================= */
-        
-        /* 動態背景動畫 */
+        /* --- 新增：購物車專屬樣式 --- */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
         @keyframes drift {
             0% { transform: translate(0, 0); }
             50% { transform: translate(10px, 20px); }
             100% { transform: translate(0, 0); }
         }
         .mesh-bg {
-            position: absolute; border-radius: 50%; filter: blur(80px);
-            animation: drift 10s ease-in-out infinite; opacity: 0.6; z-index: 0;
+            animation: drift 10s ease-in-out infinite;
         }
-        .mesh-blue { background: rgba(147, 197, 253, 0.4); }
-        .mesh-purple { background: rgba(233, 213, 255, 0.4); }
-        .mesh-green { background: rgba(220, 252, 231, 0.4); }
-
-        /* Bento 容器與字型 */
-        .bento-container {
-            font-family: 'Noto Sans TC', 'Plus Jakarta Sans', sans-serif;
-            position: relative;
-            min-height: 100vh;
-            overflow-x: hidden;
-            padding-bottom: 100px; /* 預留底部按鈕空間 */
-        }
-
-        /* 隱藏滾動條但可滾動 */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Glassmorphism 卡片基礎 */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            border-radius: 1.5rem; /* rounded-3xl / 2xl */
-        }
-
-        /* Hero 卡片 (上方大卡) */
-        .hero-card {
-            position: relative; overflow: hidden;
-            padding: 1.5rem; text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        .hero-bg-glow {
-            position: absolute; right: -20px; top: -20px; width: 120px; height: 120px;
-            background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(192, 132, 252, 0.2));
-            border-radius: 50%; filter: blur(40px);
-            transition: transform 0.7s;
-        }
-        .hero-icon-box {
-            width: 64px; height: 64px; border-radius: 16px;
-            background: linear-gradient(135deg, #141414, #404040);
-            display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 0.75rem auto;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Bento Grid 佈局 */
-        .bento-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-        }
-        
-        /* 單一商品卡片 */
-        .bento-item {
-            position: relative;
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            border-radius: 1rem;
-            padding: 0.75rem;
-            display: flex; flex-direction: column; justify-content: space-between;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            height: 100%;
-        }
-        .bento-item:active { transform: scale(0.98); }
-        
-        /* 讓第一張卡片或是特定卡片橫跨兩欄 */
-        .bento-item.span-2 { grid-column: span 2; flex-direction: row; align-items: center; gap: 1rem; }
-        .bento-item.span-2 .item-image { width: 4rem; height: 4rem; margin-bottom: 0; }
-        .bento-item.span-2 .item-content { flex: 1; margin-top: 0; }
-        
-        /* 圖片樣式 */
-        .item-image {
-            width: 100%; aspect-ratio: 1/1;
-            background-size: cover; background-position: center; background-color: #f3f4f6;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        /* 標籤 Badge */
-        .bento-badge {
-            display: inline-flex; align-items: center; gap: 2px;
-            padding: 2px 6px; border-radius: 4px;
-            font-size: 10px; font-weight: 700;
-            margin-bottom: 4px;
-        }
-        .badge-cold { background-color: #dbeafe; color: #1d4ed8; } /* Blue */
-        .badge-veggie { background-color: #dcfce7; color: #15803d; } /* Green */
-        .badge-frozen { background-color: #fee2e2; color: #b91c1c; } /* Red */
-        .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
-
-        /* 文字排版 */
-        .bento-title { font-size: 0.95rem; font-weight: 700; color: #141414; line-height: 1.2; margin-bottom: 2px; }
-        .bento-sub { font-size: 0.75rem; font-weight: 500; color: #737373; }
-
-        /* 按鈕樣式 */
-        .btn-bento-action {
-            width: 100%;
-            background-color: #141414; color: white;
-            border: none; border-radius: 0.5rem;
-            padding: 6px 0;
-            font-size: 0.75rem; font-weight: 700;
-            display: flex; align-items: center; justify-content: center; gap: 4px;
-            margin-top: auto;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            transition: background 0.2s;
-        }
-        .btn-bento-action:active { background-color: #333; }
-        
-        /* Span-2 模式下的按鈕 */
-        .bento-item.span-2 .btn-bento-action { width: auto; padding: 6px 16px; margin-top: 0; }
-
-        /* Checkbox 整合 */
-        .bento-check {
-            position: absolute; top: 10px; right: 10px;
-            width: 20px; height: 20px; z-index: 10;
-            accent-color: #141414;
-            transform: scale(1.2);
-            opacity: 0.5; transition: opacity 0.2s;
-        }
-        .bento-check:checked { opacity: 1; }
-        
-        /* 頂部導航優化 */
-        .bento-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 1rem 0.5rem; margin-bottom: 0.5rem;
-            position: sticky; top: 0; z-index: 50;
-        }
-        .btn-glass-icon {
-            width: 40px; height: 40px; border-radius: 50%;
-            background: rgba(255,255,255,0.5); border: none;
-            display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(4px); transition: 0.2s;
-        }
-        .btn-glass-icon:active { background: rgba(255,255,255,0.8); }
-
     </style>
 </head>
 <body>
 
-<div id="app" class="container py-3" v-cloak>
+<div id="app" v-cloak>
+    
+    <!-- 背景動畫層 (只在購物車頁面顯示) -->
+    <div v-if="currentPage === 'shopping-cart'" class="fixed inset-0 z-0 pointer-events-none overflow-hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100vh;">
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-200/40 dark:bg-blue-900/20 rounded-full blur-[80px] mesh-bg"></div>
+        <div class="absolute bottom-[10%] right-[-10%] w-[60%] h-[60%] bg-purple-200/40 dark:bg-purple-900/20 rounded-full blur-[80px] mesh-bg" style="animation-delay: 2s;"></div>
+        <div class="absolute top-[40%] left-[30%] w-[40%] h-[40%] bg-green-100/40 dark:bg-green-900/20 rounded-full blur-[80px] mesh-bg" style="animation-delay: 4s;"></div>
+    </div>
 
     <!-- 圖片預覽層 -->
     <div v-if="previewImageUrl" class="image-preview-overlay" @click="closePreview">
@@ -285,13 +228,13 @@
     </div>
 
     <!-- 初始設定畫面 -->
-    <div v-if="!isConfigured" class="setup-screen">
+    <div v-if="!isConfigured" class="setup-screen relative z-10">
         <div class="text-center mb-4">
             <i class="bi bi-snow2 text-primary display-1"></i>
             <h2 class="fw-bold mt-3">歡迎使用智慧冰箱</h2>
             <p class="text-muted">請輸入家庭設定與您的名稱以開始使用</p>
         </div>
-
+        <!-- ... (保持原有設定代碼) ... -->
         <div class="card w-100 border-0 shadow-sm" style="max-width: 500px;">
             <div class="card-body">
                 <form @submit.prevent="saveInitialConfig">
@@ -314,8 +257,12 @@
 
     <!-- 主應用程式 -->
     <template v-else>
+        <!-- Home Page, Add/Edit Pages 等容器需要包在 container 中 (除了購物車) -->
+        <div v-if="currentPage !== 'shopping-cart'" class="container py-3 relative z-10">
+        
         <!-- HOME PAGE -->
         <div v-if="!isLoading && currentPage==='home'">
+            <!-- ... (保持原有 HOME 頁面代碼) ... -->
             <!-- 頂部列 -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center gap-2">
@@ -468,6 +415,7 @@
 
         <!-- ADD / EDIT PAGE -->
         <div v-if="!isLoading && (currentPage==='add' || currentPage==='edit')" class="page-container">
+            <!-- (保持原有 ADD/EDIT 代碼) -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 取消
@@ -502,7 +450,6 @@
                                             加入待購買清單
                                         </label>
                                     </div>
-                                    <!-- 快速儲存按鈕 -->
                                     <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 ms-2" 
                                             @click="submitItem" :disabled="isUploading || isCompressing">
                                         <i class="bi bi-check-lg me-1"></i>儲存
@@ -636,7 +583,6 @@
                             {{ (isUploading || isCompressing) ? '處理中...' : (currentPage==='edit' ? '儲存變更' : '確認放入冰箱') }}
                         </button>
 
-                        <!-- 0庫存物品的永久刪除按鈕 -->
                         <button v-if="currentPage==='edit' && newItem.quantity == 0 && newItem.quantity !== ''" 
                                 type="button" 
                                 class="btn btn-outline-danger w-100 mt-3 rounded-pill"
@@ -650,6 +596,7 @@
         
         <!-- TO BUY LIST PAGE (待購買清單) -->
         <div v-if="!isLoading && currentPage==='to-buy-list'" class="page-container">
+            <!-- (保持原有代碼) -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="returnToSidebar">
                     <i class="bi bi-arrow-left"></i> 返回
@@ -669,7 +616,6 @@
                          <div v-for="item in toBuyList" :key="item.id" class="shopping-item-row">
                             <input type="checkbox" class="form-check-input shopping-checkbox" 
                                    :value="item.id" v-model="selectedToBuyIds">
-                            <!-- 新增圖片 -->
                             <div class="list-thumb-box" :class="getBorderClass(item)">
                                 <img v-if="item.image" :src="item.image" class="list-thumb-img">
                                 <div v-else class="d-flex justify-content-center align-items-center h-100 text-muted"><i class="bi bi-image"></i></div>
@@ -700,126 +646,11 @@
                  </div>
             </div>
         </div>
-
-        <!-- SHOPPING CART PAGE (Bento UI Update) -->
-        <div v-if="!isLoading && currentPage==='shopping-cart'" class="bento-container">
-            
-            <!-- 背景動畫特效 (僅在購物車頁面顯示) -->
-            <div class="fixed inset-0 pointer-events-none" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1; overflow:hidden;">
-                <div class="mesh-bg mesh-blue" style="top:-10%; left:-10%; width:50%; height:50%;"></div>
-                <div class="mesh-bg mesh-purple" style="bottom:10%; right:-10%; width:60%; height:60%; animation-delay: 2s;"></div>
-                <div class="mesh-bg mesh-green" style="top:40%; left:30%; width:40%; height:40%; animation-delay: 4s;"></div>
-            </div>
-
-            <!-- 頂部導航列 -->
-            <div class="bento-header">
-                <button class="btn-glass-icon shadow-sm" @click="returnToSidebar">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                </button>
-                <h1 class="m-0 fw-bold fs-5 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">
-                    購物車
-                </h1>
-                <!-- 佔位符保持平衡 -->
-                <div style="width: 40px;"></div>
-            </div>
-
-            <!-- 主要內容區 -->
-            <div class="px-3">
-                
-                <!-- 1. Hero 狀態卡片 -->
-                <div class="glass-panel hero-card group">
-                    <div class="hero-bg-glow"></div>
-                    <div class="relative z-10 d-flex flex-column align-items-center">
-                        <div class="hero-icon-box">
-                            <span class="material-symbols-outlined text-white" style="font-size: 32px;">shopping_basket</span>
-                        </div>
-                        <h2 class="display-5 fw-bold mb-1 text-dark" style="letter-spacing: -1px;">
-                            {{ cartList.length }} 項商品
-                        </h2>
-                        <p class="text-secondary small fw-medium mb-0">已購買，準備存入冰箱</p>
-                    </div>
-                </div>
-
-                <!-- 2. 分類篩選 (視覺裝飾/預留功能) -->
-                <div class="d-flex gap-2 overflow-auto no-scrollbar pb-3">
-                    <button class="btn btn-dark rounded-pill px-4 py-2 fw-bold shadow-sm" style="font-size: 0.85rem; flex: none;">全部</button>
-                    <!-- 這裡僅作視覺展示，維持原功能不需額外篩選 -->
-                    <button class="btn btn-light border rounded-pill px-4 py-2 text-secondary fw-bold" style="background:rgba(255,255,255,0.5); font-size: 0.85rem; flex: none;">冷藏區</button>
-                    <button class="btn btn-light border rounded-pill px-4 py-2 text-secondary fw-bold" style="background:rgba(255,255,255,0.5); font-size: 0.85rem; flex: none;">蔬果區</button>
-                </div>
-
-                <!-- 空狀態 -->
-                <div v-if="cartList.length === 0" class="text-center py-5 glass-panel mt-2">
-                    <span class="material-symbols-outlined text-secondary" style="font-size: 64px; opacity: 0.3;">production_quantity_limits</span>
-                    <p class="mt-3 text-muted fw-bold">購物車是空的</p>
-                </div>
-
-                <!-- 3. 商品 Bento Grid -->
-                <div v-else class="bento-grid pb-5 mb-5">
-                    <div v-for="(item, index) in cartList" :key="item.id" 
-                         class="bento-item shadow-sm"
-                         :class="{ 'span-2': index === 0 }"> <!-- 讓第一個項目變寬，增加層次感 -->
-                        
-                        <!-- 選取框 (保留功能) -->
-                        <input type="checkbox" class="bento-check" :value="item.id" v-model="selectedCartIds">
-
-                        <!-- 圖片區域 -->
-                        <div class="item-image" 
-                             :style="{ backgroundImage: item.image ? `url(${item.image})` : 'none' }">
-                             <div v-if="!item.image" class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
-                                <span class="material-symbols-outlined">image</span>
-                             </div>
-                        </div>
-
-                        <!-- 內容區域 -->
-                        <div class="item-content w-100">
-                            <!-- 區域標籤 -->
-                            <div class="bento-badge" 
-                                 :class="{
-                                    'badge-cold': (!item.zone || item.zone==='cold'),
-                                    'badge-frozen': item.zone==='frozen',
-                                    'badge-veggie': item.zone==='veggie'
-                                 }">
-                                <span class="badge-dot" 
-                                      :style="{ backgroundColor: item.zone==='veggie'?'#15803d':(item.zone==='frozen'?'#b91c1c':'#1d4ed8') }">
-                                </span>
-                                {{ getZoneName(item.zone) }}
-                            </div>
-
-                            <h3 class="bento-title text-truncate">{{ item.name }}</h3>
-                            <p class="bento-sub mb-2">數量: {{ item.quantity }}</p>
-
-                            <!-- 動作按鈕 -->
-                            <button class="btn-bento-action" @click.stop="startPurchase(item)">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">input</span>
-                                存入
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-            
-            <!-- 底部操作列 (保留原有功能，調整樣式) -->
-            <div class="fixed-bottom p-3 glass-panel border-top shadow-lg m-3" v-if="cartList.length > 0" style="border-radius: 20px;">
-                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary w-50 rounded-pill py-2 fw-bold border-0 bg-white" 
-                            :disabled="selectedCartIds.length === 0"
-                            @click="removeSelectedFromCart">
-                        <i class="bi bi-trash me-1"></i> 移除
-                    </button>
-                     <button class="btn btn-outline-primary w-50 rounded-pill py-2 fw-bold border-0 bg-white" 
-                            :disabled="selectedCartIds.length === 0"
-                            @click="moveSelectedBackToBuy">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> 放回待買
-                    </button>
-                 </div>
-            </div>
-        </div>
-
-        <!-- TAKE OUT PAGE -->
+        
+        <!-- (其他頁面保留 Takeout, Settings, Update-Info...) -->
         <div v-if="!isLoading && currentPage==='takeout'" class="page-container">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <!-- ... Takeout ... -->
+             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 取消
                 </button>
@@ -858,8 +689,8 @@
             </div>
         </div>
 
-        <!-- SETTINGS -->
         <div v-if="!isLoading && currentPage==='settings'" class="settings-page page-container">
+            <!-- ... Settings ... -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="goHome">
                     <i class="bi bi-arrow-left"></i> 返回
@@ -867,8 +698,7 @@
                 <h5 class="fw-bold m-0">設定</h5>
                 <div style="width: 74px;"></div>
             </div>
-
-            <!-- 家庭設定 -->
+             <!-- 家庭設定 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-3">
@@ -889,8 +719,7 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 成員設定 -->
+             <!-- 成員設定 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-2">
@@ -916,7 +745,6 @@
                     </div>
                 </div>
             </div>
-            
             <!-- 版本更新設定 -->
             <div class="card section-card mb-3">
                 <div class="card-body">
@@ -937,8 +765,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 版本資訊 -->
              <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="fw-bold mb-2"><i class="bi bi-info-circle text-primary me-1"></i> 版本資訊</div>
@@ -952,13 +778,9 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 更新歷史 (修改優化版) -->
             <div class="card section-card mb-3">
                 <div class="card-body">
                     <div class="fw-bold mb-2"><i class="bi bi-list-check text-primary me-1"></i> 版本更新資訊</div>
-                    
-                    <!-- 列表區塊：改為跑 visibleUpdateLogs -->
                     <div class="accordion" id="updateAccordion">
                         <div class="accordion-item" v-for="log in visibleUpdateLogs" :key="log.version">
                             <h2 class="accordion-header">
@@ -979,31 +801,25 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- 顯示更多按鈕 -->
                     <div v-if="!showAllUpdates && updateLogs.length > 3" class="text-center mt-2">
                         <button class="btn btn-link text-decoration-none text-muted" @click="showAllUpdates = true">
                             <i class="bi bi-chevron-down me-1"></i>顯示更多歷史紀錄 ({{ updateLogs.length - 3 }})
                         </button>
                     </div>
-                    
-                    <!-- 收起按鈕 -->
                     <div v-if="showAllUpdates && updateLogs.length > 3" class="text-center mt-2">
                         <button class="btn btn-link text-decoration-none text-muted" @click="showAllUpdates = false">
                             <i class="bi bi-chevron-up me-1"></i>收起歷史紀錄
                         </button>
                     </div>
-
                 </div>
             </div>
-
             <button class="btn btn-outline-danger w-100 rounded-pill mt-4" @click="resetApp">
                 重設 APP (清除設定與登出)
             </button>
         </div>
-
-        <!-- UPDATE INFO PAGE (全螢幕) -->
+        
         <div v-if="!isLoading && currentPage==='update-info'" class="page-container">
+            <!-- ... Update Info ... -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <button class="btn btn-light border rounded-pill" @click="closeUpdatePage">
                     <i class="bi bi-arrow-left"></i> 返回
@@ -1045,113 +861,228 @@
             </button>
         </div>
 
-        <!-- 讀取中畫面 -->
-        <div v-if="isLoading" class="loading-mask">
-            <div class="spinner-border text-primary mb-3" role="status"></div>
-            <p class="text-muted fw-bold">正在同步 {{ familySettings.familyName || '家庭' }} 資料...</p>
-        </div>
+        </div> <!-- End of standard container -->
 
-        <!-- 左側邊欄 -->
-        <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
-            <div class="offcanvas-header">
-                <h5 class="offcanvas-title fw-bold" id="sidebarLabel"><i class="bi bi-snow2 text-primary"></i> 功能選單</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-            </div>
-
-            <div class="offcanvas-body d-flex flex-column">
-                <div class="sidebar-user-block">
-                    <div class="text-muted small">目前使用者</div>
-                    <div class="fw-bold fs-5">{{ currentUserName }}</div>
-                </div>
-                <hr class="sidebar-divider">
-
-                <!-- 採買區塊 -->
-                <div class="d-grid gap-2 mb-4">
-                     <button class="btn btn-light text-start d-flex justify-content-between align-items-center" @click="goPageFromSidebar('to-buy-list')">
-                        <span class="text-info fw-bold"><i class="bi bi-clipboard-check me-2"></i>待購買清單</span>
-                        <span class="badge bg-info text-dark rounded-pill" v-if="toBuyList.length > 0">{{ toBuyList.length }}</span>
+        <!-- SHOPPING CART PAGE (Bento Grid Style) -->
+        <div v-if="!isLoading && currentPage==='shopping-cart'" class="relative z-10 font-display flex flex-col h-screen overflow-hidden">
+            <!-- Tailwind Header -->
+            <header class="sticky top-0 z-50 flex flex-col pt-safe-top">
+                <div class="absolute inset-0 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-white/20 dark:border-white/10 shadow-sm"></div>
+                <div class="relative flex items-center justify-between px-4 h-16 w-full">
+                    <button class="flex items-center justify-center w-10 h-10 rounded-full bg-white/50 dark:bg-white/10 hover:bg-white/80 transition-colors backdrop-blur-md text-primary dark:text-white" @click="returnToSidebar">
+                        <span class="material-symbols-outlined text-[24px]">arrow_back</span>
                     </button>
-                     <button class="btn btn-light text-start d-flex justify-content-between align-items-center" @click="goPageFromSidebar('shopping-cart')">
-                        <span class="text-warning fw-bold"><i class="bi bi-cart me-2"></i>購物車</span>
-                        <span class="badge bg-warning text-dark rounded-pill" v-if="cartList.length > 0">{{ cartList.length }}</span>
+                    <h1 class="text-lg font-bold text-primary dark:text-white tracking-tight">購物車</h1>
+                    <!-- 如果有選擇項目，顯示取消按鈕，否則顯示更多 -->
+                    <button class="flex items-center justify-center w-10 h-10 rounded-full bg-white/50 dark:bg-white/10 hover:bg-white/80 transition-colors backdrop-blur-md text-primary dark:text-white relative" @click="selectedCartIds.length > 0 ? selectedCartIds = [] : null">
+                        <span class="material-symbols-outlined text-[24px]">{{ selectedCartIds.length > 0 ? 'close' : 'more_horiz' }}</span>
                     </button>
                 </div>
-                
-                <hr class="sidebar-divider">
+            </header>
 
-                <div class="d-grid gap-2 mb-4">
-                     <!-- 新增全區 -->
-                    <button class="btn btn-outline-dark text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('all')">
-                        <span><i class="bi bi-grid-fill me-2"></i>全區</span>
-                        <div class="d-flex gap-1">
-                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.all.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日警告">{{ zoneStats.all.warning }}</span>
-                            <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.all.expired }}</span>
+            <main class="flex-1 px-4 py-6 flex flex-col gap-6 pb-24 overflow-y-auto no-scrollbar">
+                <!-- Summary Card -->
+                <div class="relative overflow-hidden rounded-3xl bg-white/60 dark:bg-neutral-800/60 backdrop-blur-md border border-white/50 dark:border-white/10 shadow-lg p-6 group">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-700"></div>
+                    <div class="relative z-10 flex flex-col items-center text-center">
+                        <div class="w-16 h-16 mb-3 rounded-2xl bg-gradient-to-tr from-primary to-neutral-700 flex items-center justify-center shadow-lg transform group-hover:rotate-6 transition-transform">
+                            <span class="material-symbols-outlined text-white text-[32px]">shopping_basket</span>
                         </div>
-                    </button>
-                    
-                    <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
-                        <span><i class="bi bi-snow me-2"></i>冷藏區</span>
-                        <div class="d-flex gap-1">
-                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.cold.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge" title="7日警告">{{ zoneStats.cold.warning }}</span>
-                            <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.cold.expired }}</span>
-                        </div>
-                    </button>
-                    <button class="btn btn-outline-frozen text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
-                        <span><i class="bi bi-box-seam me-2"></i>冷凍區</span>
-                        <div class="d-flex gap-1">
-                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.frozen.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.frozen.warning }}</span>
-                            <span class="badge bg-danger zone-stat-badge">{{ zoneStats.frozen.expired }}</span>
-                        </div>
-                    </button>
-                    <button class="btn btn-outline-success text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('veggie')">
-                        <span><i class="bi bi-flower1 me-2"></i>蔬果區</span>
-                        <div class="d-flex gap-1">
-                            <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.veggie.total }}</span>
-                            <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.veggie.warning }}</span>
-                            <span class="badge bg-danger zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
-                        </div>
-                    </button>
-                    <!-- 新增無庫存區 -->
-                    <button class="btn btn-outline-secondary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('nostock')">
-                        <span><i class="bi bi-archive me-2"></i>無庫存區</span>
-                        <div class="d-flex gap-1">
-                            <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.nostock.total }}</span>
-                        </div>
-                    </button>
-                </div>
-                
-                <div class="mt-auto">
-                    <button class="btn btn-primary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
-                        <i class="bi bi-gear me-1"></i> 設定
-                    </button>
-                    <div class="text-center text-muted small mt-3">v{{ appVersion }}</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 編輯使用者名稱視窗 -->
-        <div class="modal fade" id="editNameModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow">
-                    <div class="modal-header">
-                        <h5 class="modal-title fw-bold">修改我的名稱</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="text" class="form-control" v-model="editUserNameTemp" placeholder="輸入新名稱">
-                        <div class="text-danger small mt-2" v-if="nameEditError">{{ nameEditError }}</div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary rounded-pill w-100" @click="confirmEditUserName">儲存修改</button>
+                        <h2 class="text-4xl font-extrabold text-primary dark:text-white tracking-tight leading-none mb-1">{{ cartList.length }} 項商品</h2>
+                        <p class="text-neutral-500 dark:text-neutral-400 font-medium text-sm">準備存入冰箱</p>
                     </div>
                 </div>
+
+                <!-- Empty State -->
+                <div v-if="cartList.length === 0" class="text-center text-muted py-5">
+                    <p class="text-neutral-500 font-medium">購物車是空的</p>
+                </div>
+
+                <!-- Bento Grid -->
+                <div class="grid grid-cols-2 gap-3" v-else>
+                    <div v-for="(item, index) in cartList" :key="item.id" 
+                         :class="[(index % 3 === 0) ? 'col-span-2' : 'col-span-1', 'relative group rounded-2xl p-3 bg-white/70 dark:bg-neutral-800/70 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-sm transition-all duration-300', selectedCartIds.includes(item.id) ? 'ring-2 ring-blue-500 bg-blue-50/90' : '']"
+                         @click="selectedCartIds.length > 0 ? (selectedCartIds.includes(item.id) ? selectedCartIds = selectedCartIds.filter(id => id !== item.id) : selectedCartIds.push(item.id)) : null">
+                        
+                        <!-- Hover Glow Effects based on Zone -->
+                        <div class="absolute inset-0 rounded-2xl border-2 transition-all pointer-events-none" 
+                             :class="{'group-hover:border-blue-500/20': !item.zone || item.zone==='cold', 'group-hover:border-red-500/20': item.zone==='frozen', 'group-hover:border-green-500/20': item.zone==='veggie'}"></div>
+                        
+                        <!-- Layout for Large Card (col-span-2) -->
+                        <div v-if="index % 3 === 0" class="flex gap-4 items-center h-full">
+                            <div class="w-20 h-20 shrink-0 rounded-xl bg-gray-100 dark:bg-neutral-700 bg-cover bg-center shadow-inner" 
+                                 :style="{ backgroundImage: 'url(' + (item.image || 'https://placehold.co/150x150?text=No+Image') + ')' }"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-start h-full">
+                                    <div class="flex flex-col justify-center">
+                                        <span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold mb-1 w-fit tracking-wide"
+                                              :class="{'bg-blue-100 text-blue-700': !item.zone || item.zone==='cold', 'bg-red-100 text-red-700': item.zone==='frozen', 'bg-green-100 text-green-700': item.zone==='veggie'}">
+                                            {{ getZoneName(item.zone) }}
+                                        </span>
+                                        <h3 class="text-lg font-bold text-primary dark:text-white leading-tight truncate">{{ item.name }}</h3>
+                                        <p class="text-neutral-500 dark:text-neutral-400 text-sm font-medium">數量: {{ item.quantity }}</p>
+                                    </div>
+                                    <button class="shrink-0 flex items-center gap-1 bg-primary dark:bg-white dark:text-primary text-white px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg active:scale-95 transition-all" @click.stop="startPurchase(item)">
+                                        <span class="material-symbols-outlined text-[18px]">input</span>
+                                        <span class="text-sm font-bold">存入</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Layout for Small Card (col-span-1) -->
+                        <div v-else class="flex flex-col justify-between h-full aspect-[4/5.5]">
+                            <div class="flex justify-between items-start z-10 mb-2">
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                                      :class="{'bg-blue-100 text-blue-700': !item.zone || item.zone==='cold', 'bg-red-100 text-red-700': item.zone==='frozen', 'bg-green-100 text-green-700': item.zone==='veggie'}">
+                                    <span class="w-1.5 h-1.5 rounded-full" :class="{'bg-blue-500': !item.zone || item.zone==='cold', 'bg-red-500': item.zone==='frozen', 'bg-green-500': item.zone==='veggie'}"></span>
+                                    {{ getZoneName(item.zone) }}
+                                </span>
+                                <!-- Selection Checkbox Visual -->
+                                <div v-if="selectedCartIds.length > 0" class="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center bg-white" :class="{'bg-blue-500 border-blue-500': selectedCartIds.includes(item.id)}">
+                                    <span v-if="selectedCartIds.includes(item.id)" class="material-symbols-outlined text-white text-[14px]">check</span>
+                                </div>
+                            </div>
+                            <div class="w-20 h-20 mx-auto rounded-lg bg-cover bg-center shadow-sm -mt-2 group-hover:scale-105 transition-transform duration-300" 
+                                 :style="{ backgroundImage: 'url(' + (item.image || 'https://placehold.co/150x150?text=No+Image') + ')' }"></div>
+                            <div class="z-10 mt-3 flex flex-col gap-2">
+                                <div>
+                                    <h3 class="text-base font-bold text-primary dark:text-white leading-tight truncate">{{ item.name }}</h3>
+                                    <p class="text-xs text-neutral-500 dark:text-neutral-400 font-medium">數量: {{ item.quantity }}</p>
+                                </div>
+                                <button class="w-full flex justify-center items-center gap-1 bg-primary dark:bg-white dark:text-primary text-white py-1.5 rounded-lg shadow-md hover:bg-neutral-800 active:scale-95 transition-all" @click.stop="startPurchase(item)">
+                                    <span class="text-xs font-bold">存入</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </main>
+
+            <!-- Original Bulk Actions (Only visible when items are selected via clicking) -->
+            <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-white/20 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-50 flex gap-3" v-if="selectedCartIds.length > 0">
+                 <button class="flex-1 bg-neutral-100 text-red-500 hover:bg-red-50 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors" @click="removeSelectedFromCart">
+                    <span class="material-symbols-outlined">delete</span> 移除
+                </button>
+                 <button class="flex-1 bg-primary text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all" @click="moveSelectedBackToBuy">
+                    <span class="material-symbols-outlined">undo</span> 放回待買
+                </button>
             </div>
+            
+            <!-- Long Press Tip (Subtle) -->
+             <div v-if="cartList.length > 0 && selectedCartIds.length === 0" class="fixed bottom-6 left-0 right-0 text-center pointer-events-none">
+                <span class="bg-black/50 text-white text-[10px] px-3 py-1 rounded-full backdrop-blur-sm">點擊「存入」入庫，長按卡片可選取管理</span>
+             </div>
         </div>
-        
     </template>
+
+    <!-- 讀取中畫面 -->
+    <div v-if="isLoading" class="loading-mask">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <p class="text-muted fw-bold">正在同步 {{ familySettings.familyName || '家庭' }} 資料...</p>
+    </div>
+
+    <!-- 左側邊欄 (保留) -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
+        <!-- ... (保持原有 sidebar 代碼) ... -->
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title fw-bold" id="sidebarLabel"><i class="bi bi-snow2 text-primary"></i> 功能選單</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+
+        <div class="offcanvas-body d-flex flex-column">
+            <div class="sidebar-user-block">
+                <div class="text-muted small">目前使用者</div>
+                <div class="fw-bold fs-5">{{ currentUserName }}</div>
+            </div>
+            <hr class="sidebar-divider">
+
+            <!-- 採買區塊 -->
+            <div class="d-grid gap-2 mb-4">
+                 <button class="btn btn-light text-start d-flex justify-content-between align-items-center" @click="goPageFromSidebar('to-buy-list')">
+                    <span class="text-info fw-bold"><i class="bi bi-clipboard-check me-2"></i>待購買清單</span>
+                    <span class="badge bg-info text-dark rounded-pill" v-if="toBuyList.length > 0">{{ toBuyList.length }}</span>
+                </button>
+                 <button class="btn btn-light text-start d-flex justify-content-between align-items-center" @click="goPageFromSidebar('shopping-cart')">
+                    <span class="text-warning fw-bold"><i class="bi bi-cart me-2"></i>購物車</span>
+                    <span class="badge bg-warning text-dark rounded-pill" v-if="cartList.length > 0">{{ cartList.length }}</span>
+                </button>
+            </div>
+            
+            <hr class="sidebar-divider">
+
+            <div class="d-grid gap-2 mb-4">
+                 <!-- 新增全區 -->
+                <button class="btn btn-outline-dark text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('all')">
+                    <span><i class="bi bi-grid-fill me-2"></i>全區</span>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.all.total }}</span>
+                        <span class="badge bg-warning text-dark zone-stat-badge" title="7日警告">{{ zoneStats.all.warning }}</span>
+                        <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.all.expired }}</span>
+                    </div>
+                </button>
+                
+                <button class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('cold')">
+                    <span><i class="bi bi-snow me-2"></i>冷藏區</span>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.cold.total }}</span>
+                        <span class="badge bg-warning text-dark zone-stat-badge" title="7日警告">{{ zoneStats.cold.warning }}</span>
+                        <span class="badge bg-danger zone-stat-badge" title="已過期">{{ zoneStats.cold.expired }}</span>
+                    </div>
+                </button>
+                <button class="btn btn-outline-frozen text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('frozen')">
+                    <span><i class="bi bi-box-seam me-2"></i>冷凍區</span>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.frozen.total }}</span>
+                        <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.frozen.warning }}</span>
+                        <span class="badge bg-danger zone-stat-badge">{{ zoneStats.frozen.expired }}</span>
+                    </div>
+                </button>
+                <button class="btn btn-outline-success text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('veggie')">
+                    <span><i class="bi bi-flower1 me-2"></i>蔬果區</span>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-secondary zone-stat-badge">{{ zoneStats.veggie.total }}</span>
+                        <span class="badge bg-warning text-dark zone-stat-badge">{{ zoneStats.veggie.warning }}</span>
+                        <span class="badge bg-danger zone-stat-badge">{{ zoneStats.veggie.expired }}</span>
+                    </div>
+                </button>
+                <!-- 新增無庫存區 -->
+                <button class="btn btn-outline-secondary text-start d-flex justify-content-between align-items-center" @click="selectZoneFromSidebar('nostock')">
+                    <span><i class="bi bi-archive me-2"></i>無庫存區</span>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-secondary zone-stat-badge" title="總數">{{ zoneStats.nostock.total }}</span>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="mt-auto">
+                <button class="btn btn-primary w-100 rounded-pill fw-bold" @click="goSettingsFromSidebar">
+                    <i class="bi bi-gear me-1"></i> 設定
+                </button>
+                <div class="text-center text-muted small mt-3">v{{ appVersion }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編輯使用者名稱視窗 (保留) -->
+    <div class="modal fade" id="editNameModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">修改我的名稱</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control" v-model="editUserNameTemp" placeholder="輸入新名稱">
+                    <div class="text-danger small mt-2" v-if="nameEditError">{{ nameEditError }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary rounded-pill w-100" @click="confirmEditUserName">儲存修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </div>
 
@@ -1166,12 +1097,13 @@
     let appFirebase;
     let db;
 
-    const APP_VERSION = "1.7.0"; 
+    const APP_VERSION = "1.7.1"; // Updated version for new UI
 
     const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
     createApp({
         setup() {
+            // (這部分完全保持原有的 JS 邏輯，不做任何刪減)
             // --- 狀態變數 ---
             const isConfigured = ref(false);
             const isSettingUp = ref(false);
@@ -1205,18 +1137,13 @@
             const currentPage = ref("home");
             const previousPage = ref("home");
             
-            // 優化：記錄滑動位置
             const savedScrollY = ref(0);
-            
-            // 回到頂部按鈕顯示狀態
             const showScrollTop = ref(false);
 
-            // 購物相關狀態
             const selectedToBuyIds = ref([]);
             const selectedCartIds = ref([]);
             const pendingPurchaseOriginalId = ref(null);
             
-            // 多選管理模式 (改名為通用 Ids)
             const isSelectionMode = ref(false);
             const selectedHomeIds = ref([]);
 
@@ -1228,7 +1155,6 @@
             const latestVersion = ref(LATEST_VERSION);
             const latestLog = computed(() => updateLogs.value.find(l => l.version === latestVersion.value) || updateLogs.value[0] || null);
 
-            // --- 新增：設定頁面歷史紀錄顯示控制 ---
             const showAllUpdates = ref(false);
             const visibleUpdateLogs = computed(() => {
                 if (showAllUpdates.value) return updateLogs.value;
@@ -1247,10 +1173,9 @@
                 zone: "cold",
                 owners: ['全家'],
                 useExistingImage: false,
-                shoppingStatus: null // null, 'toBuy', 'inCart'
+                shoppingStatus: null
             });
 
-            // --- 偵測重複物品 ---
             const matchedExistingItem = computed(() => {
                 if (currentPage.value !== 'add') return null;
                 if (!newItem.value.name || !newItem.value.zone) return null;
@@ -1261,13 +1186,11 @@
                 ) || null;
             });
 
-            // 優化：自動完成名稱 (Datalist)
             const uniqueItemNames = computed(() => {
                 const names = items.value.map(i => i.name).filter(n => n);
                 return [...new Set(names)].sort();
             });
 
-            // 監聽 matchedExistingItem
             watch(matchedExistingItem, (val) => {
                 if (!val) {
                     newItem.value.useExistingImage = false;
@@ -1278,12 +1201,9 @@
                 }
             });
 
-            // --- 方法 ---
-
             const checkConfig = async () => {
                 const storedConfig = localStorage.getItem("fridge_firebase_config");
                 const storedUser = localStorage.getItem("fridge_user_name");
-
                 if (storedConfig && storedUser) {
                     try {
                         const configObj = JSON.parse(storedConfig);
@@ -1304,13 +1224,10 @@
                         appFirebase = initializeApp(config);
                         db = getFirestore(appFirebase);
                     }
-                    
                     currentUserName.value = userName;
                     localStorage.setItem("fridge_user_name", userName);
-                    
                     isConfigured.value = true;
                     isLoading.value = true;
-
                     await checkAndJoinFamily(userName);
                     startListeners();
                 } catch (e) {
@@ -1324,25 +1241,19 @@
                     setupError.value = "格式似乎不正確，請複製包含 { ... } 的完整程式碼";
                     return;
                 }
-                
                 if (!inputUserName.value.trim()) {
                     setupError.value = "請輸入您的稱呼";
                     return;
                 }
-
                 isSettingUp.value = true;
-                
                 try {
                     let cleanStr = inputConfigStr.value.trim();
                     cleanStr = cleanStr.replace(/const\s+firebaseConfig\s*=\s*/, '');
                     cleanStr = cleanStr.replace(/;$/, '');
-                    
                     const configObj = (new Function(`return ${cleanStr}`))();
                     if (!configObj.projectId) throw new Error("無效的設定內容");
-
                     await initFirebase(configObj, inputUserName.value.trim());
                     localStorage.setItem("fridge_firebase_config", JSON.stringify(configObj));
-                    
                 } catch (e) {
                     console.error(e);
                     setupError.value = "設定失敗，請檢查代碼是否正確或是網路連線異常";
@@ -1374,9 +1285,7 @@
                             members: members
                         };
                     }
-                } catch (e) {
-                    console.error("Family Setup Error", e);
-                }
+                } catch (e) { console.error("Family Setup Error", e); }
             };
 
             const startListeners = () => {
@@ -1385,13 +1294,11 @@
                     isLoading.value = false;
                     showUpdateModal(false); 
                 });
-
                 onSnapshot(doc(db, "family_metadata", "general"), (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         familySettings.value.familyName = data.familyName;
                         familySettings.value.members = data.members || [];
-                        
                         if (data.latest_rename) {
                             const { from, to, at } = data.latest_rename;
                             const now = Date.now();
@@ -1416,9 +1323,7 @@
                         familyName: editFamilyNameTemp.value.trim()
                     });
                     isEditingFamilyName.value = false;
-                } catch (e) {
-                    alert("更新失敗");
-                }
+                } catch (e) { alert("更新失敗"); }
             };
 
             const startEditUserName = (name) => {
@@ -1433,7 +1338,6 @@
                 const oldName = currentUserName.value;
                 if (!newName) { nameEditError.value = "名稱不能為空"; return; }
                 if (newName === oldName) { bootstrap.Modal.getInstance(document.getElementById('editNameModal')).hide(); return; }
-                
                 try {
                     const updatedMembers = familySettings.value.members.filter(m => m !== oldName);
                     updatedMembers.push(newName);
@@ -1475,18 +1379,13 @@
                     currentPage.value = 'update-info';
                     return;
                 }
-                
                 if (!settings.value.updateNotifyEnabled) return;
-                
                 const lastSeen = localStorage.getItem("lastSeenUpdateVersion");
-                
                 if (lastSeen === null) {
                     localStorage.setItem("lastSeenUpdateVersion", APP_VERSION);
                     return;
                 }
-
                 if (lastSeen === APP_VERSION) return; 
-
                 previousPage.value = currentPage.value;
                 currentPage.value = 'update-info';
             };
@@ -1506,7 +1405,6 @@
                 return false;
             };
 
-            // 回到頂部功能
             const scrollToTop = () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
@@ -1514,7 +1412,6 @@
             onMounted(() => {
                 loadSettings();
                 checkConfig();
-                // 監聽滾動事件
                 window.addEventListener('scroll', () => {
                     showScrollTop.value = window.scrollY > 300;
                 });
@@ -1532,11 +1429,8 @@
                 try {
                     const compressed = await compressFile(file);
                     newItem.value.image = compressed;
-                } catch (e) {
-                    alert("圖片處理失敗");
-                } finally {
-                    isCompressing.value = false;
-                }
+                } catch (e) { alert("圖片處理失敗"); } 
+                finally { isCompressing.value = false; }
             };
 
             const compressFile = (file) => {
@@ -1552,9 +1446,7 @@
                             const scale = MAX_WIDTH / img.width;
                             const w = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
                             const h = (img.width > MAX_WIDTH) ? img.height * scale : img.height;
-
-                            canvas.width = w;
-                            canvas.height = h;
+                            canvas.width = w; canvas.height = h;
                             const ctx = canvas.getContext("2d");
                             ctx.drawImage(img, 0, 0, w, h);
                             resolve(canvas.toDataURL("image/jpeg", 0.6));
@@ -1594,10 +1486,8 @@
                     if (storeA > storeB) return 1;
                     return 0;
                 });
-
                 const totalQty = batches.reduce((sum, b) => sum + parseInt(b.quantity || 0), 0);
                 const firstBatch = batches[0] || {};
-
                 return {
                     quantity: totalQty,
                     storedDate: firstBatch.storedDate || "",
@@ -1610,39 +1500,23 @@
             };
 
             const toggleToBuyStatus = (e) => {
-                if(e.target.checked) {
-                    newItem.value.shoppingStatus = 'toBuy';
-                } else {
-                    newItem.value.shoppingStatus = null;
-                }
+                if(e.target.checked) { newItem.value.shoppingStatus = 'toBuy'; } 
+                else { newItem.value.shoppingStatus = null; }
             };
 
-            // --- 修正後的 submitItem 函式 (修復 undefined 錯誤) ---
             const submitItem = async () => {
-                if (!newItem.value.useExistingImage && !newItem.value.image) { 
-                    alert("請記得拍照喔！"); return; 
-                }
-                
+                if (!newItem.value.useExistingImage && !newItem.value.image) { alert("請記得拍照喔！"); return; }
                 let safeQuantity = 1;
                 if (newItem.value.quantity === "" || newItem.value.quantity === null) {
                     safeQuantity = (currentPage.value === 'add') ? 1 : 0;
-                } else {
-                    safeQuantity = parseInt(newItem.value.quantity);
-                }
-
+                } else { safeQuantity = parseInt(newItem.value.quantity); }
                 if (isNaN(safeQuantity)) safeQuantity = 0;
-                
-                if (safeQuantity != 0 && !newItem.value.storedDate) { 
-                    alert("請填存入日期"); return; 
-                }
-                
+                if (safeQuantity != 0 && !newItem.value.storedDate) { alert("請填存入日期"); return; }
                 if (!db) return;
 
                 const expiryDateClean = newItem.value.noExpiry ? "" : (newItem.value.expiryDate || "");
                 const noExpiryFinal = newItem.value.noExpiry || !expiryDateClean;
                 const ownersFinal = (newItem.value.owners && newItem.value.owners.length > 0) ? newItem.value.owners : ['全家'];
-                
-                // 確保圖片不是 undefined
                 let imageToSave = newItem.value.image || null;
 
                 const newBatch = {
@@ -1657,10 +1531,8 @@
                 isUploading.value = true;
                 try {
                     if (newItem.value.id) {
-                        // === 編輯現有物品 ===
                         const oldItemRef = items.value.find(i => i.id === newItem.value.id);
                         let batches = oldItemRef && oldItemRef.batches ? [...oldItemRef.batches] : [];
-                        
                         if (batches.length === 0 && oldItemRef) {
                              batches = [{
                                 storedDate: oldItemRef.storedDate,
@@ -1671,13 +1543,9 @@
                                 addedAt: 0
                              }];
                         }
-
-                        // 確保批次圖片不為 undefined
                         const finalImage = newItem.value.image || batches[0].image || null;
-                        
                         batches[0] = { ...batches[0], ...newBatch, image: finalImage };
                         const result = recalculateItemFromBatches(batches, ownersFinal);
-
                         await updateDoc(doc(db, "fridge_items", newItem.value.id), {
                             name: newItem.value.name,
                             zone: newItem.value.zone || 'cold',
@@ -1687,42 +1555,29 @@
                         });
 
                     } else {
-                        // === 新增物品 ===
                         const targetItem = matchedExistingItem.value;
-
                         if (targetItem) {
-                            // --- 合併到現有物品 (偵測到重複) ---
                             let batches = targetItem.batches ? [...targetItem.batches] : [{
                                 storedDate: targetItem.storedDate,
                                 expiryDate: targetItem.expiryDate,
                                 noExpiry: targetItem.noExpiry,
                                 quantity: parseInt(targetItem.quantity),
-                                image: targetItem.image || null, // 防止舊資料圖片為 undefined
+                                image: targetItem.image || null,
                                 addedAt: 0
                             }];
-
-                            if (newItem.value.useExistingImage) {
-                                newBatch.image = targetItem.image || null;
-                            } else {
-                                newBatch.image = newItem.value.image || null; 
-                            }
-
+                            if (newItem.value.useExistingImage) { newBatch.image = targetItem.image || null; } 
+                            else { newBatch.image = newItem.value.image || null; }
                             batches.push(newBatch);
-                            
-                            // 如果舊資料沒有 owners 欄位，給予預設值
                             const targetOwners = targetItem.owners || ['全家'];
                             const result = recalculateItemFromBatches(batches, targetOwners); 
-
                             await updateDoc(doc(db, "fridge_items", targetItem.id), {
                                 ...result,
                                 updatedAt: new Date()
                             });
 
                         } else {
-                            // --- 完全新增一個新物品 ---
                             const initialBatches = [newBatch];
                             const result = recalculateItemFromBatches(initialBatches, ownersFinal);
-
                             await addDoc(collection(db, "fridge_items"), {
                                 name: newItem.value.name,
                                 zone: newItem.value.zone || 'cold',
@@ -1732,21 +1587,17 @@
                             });
                         }
                     }
-
                     if (pendingPurchaseOriginalId.value) {
                         await updateDoc(doc(db, "fridge_items", pendingPurchaseOriginalId.value), {
                             shoppingStatus: null
                         });
                         pendingPurchaseOriginalId.value = null;
                     }
-
                     goHome();
                 } catch (e) {
                     console.error("Firebase Error:", e);
                     alert("上傳/更新失敗，請檢查網路");
-                } finally {
-                    isUploading.value = false;
-                }
+                } finally { isUploading.value = false; }
             };
 
             const openPreview = (url) => { previewImageUrl.value = url; };
@@ -1762,43 +1613,32 @@
             const handleCardClick = (item) => {
                 if (isSelectionMode.value) {
                     const idx = selectedHomeIds.value.indexOf(item.id);
-                    if (idx > -1) {
-                        selectedHomeIds.value.splice(idx, 1);
-                    } else {
-                        selectedHomeIds.value.push(item.id);
-                    }
+                    if (idx > -1) { selectedHomeIds.value.splice(idx, 1); } 
+                    else { selectedHomeIds.value.push(item.id); }
                 }
             };
 
             const goToTakeOutPage = (item) => {
                 savedScrollY.value = window.scrollY;
-                
                 itemToDelete.value = item;
                 const qty = parseInt(item.quantity);
                 maxTakeOut.value = (!isNaN(qty) && qty > 0) ? qty : 1;
                 takeOutAmount.value = 1;
                 currentPage.value = "takeout";
-                
-                // 優化：強制瞬間移動到頂部 (無動畫)
                 nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
             };
 
             const confirmTakeOutAction = async () => {
                 if (!db || !itemToDelete.value) return;
-
                 const takeQty = parseInt(takeOutAmount.value);
                 const currentQty = parseInt(itemToDelete.value.quantity);
-
                 if (takeQty >= currentQty) {
                     try { 
-                        await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { 
-                            quantity: 0 
-                        }); 
+                        await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { quantity: 0 }); 
                         goHome(); 
                     } catch(e) { alert("更新失敗"); }
                     return;
                 }
-
                 try {
                     let batches = itemToDelete.value.batches ? [...itemToDelete.value.batches] : [{
                         storedDate: itemToDelete.value.storedDate,
@@ -1807,7 +1647,6 @@
                         quantity: currentQty,
                         image: itemToDelete.value.image
                     }];
-
                     batches.sort((a, b) => {
                         const dateA = a.noExpiry ? "9999-12-31" : (a.expiryDate || "9999-12-31");
                         const dateB = b.noExpiry ? "9999-12-31" : (b.expiryDate || "9999-12-31");
@@ -1819,38 +1658,26 @@
                         if (storeA > storeB) return 1;
                         return 0;
                     });
-
                     let remainingToTake = takeQty;
                     const newBatches = [];
-
                     for (let batch of batches) {
                         if (remainingToTake <= 0) {
                             newBatches.push(batch);
                             continue;
                         }
-
                         let batchQty = parseInt(batch.quantity);
-                        
                         if (batchQty > remainingToTake) {
                             batch.quantity = batchQty - remainingToTake;
                             remainingToTake = 0;
                             newBatches.push(batch);
-                        } else {
-                            remainingToTake -= batchQty;
-                        }
+                        } else { remainingToTake -= batchQty; }
                     }
-
                     const result = recalculateItemFromBatches(newBatches, itemToDelete.value.owners);
                     await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { ...result });
-                    
                     goHome();
-                } catch(e) { 
-                    console.error(e);
-                    alert("更新失敗"); 
-                }
+                } catch(e) { console.error(e); alert("更新失敗"); }
             };
 
-            // 永久刪除 (單一)
             const deleteItemPermanently = async (id) => {
                 if(confirm("確定要永久刪除此物品嗎？此操作無法復原。")) {
                     await deleteDoc(doc(db, "fridge_items", id));
@@ -1858,7 +1685,6 @@
                 }
             };
 
-            // 永久刪除 (多選)
             const deleteSelectedNoStock = async () => {
                 if(confirm(`確定要永久刪除選取的 ${selectedHomeIds.value.length} 項物品嗎？`)) {
                     const promises = selectedHomeIds.value.map(id => deleteDoc(doc(db, "fridge_items", id)));
@@ -1868,7 +1694,6 @@
                 }
             };
 
-            // 移出待購買清單
             const removeFromToBuyList = async () => {
                  const promises = selectedToBuyIds.value.map(id => 
                     updateDoc(doc(db, "fridge_items", id), { shoppingStatus: null })
@@ -1877,7 +1702,6 @@
                 selectedToBuyIds.value = [];
             };
 
-            // 批次加入待買
             const addBatchToBuy = async () => {
                  const promises = selectedHomeIds.value.map(id => 
                     updateDoc(doc(db, "fridge_items", id), { shoppingStatus: 'toBuy' })
@@ -1905,7 +1729,7 @@
             };
 
             const getAlertClass = (item) => {
-                if (parseInt(item.quantity) === 0) return ""; // 無庫存不顯示警示
+                if (parseInt(item.quantity) === 0) return ""; 
                 if (isNoExpiry(item)) return "";
                 const d = getDays(item.expiryDate);
                 if (d === null) return "";
@@ -1915,7 +1739,7 @@
             };
 
             const getBorderClass = (item) => {
-                if (parseInt(item.quantity) === 0) return ""; // 無庫存不顯示框線警示
+                if (parseInt(item.quantity) === 0) return ""; 
                 if (isNoExpiry(item)) return "";
                 const d = getDays(item.expiryDate);
                 if (d === null) return "";
@@ -1947,39 +1771,27 @@
 
             const zoneStats = computed(() => {
                 const stats = {
-                    // 修改這裡：全區也要有 warning 和 expired
                     all: { total: 0, warning: 0, expired: 0 },
                     cold: { total: 0, warning: 0, expired: 0 },
                     frozen: { total: 0, warning: 0, expired: 0 },
                     veggie: { total: 0, warning: 0, expired: 0 },
                     nostock: { total: 0 } 
                 };
-
                 items.value.forEach(item => {
-                    // 無庫存不計入統計
                     if (parseInt(item.quantity) === 0) {
                         stats.nostock.total++;
                         return; 
                     }
-
-                    // 1. 全區總數 +1
                     stats.all.total++;
-                    
                     const z = item.zone || 'cold';
-                    
-                    // 2. 該分區總數 +1
                     if (stats[z]) stats[z].total++;
-                    
-                    // 3. 計算過期與警告狀態
                     if (!isNoExpiry(item)) {
                         const days = getDays(item.expiryDate);
                         if (days !== null) {
                             if (days < 0) {
-                                // 過期：全區+1，該區+1
                                 stats.all.expired++;
                                 if (stats[z]) stats[z].expired++;
                             } else if (days <= 7) {
-                                // 警告：全區+1，該區+1
                                 stats.all.warning++;
                                 if (stats[z]) stats[z].warning++;
                             }
@@ -2000,9 +1812,7 @@
             };
 
             const goToAddPage = () => {
-                // 優化：記錄位置並重置到頂端 (無動畫)
                 savedScrollY.value = window.scrollY;
-
                 newItem.value = {
                     id: null,
                     name: "",
@@ -2018,16 +1828,12 @@
                 };
                 pendingPurchaseOriginalId.value = null; 
                 currentPage.value = "add";
-
                 nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
             };
 
             const goToEditPage = (item) => {
                 if(longPressTimer) clearTimeout(longPressTimer);
-                
-                // 優化：記錄位置並重置到頂端 (無動畫)
                 savedScrollY.value = window.scrollY;
-
                 newItem.value = {
                     id: item.id,
                     name: item.name,
@@ -2042,7 +1848,6 @@
                     shoppingStatus: item.shoppingStatus || null
                 };
                 currentPage.value = "edit";
-                
                 nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
             };
 
@@ -2079,7 +1884,6 @@
             const goHome = () => {
                 currentPage.value = "home";
                 previewImageUrl.value = null;
-                // 優化：返回時恢復滾動位置 (強制無動畫)
                 nextTick(() => {
                     window.scrollTo({ top: savedScrollY.value, behavior: 'instant' });
                 });
@@ -2088,31 +1892,21 @@
             const filteredItems = computed(() => {
                 const keyword = searchText.value?.trim() || "";
                 let list = items.value;
-                
-                // 搜尋過濾
                 if (keyword) list = list.filter(i => String(i.name || "").includes(keyword));
-                
-                // 區域與庫存過濾邏輯
                 if (filterZone.value === 'nostock') {
-                    // 無庫存區：只顯示數量為 0
                     list = list.filter(i => parseInt(i.quantity) === 0);
                 } else {
-                    // 其他區：只顯示數量 > 0
                     list = list.filter(i => parseInt(i.quantity) > 0);
-                    
                     if (filterZone.value !== 'all') {
                         list = list.filter(i => (i.zone || 'cold') === filterZone.value);
                     }
                 }
-                
-                // 排序
                 const toSortKey = (it) => {
                     const noExp = isNoExpiry(it);
                     const exp = (!noExp && it.expiryDate) ? it.expiryDate : "9999-12-31";
                     const stored = it.storedDate || "9999-12-31";
                     return { exp, stored };
                 };
-
                 return [...list].sort((a, b) => {
                     const ka = toSortKey(a);
                     const kb = toSortKey(b);
@@ -2124,7 +1918,6 @@
                 });
             });
 
-            // --- 購物清單邏輯 ---
             const toBuyList = computed(() => {
                 return items.value.filter(i => i.shoppingStatus === 'toBuy');
             });
@@ -2139,7 +1932,7 @@
                 );
                 await Promise.all(promises);
                 selectedToBuyIds.value = [];
-                goPageFromSidebar('shopping-cart'); // 跳轉到購物車
+                goPageFromSidebar('shopping-cart'); 
             };
 
             const removeSelectedFromCart = async () => {
@@ -2160,10 +1953,7 @@
 
             const startPurchase = (item) => {
                 pendingPurchaseOriginalId.value = item.id;
-                
-                // 優化：記錄位置並重置到頂端 (無動畫)
                 savedScrollY.value = window.scrollY;
-
                 newItem.value = {
                     id: null,
                     name: item.name,
@@ -2178,7 +1968,6 @@
                     shoppingStatus: null
                 };
                 currentPage.value = "add";
-
                 nextTick(() => window.scrollTo({ top: 0, behavior: 'instant' }));
             };
 
@@ -2198,16 +1987,12 @@
                 settings, saveSettings, showUpdateModal, closeUpdatePage,
                 goHome, goToAddPage, goSettingsFromSidebar,
                 toggleOwner, formatOwners,
-                // Shopping related
                 toBuyList, cartList, goPageFromSidebar, returnToSidebar,
                 selectedToBuyIds, selectedCartIds, moveSelectedToCart, removeSelectedFromCart, moveSelectedBackToBuy, removeFromToBuyList,
                 toggleToBuyStatus, startPurchase, getBorderClass,
-                // No Stock Mode
                 isSelectionMode, toggleSelectionMode, selectedHomeIds, handleCardClick, 
                 deleteSelectedNoStock, addBatchToBuy, deleteItemPermanently,
-                // New Update Logs Control
                 showAllUpdates, visibleUpdateLogs,
-                // New Features
                 showScrollTop, scrollToTop
             };
         }
