@@ -88,24 +88,17 @@
 
         /* --- Bento Shopping Cart Styles --- */
         .bento-mode {
-    --bg-light: #f7f7f7;
-    --text-primary: #141414;
-    --card-bg: rgba(255, 255, 255, 0.9);
-    font-family: 'Noto Sans TC', 'Plus Jakarta Sans', sans-serif;
-    color: var(--text-primary);
-    position: relative;
-    min-height: 100vh;
-    
-    /* 修改重點：使用負邊距抵銷父容器的 Padding，消除顏色縫隙 */
-    margin-top: -1rem; 
-    margin-left: -0.75rem; 
-    margin-right: -0.75rem;
-    padding-bottom: 20px; /* 底部增加一點空間 */
-    
-    background-color: var(--bg-light);
-    overflow-x: hidden;
-    transform: translateZ(0);
-}
+            --bg-light: #f7f7f7;
+            --text-primary: #141414;
+            --card-bg: rgba(255, 255, 255, 0.65);
+            font-family: 'Noto Sans TC', 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-primary);
+            position: relative;
+            min-height: 100vh;
+            margin-left: -0.75rem; margin-right: -0.75rem; margin-top: -1rem;
+            background-color: var(--bg-light);
+            overflow-x: hidden;
+        }
 
         .bento-bg-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: hidden; }
         .mesh-blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6; animation: drift 10s ease-in-out infinite; }
@@ -116,24 +109,13 @@
 
         /* Header 改為透明 (Transparent Header) */
         .bento-header {
-    position: sticky; 
-    top: 0; 
-    z-index: 1050; 
-    display: flex; 
-    align-items: center; 
-    justify-content: space-between;
-    
-    /* 修改重點：增加 padding-top 數值 */
-    /* 原本是 +20px，現在加到 +40px 來抵銷 margin-top 的上移，確保按鈕位置舒適 */
-    padding-top: calc(env(safe-area-inset-top) + 40px);
-    padding-bottom: 15px;
-    padding-left: 20px;
-    padding-right: 20px;
-
-    background: transparent; 
-    border-bottom: none;
-    backdrop-filter: none; -webkit-backdrop-filter: none;
-}
+            position: sticky; top: 0; z-index: 1050; display: flex; align-items: center; justify-content: space-between;
+            padding: 15px 20px;
+            /* 修改部分：背景透明，無邊框 */
+            background: transparent; 
+            border-bottom: none;
+            backdrop-filter: none; -webkit-backdrop-filter: none;
+        }
         .glass-icon-btn {
             width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.65);
             display: flex; align-items: center; justify-content: center; transition: 0.2s; color: #333;
@@ -144,10 +126,24 @@
         .bento-container { padding: 20px; position: relative; z-index: 1; padding-bottom: 120px; }
         
         .bento-hero {
-            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 24px; padding: 24px; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 24px; position: relative; overflow: hidden;
-        }
+    background: rgba(255, 255, 255, 0.65); 
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5); 
+    border-radius: 24px; 
+    padding: 24px; 
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+    margin-bottom: 24px; 
+    position: relative; 
+    
+    /* --- 修復圓角溢出的關鍵設定 --- */
+    overflow: hidden;
+    transform: translateZ(0); /* 強制 GPU 運算圖層 */
+    -webkit-mask-image: -webkit-radial-gradient(white, black); /* 強制 iOS 依照圓角進行裁切 */
+    /* --------------------------- */
+
+    will-change: transform;
+}
         .hero-icon-box {
             width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #141414, #404040);
             display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -723,6 +719,7 @@
          </div>
     </div>
 </div>
+
         <!-- SHOPPING CART PAGE (購物車) - Bento/Glassmorphism Mode -->
         <div v-if="!isLoading && currentPage==='shopping-cart'" class="bento-mode">
             
