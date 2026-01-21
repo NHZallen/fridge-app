@@ -1743,16 +1743,16 @@ const getTodayStr = () => {
                         const oldItemRef = items.value.find(i => i.id === newItem.value.id);
                         let batches = oldItemRef && oldItemRef.batches ? [...oldItemRef.batches] : [];
                         
-                        if (batches.length === 0 && oldItemRef) {
-                             batches = [{
-                                storedDate: oldItemRef.storedDate,
-                                expiryDate: oldItemRef.expiryDate,
-                                noExpiry: oldItemRef.noExpiry,
-                                quantity: parseInt(oldItemRef.quantity),
-                                image: oldItemRef.image || null,
-                                addedAt: 0
-                             }];
-                        }
+                        if (batches.length === 0 && oldItemRef && parseInt(oldItemRef.quantity) > 0) {
+  batches = [{
+    storedDate: oldItemRef.storedDate,
+    expiryDate: oldItemRef.expiryDate,
+    noExpiry: oldItemRef.noExpiry,
+    quantity: parseInt(oldItemRef.quantity),
+    image: oldItemRef.image || null,
+    addedAt: 0
+  }];
+}
 
                         // 確保批次圖片不為 undefined
                         const finalImage = newItem.value.image || batches[0].image || null;
@@ -1875,14 +1875,27 @@ if (parseInt(targetItem.quantity) > 0) {
                 const currentQty = parseInt(itemToDelete.value.quantity);
 
                 if (takeQty >= currentQty) {
-                    try { 
-                        await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), { 
-                            quantity: 0 
-                        }); 
-                        goHome(); 
-                    } catch(e) { alert("更新失敗"); }
-                    return;
-                }
+  try {
+    await updateDoc(doc(db, "fridge_items", itemToDelete.value.id), {
+      quantity: 0,
+
+      // 重點：吃完就不要留批次
+      batches: [],
+
+      // 無庫存不需要這些顯示用欄位，清掉可減少資料與避免過期警示干擾
+      storedDate: "",
+      expiryDate: "",
+      noExpiry: true,
+
+      updatedAt: new Date()
+    });
+
+    goHome();
+  } catch (e) {
+    alert("更新失敗");
+  }
+  return;
+}
 
                 try {
                     let batches = itemToDelete.value.batches ? [...itemToDelete.value.batches] : [{
