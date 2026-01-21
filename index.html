@@ -232,6 +232,11 @@
         .island-action-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #999; }
         
         .chip-active { background-color: #141414 !important; color: white !important; border: 1px solid #141414 !important; }
+        @media (max-width: 768px) {
+            .offcanvas-backdrop {
+                display: none !important; /* 強制隱藏黑色遮罩 */
+            }
+        }
     </style>
 </head>
 <body>
@@ -1182,7 +1187,7 @@
         </div>
 
         <!-- 左側邊欄 -->
-        <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel" data-bs-backdrop="false">
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebarLabel">
             <div class="offcanvas-header">
                 <h5 class="offcanvas-title fw-bold" id="sidebarLabel"><i class="bi bi-snow2 text-primary"></i> 功能選單</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
