@@ -233,10 +233,12 @@
         
         .chip-active { background-color: #141414 !important; color: white !important; border: 1px solid #141414 !important; }
         @media (max-width: 768px) {
-            .offcanvas-backdrop {
-                display: none !important; /* 強制隱藏黑色遮罩 */
-            }
-        }
+  body .offcanvas-backdrop {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
     </style>
 </head>
 <body>
